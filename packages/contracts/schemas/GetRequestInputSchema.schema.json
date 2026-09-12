@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "meta": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "string",
+          "const": "1.0.0"
+        },
+        "organizationId": {
+          "type": "string",
+          "pattern": "^org_[a-z0-9]+(?:_[a-z0-9]+)*$"
+        },
+        "correlationId": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "organizationId",
+        "correlationId"
+      ],
+      "additionalProperties": false
+    },
+    "payload": {
+      "type": "object",
+      "properties": {
+        "requestId": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$"
+        }
+      },
+      "required": [
+        "requestId"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "meta",
+    "payload"
+  ],
+  "additionalProperties": false,
+  "$id": "https://alloc.local/contracts/1.0.0/GetRequestInputSchema.schema.json",
+  "title": "GetRequestInputSchema",
+  "x-alloc-contract-version": "1.0.0"
+}

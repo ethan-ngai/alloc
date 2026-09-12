@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "limit": {
+      "default": 25,
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100
+    },
+    "cursor": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "additionalProperties": false,
+  "$id": "https://alloc.local/contracts/1.0.0/PageRequestSchema.schema.json",
+  "title": "PageRequestSchema",
+  "x-alloc-contract-version": "1.0.0"
+}

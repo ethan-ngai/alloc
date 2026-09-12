@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "string",
+  "enum": [
+    "synthetic",
+    "imported",
+    "live"
+  ],
+  "$id": "https://alloc.local/contracts/1.0.0/ProvenanceKindSchema.schema.json",
+  "title": "ProvenanceKindSchema",
+  "x-alloc-contract-version": "1.0.0"
+}

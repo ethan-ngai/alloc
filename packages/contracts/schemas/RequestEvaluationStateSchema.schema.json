@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "string",
+  "enum": [
+    "submitted",
+    "evaluating",
+    "approved",
+    "review_required",
+    "denied"
+  ],
+  "$id": "https://alloc.local/contracts/1.0.0/RequestEvaluationStateSchema.schema.json",
+  "title": "RequestEvaluationStateSchema",
+  "x-alloc-contract-version": "1.0.0"
+}
