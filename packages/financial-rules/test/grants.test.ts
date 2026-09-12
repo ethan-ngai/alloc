@@ -26,11 +26,13 @@ const cases: Array<[string, Mutable<ApprovalGrantValidationInput>, ReasonCode[]]
   ["rejects a grant from another organization", { grant: approvalGrant({ organizationId: "org_other_tenant" }) }, [REASON_CODE.GRANT_ORGANIZATION_MISMATCH]],
   ["rejects an approver from another organization", { approver: approverAuthority({ organizationId: "org_other_tenant" }) }, [REASON_CODE.GRANT_ORGANIZATION_MISMATCH]],
   ["rejects a grant bound to another request", { grant: approvalGrant({ requestRef: { type: "request", id: "request_other_trip", revision: 2 } }) }, [REASON_CODE.GRANT_REQUEST_MISMATCH]],
+  ["rejects a request reference with the wrong record type", { grant: approvalGrant({ requestRef: { type: "policy", id: "request_buffalo_trip", revision: 2 } }) }, [REASON_CODE.GRANT_REQUEST_MISMATCH]],
   ["rejects a grant bound to an older revision", { grant: approvalGrant({ requestRef: requestReference(1) }) }, [REASON_CODE.GRANT_REVISION_MISMATCH]],
   ["rejects a grant that authorizes a different amount", { amount: usd(21_001) }, [REASON_CODE.GRANT_AMOUNT_MISMATCH]],
   ["rejects a grant whose exact amount differs", { grant: approvalGrant({ exactAmount: usd(20_000) }) }, [REASON_CODE.GRANT_AMOUNT_MISMATCH]],
   ["rejects a grant for another action type", { actionType: "approve_request" }, [REASON_CODE.GRANT_ACTION_MISMATCH]],
   ["rejects a grant bound to another policy revision", { grant: approvalGrant({ policyRef: { type: "policy", id: "policy_travel", revision: 2 } }) }, [REASON_CODE.GRANT_POLICY_MISMATCH]],
+  ["rejects a policy reference with the wrong record type", { grant: approvalGrant({ policyRef: { type: "request", id: "policy_travel", revision: 1 } }) }, [REASON_CODE.GRANT_POLICY_MISMATCH]],
   ["rejects a grant whose policy has expired", { policy: policy({ effectiveTo: "2026-09-12T14:00:00Z" }) }, [REASON_CODE.GRANT_POLICY_MISMATCH]],
   ["rejects a grant whose policy is not yet effective", { policy: policy({ effectiveFrom: "2026-09-12T15:00:00Z" }) }, [REASON_CODE.GRANT_POLICY_MISMATCH]],
   ["rejects a grant from a previous authorization epoch", { grant: approvalGrant({ authorizationEpoch: 2 }) }, [REASON_CODE.GRANT_EPOCH_MISMATCH]],
@@ -83,5 +85,14 @@ describe("validateApprovalGrant", () => {
     expect(errorCode(() => validateApprovalGrant(baseInput({ requesterRoles: [] })))).toBe("MISSING_REQUIRED_INPUT");
     expect(errorCode(() => validateApprovalGrant(baseInput({ budgets: [{ account: budget({ available: usd(1) }), reserveDelta: usd(3_000) }] })))).toBe("INCONSISTENT_BUDGET");
     expect(errorCode(() => validateApprovalGrant(baseInput({ budgets: [{ account: budget({ organizationId: "org_other_tenant" }), reserveDelta: usd(3_000) }] })))).toBe("ORGANIZATION_MISMATCH");
+    expect(errorCode(() => validateApprovalGrant(baseInput({ grant: approvalGrant({ exactAmount: { amountMinor: 21_000, currency: "EUR" } as unknown as UsdMoney }) })))).toBe("CURRENCY_MISMATCH");
+  });
+
+  it("rejects conflicting approver roles independently of rule order", () => {
+    const financeRule = rule({ ruleId: "rule_finance", requiredApproverRole: "finance_manager" });
+    const controllerRule = rule({ ruleId: "rule_controller", effect: "require_review", requiredApproverRole: "controller" });
+    for (const rules of [[financeRule, controllerRule], [controllerRule, financeRule]]) {
+      expect(errorCode(() => validateApprovalGrant(baseInput({ policy: policy({ rules }) })))).toBe("INCONSISTENT_APPROVER_ROLE");
+    }
   });
 });

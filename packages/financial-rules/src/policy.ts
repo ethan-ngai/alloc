@@ -3,7 +3,7 @@ import { approvalActionTypeFor, validateApprovalGrant } from "./grants.js";
 import { checkBudgets, checkCumulativeTotals, parseTimestamp, requireRequesterRoles } from "./inputs.js";
 import { assertNonNegativeUsd, assertPositiveUsd, compareUsd } from "./money.js";
 import { REASON_CODE, dedupeRefs, refOfPolicy, refOfRequest, sortedUniqueReasonCodes, type ReasonCode } from "./reason-codes.js";
-import { evaluateRule, matchesCategory, matchesRequesterRole, policyApplicability } from "./rules.js";
+import { evaluateRule, matchesCategory, matchesRequesterRole, policyApplicability, resolveRequiredApproverRole } from "./rules.js";
 import type { PolicyEvaluationInput, PolicyEvaluationResult, PolicyOutcome } from "./types.js";
 
 /**
@@ -49,7 +49,8 @@ export function evaluateRequestPolicy(input: PolicyEvaluationInput): PolicyEvalu
   const evidenceRefs = dedupeRefs(evaluations.flatMap(evaluation => evaluation.evidenceRefs));
   const evaluatedCumulativeIncrease = evaluations.find(evaluation => evaluation.cumulativeUsed !== null)?.cumulativeUsed ?? cumulativeIncrease;
   const matchedRuleIds = candidates.map(rule => rule.ruleId);
-  const requiredApproverRole = candidates.find(rule => rule.requiredApproverRole !== undefined)?.requiredApproverRole ?? null;
+  const denyRules = evaluations.filter(evaluation => evaluation.rule.effect === "deny" && evaluation.failures.length === 0);
+  const requiredApproverRole = hardCapFailures.length > 0 || denyRules.length > 0 ? null : resolveRequiredApproverRole(candidates);
 
   const decide = (outcome: PolicyOutcome, reasonCodes: readonly ReasonCode[], extra: Partial<PolicyEvaluationResult> = {}): PolicyEvaluationResult => ({
     outcome,
@@ -66,7 +67,6 @@ export function evaluateRequestPolicy(input: PolicyEvaluationInput): PolicyEvalu
     ...extra,
   });
 
-  const denyRules = evaluations.filter(evaluation => evaluation.rule.effect === "deny" && evaluation.failures.length === 0);
   if (hardCapFailures.length > 0 || denyRules.length > 0) {
     return decide("denied", [
       ...(hardCapFailures.length > 0 ? [REASON_CODE.HARD_CAP_CAPACITY_INSUFFICIENT] : []),

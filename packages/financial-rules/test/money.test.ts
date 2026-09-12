@@ -42,6 +42,7 @@ describe("checked USD arithmetic", () => {
     expect(sumUsd([])).toEqual({ amountMinor: 0, currency: "USD" });
     expect(sumUsd([usd(6_000), usd(3_000), usd(1)])).toEqual({ amountMinor: 9_001, currency: "USD" });
     expect(errorCode(() => sumUsd([usd(MAX_SAFE), usd(MAX_SAFE)]))).toBe("UNSAFE_INTEGER");
+    expect(errorCode(() => sumUsd([usd(MAX_SAFE), usd(2), usd(-2)]))).toBe("UNSAFE_INTEGER");
   });
 
   it("compares amounts deterministically", () => {

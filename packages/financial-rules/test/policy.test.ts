@@ -117,6 +117,20 @@ describe("evaluateRequestPolicy", () => {
     expect(result.evidenceRefs).toEqual([{ type: "evidence", id: "evidence_trip_active", revision: 1 }]);
   });
 
+  it("retains the source revision when evidence fails freshness", () => {
+    const stale = evidence({ provenance: {
+      kind: "synthetic", trust: "evidence", sourceInstanceId: "source_northstar_simulator",
+      sourceObjectId: "purpose-brief-stale", sourceRevision: "2",
+      occurredAt: "2026-09-12T12:00:00Z", observedAt: "2026-09-12T12:00:00Z",
+    } });
+    const result = evaluateRequestPolicy(evaluationInput({
+      policy: policy({ rules: [rule({ maximumEvidenceAgeSeconds: 3_600 })] }),
+      evidence: [stale],
+    }));
+    expect(result.reasonCodes).toEqual([REASON_CODE.EVIDENCE_STALE]);
+    expect(result.evidenceRefs).toEqual([{ type: "evidence", id: stale.evidenceId, revision: stale.revision }]);
+  });
+
   it("reports every matched candidate rule in policy order", () => {
     const result = evaluateRequestPolicy(evaluationInput({ policy: policy({ rules: [rule({ ruleId: "rule_second" }), rule({ ruleId: "rule_first" })] }) }));
     expect(result.matchedRuleIds).toEqual(["rule_second", "rule_first"]);
@@ -127,6 +141,18 @@ describe("evaluateRequestPolicy", () => {
     expect(result.matchedRuleIds).toEqual([]);
     expect(result.evidenceRefs).toEqual([]);
     expect(result.requiredApproverRole).toBeNull();
+  });
+
+  it("preserves hard-cap denial when matching rules have conflicting approver roles", () => {
+    const result = evaluateRequestPolicy(evaluationInput({
+      policy: policy({ rules: [
+        rule({ ruleId: "rule_finance", requiredApproverRole: "finance_manager" }),
+        bareRule({ ruleId: "rule_controller", effect: "require_review", requiredApproverRole: "controller" }),
+      ] }),
+      budgets: reserved(3_000, 3_001),
+    }));
+    expect(result.outcome).toBe("denied");
+    expect(result.reasonCodes).toEqual([REASON_CODE.HARD_CAP_CAPACITY_INSUFFICIENT]);
   });
 });
 
@@ -159,6 +185,30 @@ describe("evaluateRequestPolicy with a grant", () => {
     const result = evaluateRequestPolicy(reviewInput({ grant: { grant: approvalGrant({ requestRef: requestReference(3), exactAmount: usd(24_000) }), approver: approverAuthority({ revoked: true }) } }));
     expect(result.outcome).toBe("review_required");
     expect(result.reasonCodes).toContain(REASON_CODE.GRANT_AUTHORITY_REVOKED);
+  });
+
+  it("retains stale evidence while refusing a malformed grant binding", () => {
+    const stale = evidence({ provenance: {
+      kind: "synthetic", trust: "evidence", sourceInstanceId: "source_northstar_simulator",
+      sourceObjectId: "purpose-brief-stale", sourceRevision: "2",
+      occurredAt: "2026-09-12T12:00:00Z", observedAt: "2026-09-12T12:00:00Z",
+    } });
+    const malformedGrant = approvalGrant({
+      requestRef: { type: "policy", id: "request_buffalo_trip", revision: 3 },
+      exactAmount: usd(24_000),
+    });
+    const result = evaluateRequestPolicy(reviewInput({
+      policy: policy({ rules: [rule({ maximumEvidenceAgeSeconds: 3_600 })] }),
+      evidence: [stale],
+      grant: { grant: malformedGrant, approver: approverAuthority() },
+    }));
+    expect(result.outcome).toBe("review_required");
+    expect(result.reasonCodes).toEqual([
+      REASON_CODE.CUMULATIVE_INCREASE_LIMIT_EXCEEDED,
+      REASON_CODE.EVIDENCE_STALE,
+      REASON_CODE.GRANT_REQUEST_MISMATCH,
+    ]);
+    expect(result.evidenceRefs).toEqual([{ type: "evidence", id: stale.evidenceId, revision: stale.revision }]);
   });
 
   it("refuses requester self-approval", () => {
@@ -204,6 +254,8 @@ describe("evaluateRequestPolicy invalid inputs", () => {
     ["rejects a total without sources", { cumulativeTotals: [cumulativeTotal({ cumulativeIncrease: usd(6_000), sources: [] })] }, "MISSING_REQUIRED_INPUT", "cumulativeTotals[0].sources"],
     ["rejects an unknown cumulative dimension", { cumulativeTotals: [cumulativeTotal({ dimension: "cost_center" as never })] }, "MISSING_REQUIRED_INPUT", "cumulativeTotals[0].dimension"],
     ["rejects a negative reservation", { budgets: [{ account: budget(), reserveDelta: usd(-1) }] }, "NEGATIVE_AMOUNT", "budgets[0].reserveDelta"],
+    ["rejects a non-USD full-amount rule limit", { policy: policy({ rules: [rule({ maximumFullAmount: { amountMinor: 25_000, currency: "EUR" } as unknown as UsdMoney })] }) }, "CURRENCY_MISMATCH", "rule.rule_small_purchase.maximumFullAmount.currency"],
+    ["rejects a non-USD cumulative rule limit", { policy: policy({ rules: [rule({ maximumCumulativeIncrease: { amountMinor: 5_000, currency: "EUR" } as unknown as UsdMoney })] }) }, "CURRENCY_MISMATCH", "rule.rule_small_purchase.maximumCumulativeIncrease.currency"],
   ];
 
   it.each(invalid)("%s", (_name, overrides, code, path) => {
@@ -214,6 +266,14 @@ describe("evaluateRequestPolicy invalid inputs", () => {
 
   it("names the error type and code in the thrown error", () => {
     expect(errorMessage(() => evaluateRequestPolicy(evaluationInput({ evaluatedAt: "yesterday" })))).toMatch(/^INVALID_TIMESTAMP at evaluatedAt: /);
+  });
+
+  it("rejects conflicting approver roles independently of rule order", () => {
+    const financeRule = rule({ ruleId: "rule_finance", requiredApproverRole: "finance_manager" });
+    const controllerRule = bareRule({ ruleId: "rule_controller", effect: "require_review", requiredApproverRole: "controller" });
+    for (const rules of [[financeRule, controllerRule], [controllerRule, financeRule]]) {
+      expect(errorCode(() => evaluateRequestPolicy(evaluationInput({ policy: policy({ rules }) })))).toBe("INCONSISTENT_APPROVER_ROLE");
+    }
   });
 });
 

@@ -62,9 +62,7 @@ export function addUsd(left: UsdMoney, right: UsdMoney, path = "amount"): UsdMon
 }
 
 export function sumUsd(amounts: readonly UsdMoney[], path = "amounts"): UsdMoney {
-  const total = amounts.reduce((sum, amount) => sum + amount.amountMinor, 0);
-  if (!Number.isSafeInteger(total)) throw new FinancialRulesInputError("UNSAFE_INTEGER", path, "summation exceeded the safe integer range");
-  return { amountMinor: total, currency: CONTRACT_CURRENCY };
+  return amounts.reduce((total, amount) => addUsd(total, amount, path), usd(0));
 }
 
 export function subtractUsd(left: UsdMoney, right: UsdMoney, path = "amount"): UsdMoney {

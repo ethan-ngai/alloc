@@ -3,7 +3,7 @@ import { FinancialRulesInputError } from "./errors.js";
 import { checkBudgets, parseTimestamp, requireRequesterRoles } from "./inputs.js";
 import { assertPositiveUsd, compareUsd, equalsUsd } from "./money.js";
 import { REASON_CODE, sortedUniqueReasonCodes, type ReasonCode } from "./reason-codes.js";
-import { matchesCategory, matchesRequesterRole, policyApplicability } from "./rules.js";
+import { matchesCategory, matchesRequesterRole, policyApplicability, resolveRequiredApproverRole } from "./rules.js";
 import type { ApprovalGrantValidationInput, ApprovalGrantValidationResult } from "./types.js";
 
 /**
@@ -22,16 +22,17 @@ export function validateApprovalGrant(input: ApprovalGrantValidationInput): Appr
   const requesterRoles = requireRequesterRoles(input.requesterRoles, "requesterRoles");
   const amount = assertPositiveUsd(input.amount, "amount");
   const requestAmount = assertPositiveUsd(request.fullAmount, "request.fullAmount");
+  const grantAmount = assertPositiveUsd(grant.exactAmount, "grant.exactAmount");
 
   const failures: ReasonCode[] = [];
   if (grant.organizationId !== request.organizationId || approver.organizationId !== request.organizationId) {
     failures.push(REASON_CODE.GRANT_ORGANIZATION_MISMATCH);
   }
-  if (grant.requestRef.id !== request.requestId) failures.push(REASON_CODE.GRANT_REQUEST_MISMATCH);
+  if (grant.requestRef.type !== "request" || grant.requestRef.id !== request.requestId) failures.push(REASON_CODE.GRANT_REQUEST_MISMATCH);
   if (grant.requestRef.revision !== request.revision) failures.push(REASON_CODE.GRANT_REVISION_MISMATCH);
-  if (!equalsUsd(grant.exactAmount, amount) || !equalsUsd(amount, requestAmount)) failures.push(REASON_CODE.GRANT_AMOUNT_MISMATCH);
+  if (!equalsUsd(grantAmount, amount) || !equalsUsd(amount, requestAmount)) failures.push(REASON_CODE.GRANT_AMOUNT_MISMATCH);
   if (grant.actionType !== input.actionType) failures.push(REASON_CODE.GRANT_ACTION_MISMATCH);
-  if (grant.policyRef.id !== policy.policyId || grant.policyRef.revision !== policy.revision || policyApplicability(policy, request, evaluatedAtMs).length > 0) {
+  if (grant.policyRef.type !== "policy" || grant.policyRef.id !== policy.policyId || grant.policyRef.revision !== policy.revision || policyApplicability(policy, request, evaluatedAtMs).length > 0) {
     failures.push(REASON_CODE.GRANT_POLICY_MISMATCH);
   }
   if (grant.authorizationEpoch !== policy.authorizationEpoch) failures.push(REASON_CODE.GRANT_EPOCH_MISMATCH);
@@ -44,7 +45,7 @@ export function validateApprovalGrant(input: ApprovalGrantValidationInput): Appr
   if (approver.approverId !== grant.approverId) failures.push(REASON_CODE.GRANT_APPROVER_IDENTITY_MISMATCH);
 
   const candidates = policy.rules.filter(rule => matchesCategory(rule, request) && matchesRequesterRole(rule, requesterRoles));
-  const requiredApproverRole = candidates.find(rule => rule.requiredApproverRole !== undefined)?.requiredApproverRole ?? null;
+  const requiredApproverRole = resolveRequiredApproverRole(candidates);
   if (requiredApproverRole !== null && grant.authorityRole !== requiredApproverRole) failures.push(REASON_CODE.GRANT_APPROVER_ROLE_MISMATCH);
   if (!approver.roles.includes(grant.authorityRole)) failures.push(REASON_CODE.GRANT_APPROVER_ROLE_MISMATCH);
   if (!authorityCovers(approver.scopes, grant.scope, request.organizationId)) failures.push(REASON_CODE.GRANT_APPROVER_SCOPE_MISMATCH);

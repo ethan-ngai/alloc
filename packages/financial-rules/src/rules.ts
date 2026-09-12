@@ -1,6 +1,7 @@
 import type { Evidence, Policy, PolicyRule, PurchaseRequestRevision, RecordRef } from "@alloc/contracts";
+import { FinancialRulesInputError } from "./errors.js";
 import { parseTimestamp, ownDimensionId } from "./inputs.js";
-import { compareUsd, type UsdMoney } from "./money.js";
+import { assertNonNegativeUsd, compareUsd, type UsdMoney } from "./money.js";
 import { REASON_CODE, refOfEvidence, type ReasonCode } from "./reason-codes.js";
 import { DEFAULT_CUMULATIVE_LIMIT_SCOPE, type CumulativeLimitScope, type CumulativeTotalInput, type TrustedPurposeState } from "./types.js";
 
@@ -47,6 +48,19 @@ export function matchesRequesterRole(rule: PolicyRule, requesterRoles: readonly 
   return rule.requesterRoles.some(role => requesterRoles.includes(role));
 }
 
+/** The decision and grant contracts carry one role, so conflicting rule roles are invalid policy. */
+export function resolveRequiredApproverRole(rules: readonly PolicyRule[]): string | null {
+  const roles = [...new Set(rules.flatMap(rule => rule.requiredApproverRole ? [rule.requiredApproverRole] : []))].sort();
+  if (roles.length > 1) {
+    throw new FinancialRulesInputError(
+      "INCONSISTENT_APPROVER_ROLE",
+      "policy.rules",
+      `matching rules require conflicting approver roles: ${roles.join(", ")}`,
+    );
+  }
+  return roles[0] ?? null;
+}
+
 /** Evaluates one structurally matching rule's own eligibility conditions. */
 export function evaluateRule(rule: PolicyRule, context: RuleContext): RuleEvaluation {
   const failures: ReasonCode[] = [];
@@ -72,8 +86,9 @@ export function evaluateRule(rule: PolicyRule, context: RuleContext): RuleEvalua
   }
 
   const maximumFullAmount = rule.maximumFullAmount;
-  if (maximumFullAmount && compareUsd(context.request.fullAmount, maximumFullAmount) > 0) {
-    failures.push(REASON_CODE.FULL_AMOUNT_EXCEEDS_AUTO_LIMIT);
+  if (maximumFullAmount) {
+    const limit = assertNonNegativeUsd(maximumFullAmount, `rule.${rule.ruleId}.maximumFullAmount`);
+    if (compareUsd(context.request.fullAmount, limit) > 0) failures.push(REASON_CODE.FULL_AMOUNT_EXCEEDS_AUTO_LIMIT);
   }
 
   const maximumCumulativeIncrease = rule.maximumCumulativeIncrease;
@@ -84,7 +99,8 @@ export function evaluateRule(rule: PolicyRule, context: RuleContext): RuleEvalua
       failures.push(REASON_CODE.MISSING_TRUSTED_FACTS);
     } else {
       cumulativeUsed = total.cumulativeIncrease;
-      if (compareUsd(total.cumulativeIncrease, maximumCumulativeIncrease) > 0) failures.push(REASON_CODE.CUMULATIVE_INCREASE_LIMIT_EXCEEDED);
+      const limit = assertNonNegativeUsd(maximumCumulativeIncrease, `rule.${rule.ruleId}.maximumCumulativeIncrease`);
+      if (compareUsd(total.cumulativeIncrease, limit) > 0) failures.push(REASON_CODE.CUMULATIVE_INCREASE_LIMIT_EXCEEDED);
     }
   }
 
@@ -109,6 +125,7 @@ function selectEvidence(kinds: readonly string[], maximumAgeSeconds: number | un
     }
     const fresh = candidates.filter(item => isFresh(item, maximumAgeSeconds, context.evaluatedAtMs));
     if (fresh.length === 0) {
+      refs.push(...candidates.map(refOfEvidence));
       stale = true;
       continue;
     }
