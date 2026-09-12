@@ -1,4 +1,5 @@
 import { MongoClient, type ClientSession, type Db } from "mongodb";
+import { ensureExecutionCollections } from "../execution/collections.js";
 import { ensureFinanceCollections } from "../finance/collections.js";
 import { MongoFinancialRepository, type FinancialRepository } from "../finance/repository.js";
 import { createReadiness, type Readiness } from "../readiness.js";
@@ -67,6 +68,7 @@ export async function connectMongoRuntime(options: MongoRuntimeOptions): Promise
     await ensureOrganizationCollection(db);
     await ensureImportCollections(db);
     await ensureFinanceCollections(db);
+    await ensureExecutionCollections(db);
     await ensureContextIndexes(db);
     await ensureGraphCollections(db);
     await ensureForecastCollections(db);

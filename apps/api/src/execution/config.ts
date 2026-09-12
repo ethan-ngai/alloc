@@ -1,0 +1,93 @@
+/**
+ * Startup configuration for the executor process. It shares the MongoDB and log
+ * fragments with the API so both processes agree on connection and timeout
+ * semantics, and adds only the executor's own knobs. Nothing is defaulted for
+ * the connection: a missing URI or database is a startup failure.
+ */
+import { z } from "zod";
+import {
+  ConfigError,
+  DURATION_SCHEMA, LOG_LEVEL_SCHEMA, MONGO_DATABASE_SCHEMA, MONGO_URI_SCHEMA,
+  configIssues, readEnv, type LogLevel, type MongoConfig,
+} from "../config.js";
+import { SIMULATED_FAILURE_MODES, type SimulatedFailureMode } from "./provider.js";
+
+export const DEFAULT_EXECUTOR_POLL_INTERVAL_MS = 1_000;
+export const DEFAULT_EXECUTOR_BATCH_SIZE = 10;
+
+/** `crash_after_provider_apply` kills the process after the provider applied the operation. */
+export const EXECUTOR_FAULTS = ["none", "crash_after_provider_apply"] as const;
+export type ExecutorFault = (typeof EXECUTOR_FAULTS)[number];
+
+export interface ExecutorConfig {
+  readonly logLevel: LogLevel;
+  readonly mongo: MongoConfig;
+  readonly shutdownTimeoutMs: number;
+  readonly pollIntervalMs: number;
+  readonly batchSize: number;
+  readonly fault: ExecutorFault;
+  readonly providerFailureMode: SimulatedFailureMode;
+}
+
+const RawExecutorConfigSchema = z.object({
+  logLevel: LOG_LEVEL_SCHEMA,
+  mongoUri: MONGO_URI_SCHEMA,
+  mongoDatabase: MONGO_DATABASE_SCHEMA,
+  mongoServerSelectionTimeoutMs: DURATION_SCHEMA.describe("MONGO_SERVER_SELECTION_TIMEOUT_MS"),
+  mongoHeartbeatFrequencyMs: DURATION_SCHEMA.describe("MONGO_HEARTBEAT_FREQUENCY_MS"),
+  shutdownTimeoutMs: DURATION_SCHEMA.describe("SHUTDOWN_TIMEOUT_MS"),
+  pollIntervalMs: z.coerce.number().int().min(100).max(60_000).describe("EXECUTOR_POLL_INTERVAL_MS"),
+  batchSize: z.coerce.number().int().min(1).max(100).describe("EXECUTOR_BATCH_SIZE"),
+  fault: z.enum(EXECUTOR_FAULTS).describe("EXECUTOR_FAULT"),
+  providerFailureMode: z.enum(SIMULATED_FAILURE_MODES).describe("SIMULATED_PROVIDER_FAILURE_MODE"),
+});
+
+type RawExecutorConfigKey = keyof z.infer<typeof RawExecutorConfigSchema>;
+
+const ENV_NAMES: Record<RawExecutorConfigKey, string> = {
+  logLevel: "LOG_LEVEL",
+  mongoUri: "MONGO_URI",
+  mongoDatabase: "MONGO_DATABASE",
+  mongoServerSelectionTimeoutMs: "MONGO_SERVER_SELECTION_TIMEOUT_MS",
+  mongoHeartbeatFrequencyMs: "MONGO_HEARTBEAT_FREQUENCY_MS",
+  shutdownTimeoutMs: "SHUTDOWN_TIMEOUT_MS",
+  pollIntervalMs: "EXECUTOR_POLL_INTERVAL_MS",
+  batchSize: "EXECUTOR_BATCH_SIZE",
+  fault: "EXECUTOR_FAULT",
+  providerFailureMode: "SIMULATED_PROVIDER_FAILURE_MODE",
+};
+
+export function loadExecutorConfig(env: Record<string, string | undefined> = process.env): ExecutorConfig {
+  const raw = {
+    logLevel: readEnv(env, "LOG_LEVEL") ?? "info",
+    mongoUri: readEnv(env, "MONGO_URI") ?? "",
+    mongoDatabase: readEnv(env, "MONGO_DATABASE") ?? "",
+    mongoServerSelectionTimeoutMs: readEnv(env, "MONGO_SERVER_SELECTION_TIMEOUT_MS") ?? "5000",
+    mongoHeartbeatFrequencyMs: readEnv(env, "MONGO_HEARTBEAT_FREQUENCY_MS") ?? "10000",
+    shutdownTimeoutMs: readEnv(env, "SHUTDOWN_TIMEOUT_MS") ?? "10000",
+    pollIntervalMs: readEnv(env, "EXECUTOR_POLL_INTERVAL_MS") ?? String(DEFAULT_EXECUTOR_POLL_INTERVAL_MS),
+    batchSize: readEnv(env, "EXECUTOR_BATCH_SIZE") ?? String(DEFAULT_EXECUTOR_BATCH_SIZE),
+    fault: readEnv(env, "EXECUTOR_FAULT") ?? "none",
+    providerFailureMode: readEnv(env, "SIMULATED_PROVIDER_FAILURE_MODE") ?? "none",
+  };
+
+  const parsed = RawExecutorConfigSchema.safeParse(raw);
+  if (!parsed.success) {
+    throw new ConfigError(configIssues(parsed.error, [raw.mongoUri], ENV_NAMES));
+  }
+  const config = parsed.data;
+  return {
+    logLevel: config.logLevel,
+    mongo: {
+      uri: config.mongoUri,
+      database: config.mongoDatabase,
+      serverSelectionTimeoutMs: config.mongoServerSelectionTimeoutMs,
+      heartbeatFrequencyMs: config.mongoHeartbeatFrequencyMs,
+    },
+    shutdownTimeoutMs: config.shutdownTimeoutMs,
+    pollIntervalMs: config.pollIntervalMs,
+    batchSize: config.batchSize,
+    fault: config.fault,
+    providerFailureMode: config.providerFailureMode,
+  };
+}

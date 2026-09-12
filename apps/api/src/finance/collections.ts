@@ -1,9 +1,10 @@
 import { CONTRACT_SCHEMA_VERSION } from "@alloc/contracts";
-import type { Db, IndexDescription } from "mongodb";
+import type { Db } from "mongodb";
 import {
-  CLASSIFICATIONS, DATE_PATTERN, ID_PATTERN, MAX_SAFE_INTEGER, MIN_SAFE_INTEGER,
-  ORGANIZATION_ID_PATTERN, SCOPE_TYPES, TIMESTAMP_PATTERN,
-} from "../mongo/patterns.js";
+  ACCESS, DATE, ID, NON_EMPTY_STRING, NON_NEGATIVE_INT, NON_NEGATIVE_MONEY, ORG_ID, POLICY_RULE,
+  POSITIVE_MONEY, PROVENANCE, RECORD_REF, REVISION, REVISION_OR_NULL, SCOPES, SCOPE_REF, SIGNED_INT, SIGNED_MONEY,
+  SIGNED_NON_ZERO_MONEY, TIMESTAMP, TIMESTAMP_OR_NULL, ensureCollections, schema, type CollectionSpec,
+} from "../mongo/collections.js";
 
 export const POLICIES_COLLECTION = "financial_policies";
 export const POLICY_GUARDS_COLLECTION = "financial_policy_guards";
@@ -21,122 +22,6 @@ export const COMMANDS_COLLECTION = "financial_commands";
 export const POSTINGS_COLLECTION = "financial_postings";
 export const CORRECTIONS_COLLECTION = "financial_corrections";
 export const AUDIT_EVENTS_COLLECTION = "financial_audit_events";
-
-const ORG_ID = { bsonType: "string", pattern: ORGANIZATION_ID_PATTERN } as const;
-const ID = { bsonType: "string", pattern: ID_PATTERN } as const;
-const TIMESTAMP = { bsonType: "string", pattern: TIMESTAMP_PATTERN } as const;
-const DATE = { bsonType: "string", pattern: DATE_PATTERN } as const;
-const REVISION = { bsonType: ["int", "long", "double"], minimum: 1, maximum: MAX_SAFE_INTEGER, multipleOf: 1 } as const;
-const NON_NEGATIVE_INT = { bsonType: ["int", "long", "double"], minimum: 0, maximum: MAX_SAFE_INTEGER, multipleOf: 1 } as const;
-const SIGNED_INT = { bsonType: ["int", "long", "double"], minimum: MIN_SAFE_INTEGER, maximum: MAX_SAFE_INTEGER, multipleOf: 1 } as const;
-const REVISION_OR_NULL = { anyOf: [REVISION, { bsonType: "null" }] } as const;
-const TIMESTAMP_OR_NULL = { anyOf: [TIMESTAMP, { bsonType: "null" }] } as const;
-const NON_EMPTY_STRING = { bsonType: "string", minLength: 1 } as const;
-
-function money(minimum: number, maximum = MAX_SAFE_INTEGER) {
-  return {
-    bsonType: "object",
-    additionalProperties: false,
-    required: ["amountMinor", "currency"],
-    properties: {
-      amountMinor: { bsonType: ["int", "long", "double"], minimum, maximum, multipleOf: 1 },
-      currency: { enum: ["USD"] },
-    },
-  };
-}
-
-const NON_NEGATIVE_MONEY = money(0);
-const POSITIVE_MONEY = money(1);
-const SIGNED_MONEY = money(MIN_SAFE_INTEGER);
-const SIGNED_NON_ZERO_MONEY = {
-  bsonType: "object",
-  additionalProperties: false,
-  required: ["amountMinor", "currency"],
-  properties: {
-    amountMinor: { anyOf: [money(MIN_SAFE_INTEGER, -1).properties.amountMinor, money(1).properties.amountMinor] },
-    currency: { enum: ["USD"] },
-  },
-};
-
-const RECORD_REF = {
-  bsonType: "object",
-  additionalProperties: false,
-  required: ["type", "id"],
-  properties: { type: NON_EMPTY_STRING, id: ID, revision: REVISION },
-};
-
-const SCOPE_REF = {
-  bsonType: "object",
-  additionalProperties: false,
-  required: ["type", "id"],
-  properties: { type: { enum: [...SCOPE_TYPES] }, id: ID },
-};
-
-const SCOPES = { bsonType: "array", minItems: 1, items: SCOPE_REF };
-
-const PROVENANCE = {
-  bsonType: "object",
-  additionalProperties: false,
-  required: ["kind", "trust", "sourceInstanceId", "sourceObjectId", "sourceRevision", "occurredAt", "observedAt"],
-  properties: {
-    kind: { enum: ["synthetic", "imported", "live"] },
-    trust: { enum: ["authoritative", "evidence", "candidate"] },
-    sourceInstanceId: ID,
-    sourceObjectId: NON_EMPTY_STRING,
-    sourceRevision: NON_EMPTY_STRING,
-    occurredAt: TIMESTAMP,
-    observedAt: TIMESTAMP,
-  },
-};
-
-const ACCESS = {
-  bsonType: "object",
-  additionalProperties: false,
-  required: ["classification", "scopeRefs"],
-  properties: {
-    classification: { enum: [...CLASSIFICATIONS] },
-    scopeRefs: SCOPES,
-    allowedPrincipalIds: { bsonType: "array", items: ID },
-  },
-};
-
-const POLICY_RULE = {
-  bsonType: "object",
-  additionalProperties: false,
-  required: ["ruleId", "effect", "categoryIds", "requesterRoles", "requireActivePurpose", "requiredEvidenceKinds"],
-  properties: {
-    ruleId: ID,
-    effect: { enum: ["permit", "deny", "require_review"] },
-    categoryIds: { bsonType: "array", minItems: 1, items: ID },
-    requesterRoles: { bsonType: "array", minItems: 1, items: NON_EMPTY_STRING },
-    maximumFullAmount: NON_NEGATIVE_MONEY,
-    maximumCumulativeIncrease: NON_NEGATIVE_MONEY,
-    requireActivePurpose: { bsonType: "bool" },
-    requiredEvidenceKinds: { bsonType: "array", items: NON_EMPTY_STRING },
-    eligibleVendorIds: { bsonType: "array", minItems: 1, items: ID },
-    maximumEvidenceAgeSeconds: NON_NEGATIVE_INT,
-    requiredApproverRole: NON_EMPTY_STRING,
-    prohibitRequesterApproval: { bsonType: "bool" },
-    cumulativeLimitScope: { enum: ["employee", "purpose", "project"] },
-  },
-};
-
-interface CollectionSpec {
-  readonly name: string;
-  readonly validator: Record<string, unknown>;
-  readonly indexes: readonly IndexDescription[];
-}
-
-function schema(required: readonly string[], properties: Record<string, unknown>): Record<string, unknown> {
-  return {
-    $jsonSchema: {
-      bsonType: "object",
-      additionalProperties: false,
-      required: ["_id", ...required],
-      properties: { _id: { bsonType: "objectId" }, ...properties },
-    },
-  };
-}
 
 const SPECS: readonly CollectionSpec[] = [
   {
@@ -392,27 +277,7 @@ const SPECS: readonly CollectionSpec[] = [
   },
 ];
 
-async function ensureCollection(db: Db, spec: CollectionSpec): Promise<void> {
-  const options = { validator: spec.validator, validationLevel: "strict", validationAction: "error" } as const;
-  const exists = await db.listCollections({ name: spec.name }, { nameOnly: true }).hasNext();
-  if (exists) {
-    await db.command({ collMod: spec.name, ...options });
-  } else {
-    try {
-      await db.createCollection(spec.name, options);
-    } catch (error) {
-      if ((error as { codeName?: unknown } | null)?.codeName !== "NamespaceExists") {
-        throw error;
-      }
-      await db.command({ collMod: spec.name, ...options });
-    }
-  }
-  await db.collection(spec.name).createIndexes([...spec.indexes]);
-}
-
 /** Creates or revalidates every financial collection and index. Idempotent. */
 export async function ensureFinanceCollections(db: Db): Promise<void> {
-  for (const spec of SPECS) {
-    await ensureCollection(db, spec);
-  }
+  await ensureCollections(db, SPECS);
 }

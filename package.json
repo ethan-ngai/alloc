@@ -19,6 +19,7 @@
     "verify": "npm run schema:check && npm run typecheck && npm run test && npm run test:integration && npm run test:e2e",
     "schema:check": "npm run schema:check --workspace @alloc/contracts",
     "dev": "node scripts/dev.mjs",
+    "executor": "npm run executor --workspace @alloc/api",
     "start": "npm run start --workspace @alloc/api"
   }
 }
