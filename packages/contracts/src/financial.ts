@@ -8,6 +8,11 @@ import {
 export const RequestEvaluationStateSchema = z.enum(["submitted", "evaluating", "approved", "review_required", "denied"]);
 export const HumanReviewStateSchema = z.enum(["review_required", "approved", "denied", "expired"]);
 export const ActionStateSchema = z.enum(["pending", "dispatching", "succeeded", "failed", "outcome_unknown", "canceled"]);
+/**
+ * Dimension a cumulative increase allowance is measured over. Omitted on a rule means "purpose",
+ * which measures the evaluating request's own revision chain.
+ */
+export const CumulativeLimitScopeSchema = z.enum(["employee", "purpose", "project"]);
 
 export const PurchaseRequestRevisionSchema = z.strictObject({
   schemaVersion: ContractSchemaVersionSchema,
@@ -55,6 +60,11 @@ export const PolicyRuleSchema = z.strictObject({
   maximumCumulativeIncrease: NonNegativeMoneySchema.optional(),
   requireActivePurpose: z.boolean(),
   requiredEvidenceKinds: z.array(z.string().min(1)),
+  eligibleVendorIds: z.array(IdSchema).min(1).optional(),
+  maximumEvidenceAgeSeconds: z.number().int().safe().nonnegative().optional(),
+  requiredApproverRole: z.string().min(1).optional(),
+  prohibitRequesterApproval: z.boolean().optional(),
+  cumulativeLimitScope: CumulativeLimitScopeSchema.optional(),
 });
 
 export const PolicySchema = z.strictObject({
@@ -191,8 +201,11 @@ export const ActionReceiptSchema = z.strictObject({
 
 export type PurchaseRequestRevision = z.infer<typeof PurchaseRequestRevisionSchema>;
 export type RequestAmendment = z.infer<typeof RequestAmendmentSchema>;
+export type Policy = z.infer<typeof PolicySchema>;
+export type PolicyRule = z.infer<typeof PolicyRuleSchema>;
 export type Decision = z.infer<typeof DecisionSchema>;
 export type ApprovalGrant = z.infer<typeof ApprovalGrantSchema>;
+export type BudgetAccount = z.infer<typeof BudgetAccountSchema>;
 export type Commitment = z.infer<typeof CommitmentSchema>;
 export type Posting = z.infer<typeof PostingSchema>;
 export type ActionIntent = z.infer<typeof ActionIntentSchema>;

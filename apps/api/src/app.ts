@@ -4,11 +4,21 @@ import { createTokenVerifier, type TokenVerifier } from "./auth/verifier.js";
 import { configSecrets, type AppConfig } from "./config.js";
 import { CORRELATION_ID_HEADER, correlationIdOf, resolveCorrelationId } from "./correlation.js";
 import { apiErrors, describeError, errorEnvelope, toApiError } from "./errors.js";
+import type { FinancialRepository } from "./finance/repository.js";
 import type { OrganizationRepository } from "./mongo/organizations.js";
+import type { ImportRepository } from "./imports/repository.js";
+import { registerImportRoutes } from "./routes/imports.js";
+import { registerPostingRoutes } from "./routes/postings.js";
+import { registerRequestRoutes } from "./routes/requests.js";
+import type { ContextRepository } from "./context/repository.js";
+import { registerContextRoutes } from "./routes/context.js";
+import type { GraphRepository } from "./context/graph.js";
 import { redactText } from "./redact.js";
 import type { Readiness } from "./readiness.js";
 import { registerHealthRoutes } from "./routes/health.js";
 import { registerOrganizationRoutes } from "./routes/organizations.js";
+import type { ForecastRepository } from "./forecasts/repository.js";
+import { registerForecastRoutes } from "./routes/forecasts.js";
 
 const REDACT_PATHS = ["req.headers.authorization", "req.headers.cookie", "res.headers['set-cookie']"];
 
@@ -16,6 +26,11 @@ export interface AppDependencies {
   readonly config: AppConfig;
   readonly readiness: Readiness;
   readonly organizations: OrganizationRepository;
+  readonly imports: ImportRepository;
+  readonly finance: FinancialRepository;
+  readonly context: ContextRepository;
+  readonly graph: GraphRepository;
+  readonly forecasts: ForecastRepository;
   /** Overridden in tests; defaults to the configured HS256 verifier. */
   readonly verifier?: TokenVerifier;
   /** Fastify logger options; pass `false` to silence logs in tests. */
@@ -35,6 +50,7 @@ export function buildApp(deps: AppDependencies): FastifyInstance {
     bodyLimit: 1_048_576,
     trustProxy: false,
   });
+  app.addContentTypeParser("text/csv", { parseAs: "string" }, (_request, body, done) => done(null, body));
   const redact = (text: string): string => redactText(text, configSecrets(deps.config));
 
   app.addHook("onRequest", async (request, reply) => {
@@ -47,6 +63,11 @@ export function buildApp(deps: AppDependencies): FastifyInstance {
   registerAuth(app, deps.verifier ?? createTokenVerifier(deps.config.jwt));
   registerHealthRoutes(app, deps.readiness);
   registerOrganizationRoutes(app, deps.organizations);
+  registerImportRoutes(app, deps.imports);
+  registerRequestRoutes(app, deps.finance);
+  registerPostingRoutes(app, deps.finance);
+  registerContextRoutes(app, deps.context, deps.graph);
+  registerForecastRoutes(app, deps.forecasts);
 
   app.setNotFoundHandler((request, reply) => {
     reply.code(404);

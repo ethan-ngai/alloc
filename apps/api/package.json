@@ -14,12 +14,15 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "start": "node dist/server.js",
+    "executor": "node dist/execution/worker.js",
     "test": "vitest run --config vitest.config.ts",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:e2e": "vitest run --config vitest.e2e.config.ts"
   },
   "dependencies": {
     "@alloc/contracts": "*",
+    "@alloc/financial-rules": "*",
+    "@alloc/forecast": "*",
     "fastify": "5.12.4",
     "jose": "6.2.12",
     "mongodb": "6.21.0",

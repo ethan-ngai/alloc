@@ -27,6 +27,11 @@ async function main(): Promise<void> {
       config,
       readiness: runtime.readiness,
       organizations: runtime.organizations,
+      imports: runtime.imports,
+      finance: runtime.finance,
+      context: runtime.context,
+      graph: runtime.graph,
+      forecasts: runtime.forecasts,
     });
 
     let shuttingDown = false;

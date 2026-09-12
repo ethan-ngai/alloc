@@ -50,24 +50,29 @@ export class ConfigError extends Error {
 const MONGO_URI_PATTERN = /^mongodb(?:\+srv)?:\/\/[^\s]+$/;
 const DATABASE_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$/;
 const PortSchema = z.coerce.number().int().min(1).max(65_535);
-const DurationSchema = z.coerce.number().int().min(100).max(600_000);
+
+/** Shared configuration fragments; process entrypoints compose their own schema. */
+export const LOG_LEVEL_SCHEMA = z.enum(LOG_LEVELS).describe("LOG_LEVEL");
+export const MONGO_URI_SCHEMA = z
+  .string()
+  .min(1, "is required")
+  .regex(MONGO_URI_PATTERN, "must be a mongodb:// or mongodb+srv:// connection string")
+  .describe("MONGO_URI");
+export const MONGO_DATABASE_SCHEMA = z
+  .string()
+  .min(1, "is required")
+  .regex(DATABASE_NAME_PATTERN, "must be a MongoDB database name without spaces or / \\. \" $ * < > : | ?")
+  .describe("MONGO_DATABASE");
+export const DURATION_SCHEMA = z.coerce.number().int().min(100).max(600_000);
 
 const RawConfigSchema = z.object({
   host: z.string().min(1).max(255).describe("HOST"),
   port: PortSchema.describe("PORT"),
-  logLevel: z.enum(LOG_LEVELS).describe("LOG_LEVEL"),
-  mongoUri: z
-    .string()
-    .min(1, "is required")
-    .regex(MONGO_URI_PATTERN, "must be a mongodb:// or mongodb+srv:// connection string")
-    .describe("MONGO_URI"),
-  mongoDatabase: z
-    .string()
-    .min(1, "is required")
-    .regex(DATABASE_NAME_PATTERN, "must be a MongoDB database name without spaces or / \\. \" $ * < > : | ?")
-    .describe("MONGO_DATABASE"),
-  mongoServerSelectionTimeoutMs: DurationSchema.describe("MONGO_SERVER_SELECTION_TIMEOUT_MS"),
-  mongoHeartbeatFrequencyMs: DurationSchema.describe("MONGO_HEARTBEAT_FREQUENCY_MS"),
+  logLevel: LOG_LEVEL_SCHEMA,
+  mongoUri: MONGO_URI_SCHEMA,
+  mongoDatabase: MONGO_DATABASE_SCHEMA,
+  mongoServerSelectionTimeoutMs: DURATION_SCHEMA.describe("MONGO_SERVER_SELECTION_TIMEOUT_MS"),
+  mongoHeartbeatFrequencyMs: DURATION_SCHEMA.describe("MONGO_HEARTBEAT_FREQUENCY_MS"),
   jwtSecret: z
     .string()
     .refine(
@@ -77,7 +82,7 @@ const RawConfigSchema = z.object({
     .describe("JWT_SECRET"),
   jwtIssuer: z.string().min(1, "is required").max(256).describe("JWT_ISSUER"),
   jwtAudience: z.string().min(1, "is required").max(256).describe("JWT_AUDIENCE"),
-  shutdownTimeoutMs: DurationSchema.describe("SHUTDOWN_TIMEOUT_MS"),
+  shutdownTimeoutMs: DURATION_SCHEMA.describe("SHUTDOWN_TIMEOUT_MS"),
 });
 
 type RawConfigKey = keyof z.infer<typeof RawConfigSchema>;
@@ -118,7 +123,7 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
 
   const parsed = RawConfigSchema.safeParse(raw);
   if (!parsed.success) {
-    throw new ConfigError(formatIssues(parsed.error, [raw.jwtSecret]));
+    throw new ConfigError(configIssues(parsed.error, [raw.jwtSecret, raw.mongoUri], ENV_NAMES));
   }
 
   const config = parsed.data;
@@ -167,15 +172,24 @@ export function redactedConfig(config: AppConfig): Record<string, unknown> {
   };
 }
 
-function readEnv(env: Record<string, string | undefined>, name: string): string | undefined {
+/** Reads a variable, treating an empty or blank value as absent. */
+export function readEnv(env: Record<string, string | undefined>, name: string): string | undefined {
   const value = env[name];
   return value === undefined || value.trim().length === 0 ? undefined : value;
 }
 
-function formatIssues(error: z.ZodError, secrets: readonly string[]): readonly string[] {
+/**
+ * Formats validation issues as `ENV_NAME message`, redacting every secret so a
+ * rejected value never reaches a log or an operator's terminal.
+ */
+export function configIssues(
+  error: z.ZodError,
+  secrets: readonly string[],
+  names: Record<string, string>,
+): readonly string[] {
   return error.issues.map((issue) => {
-    const key = issue.path.join(".") as RawConfigKey;
-    const name = ENV_NAMES[key] ?? (key.length > 0 ? key : "(configuration)");
+    const key = issue.path.join(".");
+    const name = names[key] ?? (key.length > 0 ? key : "(configuration)");
     return `${name} ${redactText(issue.message, secrets)}`;
   });
 }

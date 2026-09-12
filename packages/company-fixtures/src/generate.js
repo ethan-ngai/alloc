@@ -76,7 +76,12 @@ export function generateCompany(key) {
   const policy = {
     ...base, policyId: id("policy_travel"), revision: 1, authorizationEpoch: 1,
     name: "Synthetic small-purchase cumulative allowance", scope: orgScope, effectiveFrom: HISTORY_START, effectiveTo: null,
-    rules: [{ ruleId: id("rule_small_purchase"), effect: "permit", categoryIds: [id(`category_${profile.category}`)], requesterRoles: ["employee"], maximumFullAmount: money(25000), maximumCumulativeIncrease: money(5000), requireActivePurpose: true, requiredEvidenceKinds: ["document_excerpt"] }],
+    rules: [{
+      ruleId: id("rule_small_purchase"), effect: "permit", categoryIds: [id(`category_${profile.category}`)], requesterRoles: ["employee"],
+      maximumFullAmount: money(25000), maximumCumulativeIncrease: money(5000), requireActivePurpose: true, requiredEvidenceKinds: ["document_excerpt"],
+      eligibleVendorIds: [id("vendor_buffalo_hotel")], maximumEvidenceAgeSeconds: 15552000,
+      requiredApproverRole: "finance_manager", prohibitRequesterApproval: true, cumulativeLimitScope: "purpose",
+    }],
     publishedBy: id("employee_avery_finance"),
   };
   const evidence = [{

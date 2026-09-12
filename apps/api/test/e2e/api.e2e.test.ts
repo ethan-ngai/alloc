@@ -2,7 +2,8 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { createServer } from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { CompanyEntitySchema, operationResult } from "@alloc/contracts";
+import { CompanyEntitySchema, operationResult, type SourceDelivery } from "@alloc/contracts";
+import { readFileSync } from "node:fs";
 import { startMongoReplicaSet, startMongoStandalone, type MongoTestCluster } from "@alloc/test-support";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { ORGANIZATIONS_COLLECTION } from "../../src/mongo/organizations.js";
@@ -14,6 +15,7 @@ const API_ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const SERVER_ENTRY = path.join(API_ROOT, "dist", "server.js");
 const ORGANIZATION_PATH = `/v1/organizations/${NORTHSTAR_ORGANIZATION_ID}`;
 const OrganizationResultSchema = operationResult(CompanyEntitySchema);
+const fixture = JSON.parse(readFileSync(fileURLToPath(new URL("../../../../packages/company-fixtures/fixtures/northstar.json", import.meta.url)), "utf8")) as { entities: never[]; evidence: never[]; manifest: { mappings: never[] }; relationships: never[]; deliveries: SourceDelivery[]; postings: never[] };
 
 interface RunningApi {
   readonly child: ChildProcess;
@@ -29,6 +31,8 @@ const spawned: ChildProcess[] = [];
 beforeAll(async () => {
   cluster = await startMongoReplicaSet({ label: "e2e" });
   await seedOrganization();
+  await seedImports();
+  await seedForecasts();
   apiPort = await freePort();
   api = startApi();
   await waitForHttp(livenessUrl(apiPort), 30_000, api);
@@ -112,6 +116,58 @@ describe("HTTP end to end", () => {
     expect(response.status).toBe(200);
     expect(response.body).toMatchObject({ ok: true, data: { displayName: "Northstar Fieldworks" } });
   });
+
+  it("imports, retrieves, and safely replays a source revision over HTTP", async () => {
+    const token = await signTestToken({ expiresInSeconds: 3_600 });
+    const delivery = fixture.deliveries[0]!;
+    const first = await post("/v1/organizations/org_northstar/imports", command(delivery), token);
+    expect(first.status).toBe(200);
+    expect(first.body).toMatchObject({ ok: true, data: { disposition: "accepted" } });
+    const replay = { ...delivery, deliveryId: `${delivery.deliveryId}-replay`, observedAt: "2026-12-01T00:00:00.000Z", provenance: { ...delivery.provenance, observedAt: "2026-12-01T00:00:00.000Z" } };
+    expect((await post("/v1/organizations/org_northstar/imports", command(replay), token)).body).toMatchObject({ ok: true, data: { disposition: "duplicate" } });
+    const postings = await get("/v1/organizations/org_northstar/imports/postings", { authorization: `Bearer ${token}` });
+    expect(postings.body).toMatchObject({ ok: true, data: [{ postingId: (delivery.payload.posting as { postingId: string }).postingId }] });
+    expect((postings.body.data as unknown[])).toHaveLength(1);
+  });
+
+  it("retrieves food context over HTTP without a project", async () => {
+    const token = await signTestToken({ expiresInSeconds: 3_600 });
+    const delivery = fixture.deliveries.find((item) => (item.payload.posting as { scopes: Array<{ id: string }> } | undefined)?.scopes.some((scope) => scope.id === "category_food"))!;
+    await post("/v1/organizations/org_northstar/imports", command(delivery), token);
+    const response = await post("/v1/organizations/org_northstar/memory/query", memoryQuery("food", [{ type: "category", id: "category_food" }]), token);
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({ ok: true, data: { organizationId: "org_northstar", evidence: [expect.any(Object)] } });
+    expect((response.body.data as { facts: Array<{ ref: { type: string } }> }).facts.some((fact) => fact.ref.type === "posting")).toBe(true);
+
+    const denied = await post("/v1/organizations/org_juniper/memory/query", memoryQuery("food", [{ type: "category", id: "category_food" }]), token);
+    expect(denied.status).toBe(403);
+    expect(denied.body).toMatchObject({ ok: false, error: { code: "ACCESS_DENIED" } });
+
+    const malformedCursor = await post("/v1/organizations/org_northstar/memory/query", memoryQuery("food", [{ type: "category", id: "category_food" }], "not-a-cursor"), token);
+    expect(malformedCursor.status).toBe(400);
+    expect(malformedCursor.body).toMatchObject({ ok: false, error: { code: "VALIDATION_FAILED" } });
+  });
+
+  it("traverses verified context through an authenticated, bounded endpoint", async () => {
+    const token = await signTestToken({ expiresInSeconds: 3_600 });
+    const response = await post("/v1/organizations/org_northstar/context/graph", graphQuery(), token);
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({ ok: true, data: { subjectRef: { id: "employee_maya_chen" }, relationships: [expect.objectContaining({ verification: "verified" })], evidenceRefs: [expect.any(Object)] } });
+    const ref = (response.body.data as { evidenceRefs: Array<{ id: string; revision: number }> }).evidenceRefs[0]!;
+    const evidence = await post("/v1/organizations/org_northstar/context/evidence", evidenceQuery(ref.id, ref.revision), token);
+    expect(evidence).toMatchObject({ status: 200, body: { ok: true, data: { evidenceId: ref.id, revision: ref.revision } } });
+    const denied = await post("/v1/organizations/org_juniper/context/graph", graphQuery(), token);
+    expect(denied.status).toBe(403);
+  });
+
+  it("retrieves the current forecast and its linked immutable prior revision over HTTP", async () => {
+    const token = await signTestToken({ expiresInSeconds: 3_600 });
+    const current = await get("/v1/organizations/org_northstar/forecasts/forecast_northstar_q3", { authorization: `Bearer ${token}` });
+    expect(current).toMatchObject({ status: 200, body: { ok: true, data: { revision: 2, correctsForecastRef: { revision: 1 } } } });
+    const prior = await get("/v1/organizations/org_northstar/forecasts/forecast_northstar_q3?revision=1", { authorization: `Bearer ${token}` });
+    expect(prior).toMatchObject({ status: 200, body: { ok: true, data: { revision: 1 } } });
+    expect((prior.body.data as { total: { amountMinor: number } }).total.amountMinor).toBeLessThanOrEqual((current.body.data as { total: { amountMinor: number } }).total.amountMinor);
+  });
 });
 
 describe("startup refusals", () => {
@@ -190,6 +246,33 @@ async function seedOrganization(): Promise<void> {
   }
 }
 
+async function seedImports(): Promise<void> {
+  const runtime = await connectMongoRuntime({ uri: cluster.uri, database: cluster.database });
+  try {
+    await runtime.imports.seedEntities(fixture.entities);
+    await runtime.imports.seedMappings(fixture.manifest.mappings);
+    await runtime.graph.seedEvidence(fixture.evidence);
+    await runtime.graph.seedRelationships(fixture.relationships);
+  } finally {
+    await runtime.close();
+  }
+}
+
+async function seedForecasts(): Promise<void> {
+  const runtime = await connectMongoRuntime({ uri: cluster.uri, database: cluster.database });
+  try {
+    const input = {
+      organizationId: NORTHSTAR_ORGANIZATION_ID, forecastId: "forecast_northstar_q3", scope: { type: "organization" as const, id: NORTHSTAR_ORGANIZATION_ID },
+      periodStart: "2026-06-01T00:00:00.000Z", asOfCutoff: "2026-09-10T00:00:00.000Z", horizonEnd: "2026-09-30T00:00:00.000Z",
+      postings: fixture.postings, sourceWatermarks: { fixture: "2026-09-10T00:00:00.000Z" },
+    };
+    await runtime.forecasts.refresh(input);
+    await runtime.forecasts.refresh({ ...input, asOfCutoff: "2026-09-11T00:00:00.000Z", sourceWatermarks: { fixture: "2026-09-11T00:00:00.000Z" } });
+  } finally {
+    await runtime.close();
+  }
+}
+
 async function get(pathname: string, headers: Record<string, string> = {}): Promise<{
   status: number;
   body: Record<string, unknown>;
@@ -201,6 +284,28 @@ async function get(pathname: string, headers: Record<string, string> = {}): Prom
 
 function livenessUrl(port: number): string {
   return `http://127.0.0.1:${port}/health/live`;
+}
+
+async function post(pathname: string, payload: unknown, token: string): Promise<{ status: number; body: Record<string, unknown> }> {
+  const response = await fetch(`http://127.0.0.1:${apiPort}${pathname}`, { method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify(payload) });
+  return { status: response.status, body: await response.json() as Record<string, unknown> };
+}
+
+function command(delivery: SourceDelivery) {
+  const { organizationId: _organizationId, schemaVersion: _schemaVersion, ...payload } = delivery;
+  return { meta: { schemaVersion: "1.0.0", organizationId: "org_northstar", commandId: "command_import_e2e", correlationId: "correlation_import_e2e", expectedVersions: [] }, payload };
+}
+
+function memoryQuery(query: string, scopes: Array<{ type: string; id: string }>, cursor?: string) {
+  return { meta: { schemaVersion: "1.0.0", organizationId: "org_northstar", correlationId: "correlation_memory_e2e" }, payload: { query, scopes, page: { limit: 25, ...(cursor === undefined ? {} : { cursor }) } } };
+}
+
+function graphQuery() {
+  return { meta: { schemaVersion: "1.0.0", organizationId: "org_northstar", correlationId: "correlation_graph_e2e" }, payload: { subjectRef: { type: "entity", id: "employee_maya_chen" }, relationshipTypes: [], maxHops: 2, maxEntities: 50 } };
+}
+
+function evidenceQuery(id: string, revision: number) {
+  return { meta: { schemaVersion: "1.0.0", organizationId: "org_northstar", correlationId: "correlation_evidence_e2e" }, payload: { evidenceRef: { type: "evidence", id, revision } } };
 }
 
 async function waitForHttp(url: string, timeoutMs: number, running: RunningApi): Promise<void> {

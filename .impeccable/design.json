@@ -1,0 +1,166 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-12T18:39:44Z",
+  "title": "Design System: Alloc",
+  "extensions": {
+    "colorMeta": {
+      "warm-canvas": { "role": "neutral", "displayName": "Warm Canvas", "canonical": "#f6f5f3", "tonalRamp": ["oklch(15% 0.008 75)", "oklch(27% 0.008 75)", "oklch(39% 0.008 75)", "oklch(51% 0.008 75)", "oklch(63% 0.008 75)", "oklch(75% 0.008 75)", "oklch(87% 0.008 75)", "oklch(95% 0.008 75)"] },
+      "work-surface": { "role": "neutral", "displayName": "Work Surface", "canonical": "#ffffff", "tonalRamp": ["oklch(15% 0 0)", "oklch(27% 0 0)", "oklch(39% 0 0)", "oklch(51% 0 0)", "oklch(63% 0 0)", "oklch(75% 0 0)", "oklch(87% 0 0)", "oklch(95% 0 0)"] },
+      "subtle-surface": { "role": "neutral", "displayName": "Subtle Surface", "canonical": "#fafafa", "tonalRamp": ["oklch(15% 0.002 260)", "oklch(27% 0.002 260)", "oklch(39% 0.002 260)", "oklch(51% 0.002 260)", "oklch(63% 0.002 260)", "oklch(75% 0.002 260)", "oklch(87% 0.002 260)", "oklch(95% 0.002 260)"] },
+      "hover-surface": { "role": "neutral", "displayName": "Hover Surface", "canonical": "#f3f3f4", "tonalRamp": ["oklch(15% 0.003 270)", "oklch(27% 0.003 270)", "oklch(39% 0.003 270)", "oklch(51% 0.003 270)", "oklch(63% 0.003 270)", "oklch(75% 0.003 270)", "oklch(87% 0.003 270)", "oklch(95% 0.003 270)"] },
+      "primary-ink": { "role": "neutral", "displayName": "Primary Ink", "canonical": "#202124", "tonalRamp": ["oklch(15% 0.005 265)", "oklch(27% 0.005 265)", "oklch(39% 0.005 265)", "oklch(51% 0.005 265)", "oklch(63% 0.005 265)", "oklch(75% 0.005 265)", "oklch(87% 0.005 265)", "oklch(95% 0.005 265)"] },
+      "secondary-ink": { "role": "neutral", "displayName": "Secondary Ink", "canonical": "#5f6269", "tonalRamp": ["oklch(15% 0.012 265)", "oklch(27% 0.012 265)", "oklch(39% 0.012 265)", "oklch(51% 0.012 265)", "oklch(63% 0.012 265)", "oklch(75% 0.012 265)", "oklch(87% 0.012 265)", "oklch(95% 0.012 265)"] },
+      "tertiary-ink": { "role": "neutral", "displayName": "Tertiary Ink", "canonical": "#65686f", "tonalRamp": ["oklch(15% 0.011 265)", "oklch(27% 0.011 265)", "oklch(39% 0.011 265)", "oklch(51% 0.011 265)", "oklch(63% 0.011 265)", "oklch(75% 0.011 265)", "oklch(87% 0.011 265)", "oklch(95% 0.011 265)"] },
+      "hairline": { "role": "neutral", "displayName": "Hairline", "canonical": "#e1e2e5", "tonalRamp": ["oklch(15% 0.006 260)", "oklch(27% 0.006 260)", "oklch(39% 0.006 260)", "oklch(51% 0.006 260)", "oklch(63% 0.006 260)", "oklch(75% 0.006 260)", "oklch(87% 0.006 260)", "oklch(95% 0.006 260)"] },
+      "strong-hairline": { "role": "neutral", "displayName": "Strong Hairline", "canonical": "#d3d5d9", "tonalRamp": ["oklch(15% 0.008 260)", "oklch(27% 0.008 260)", "oklch(39% 0.008 260)", "oklch(51% 0.008 260)", "oklch(63% 0.008 260)", "oklch(75% 0.008 260)", "oklch(87% 0.008 260)", "oklch(95% 0.008 260)"] },
+      "charcoal-rail": { "role": "neutral", "displayName": "Charcoal Rail", "canonical": "#202123", "tonalRamp": ["oklch(15% 0.004 260)", "oklch(27% 0.004 260)", "oklch(39% 0.004 260)", "oklch(51% 0.004 260)", "oklch(63% 0.004 260)", "oklch(75% 0.004 260)", "oklch(87% 0.004 260)", "oklch(95% 0.004 260)"] },
+      "charcoal-rail-raised": { "role": "neutral", "displayName": "Raised Charcoal", "canonical": "#292a2d", "tonalRamp": ["oklch(15% 0.006 265)", "oklch(27% 0.006 265)", "oklch(39% 0.006 265)", "oklch(51% 0.006 265)", "oklch(63% 0.006 265)", "oklch(75% 0.006 265)", "oklch(87% 0.006 265)", "oklch(95% 0.006 265)"] },
+      "rail-ink": { "role": "neutral", "displayName": "Rail Ink", "canonical": "#ededee", "tonalRamp": ["oklch(15% 0.002 270)", "oklch(27% 0.002 270)", "oklch(39% 0.002 270)", "oklch(51% 0.002 270)", "oklch(63% 0.002 270)", "oklch(75% 0.002 270)", "oklch(87% 0.002 270)", "oklch(95% 0.002 270)"] },
+      "rail-muted": { "role": "neutral", "displayName": "Muted Rail Ink", "canonical": "#9c9da2", "tonalRamp": ["oklch(15% 0.008 270)", "oklch(27% 0.008 270)", "oklch(39% 0.008 270)", "oklch(51% 0.008 270)", "oklch(63% 0.008 270)", "oklch(75% 0.008 270)", "oklch(87% 0.008 270)", "oklch(95% 0.008 270)"] },
+      "action-green": { "role": "primary", "displayName": "Action Green", "canonical": "#3f7c68", "tonalRamp": ["oklch(15% 0.065 165)", "oklch(27% 0.065 165)", "oklch(39% 0.065 165)", "oklch(51% 0.065 165)", "oklch(63% 0.065 165)", "oklch(75% 0.065 165)", "oklch(87% 0.065 165)", "oklch(95% 0.065 165)"] },
+      "action-green-hover": { "role": "primary", "displayName": "Action Green Hover", "canonical": "#356b5a", "tonalRamp": ["oklch(15% 0.06 165)", "oklch(27% 0.06 165)", "oklch(39% 0.06 165)", "oklch(51% 0.06 165)", "oklch(63% 0.06 165)", "oklch(75% 0.06 165)", "oklch(87% 0.06 165)", "oklch(95% 0.06 165)"] },
+      "provenance-blue": { "role": "tertiary", "displayName": "Provenance Blue", "canonical": "#5362c9", "tonalRamp": ["oklch(15% 0.14 275)", "oklch(27% 0.14 275)", "oklch(39% 0.14 275)", "oklch(51% 0.14 275)", "oklch(63% 0.14 275)", "oklch(75% 0.14 275)", "oklch(87% 0.14 275)", "oklch(95% 0.14 275)"] },
+      "financial-green": { "role": "primary", "displayName": "Financial Green", "canonical": "#2f8065", "tonalRamp": ["oklch(15% 0.08 165)", "oklch(27% 0.08 165)", "oklch(39% 0.08 165)", "oklch(51% 0.08 165)", "oklch(63% 0.08 165)", "oklch(75% 0.08 165)", "oklch(87% 0.08 165)", "oklch(95% 0.08 165)"] },
+      "financial-green-soft": { "role": "primary", "displayName": "Financial Green Soft", "canonical": "#eaf5f0", "tonalRamp": ["oklch(15% 0.025 165)", "oklch(27% 0.025 165)", "oklch(39% 0.025 165)", "oklch(51% 0.025 165)", "oklch(63% 0.025 165)", "oklch(75% 0.025 165)", "oklch(87% 0.025 165)", "oklch(95% 0.025 165)"] },
+      "review-amber": { "role": "secondary", "displayName": "Review Amber", "canonical": "#a16207", "tonalRamp": ["oklch(15% 0.11 75)", "oklch(27% 0.11 75)", "oklch(39% 0.11 75)", "oklch(51% 0.11 75)", "oklch(63% 0.11 75)", "oklch(75% 0.11 75)", "oklch(87% 0.11 75)", "oklch(95% 0.11 75)"] },
+      "review-amber-soft": { "role": "secondary", "displayName": "Review Amber Soft", "canonical": "#fff8e8", "tonalRamp": ["oklch(15% 0.035 85)", "oklch(27% 0.035 85)", "oklch(39% 0.035 85)", "oklch(51% 0.035 85)", "oklch(63% 0.035 85)", "oklch(75% 0.035 85)", "oklch(87% 0.035 85)", "oklch(95% 0.035 85)"] },
+      "error-red": { "role": "secondary", "displayName": "Error Red", "canonical": "#b9473c", "tonalRamp": ["oklch(15% 0.13 28)", "oklch(27% 0.13 28)", "oklch(39% 0.13 28)", "oklch(51% 0.13 28)", "oklch(63% 0.13 28)", "oklch(75% 0.13 28)", "oklch(87% 0.13 28)", "oklch(95% 0.13 28)"] },
+      "error-red-soft": { "role": "secondary", "displayName": "Error Red Soft", "canonical": "#fff1ef", "tonalRamp": ["oklch(15% 0.03 28)", "oklch(27% 0.03 28)", "oklch(39% 0.03 28)", "oklch(51% 0.03 28)", "oklch(63% 0.03 28)", "oklch(75% 0.03 28)", "oklch(87% 0.03 28)", "oklch(95% 0.03 28)"] },
+      "focus-indigo": { "role": "tertiary", "displayName": "Focus Indigo", "canonical": "#6d78df", "tonalRamp": ["oklch(15% 0.13 275)", "oklch(27% 0.13 275)", "oklch(39% 0.13 275)", "oklch(51% 0.13 275)", "oklch(63% 0.13 275)", "oklch(75% 0.13 275)", "oklch(87% 0.13 275)", "oklch(95% 0.13 275)"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Exact Financial Figure", "purpose": "Tabular overview money and projected totals with an ISO currency suffix." },
+      "headline": { "displayName": "Workspace Headline", "purpose": "Page titles and top-level operational context." },
+      "title": { "displayName": "Dialog Title", "purpose": "Confirmation, loading, and blocking-state headings." },
+      "body": { "displayName": "Operator Body", "purpose": "Readable interface copy, controls, rows, and explanations." },
+      "label": { "displayName": "Scan Label", "purpose": "Column headers, compact financial labels, and explicit states." }
+    },
+    "shadows": [
+      { "name": "surface-hairline-lift", "value": "0 1px 2px rgb(17 24 39 / 5%)", "purpose": "Nearly imperceptible edge aid for routine operational surfaces." },
+      { "name": "decision-overlay", "value": "0 18px 50px rgb(20 21 23 / 18%)", "purpose": "Separate the blocking human-confirmation dialog from its dimmed backdrop." },
+      { "name": "mobile-drawer", "value": "12px 0 40px rgb(0 0 0 / 20%)", "purpose": "Separate open mobile navigation from the workspace." }
+    ],
+    "motion": [
+      { "name": "detail-reveal", "value": "160ms ease-out", "purpose": "Short opacity and 4px translation for newly expanded trace detail." },
+      { "name": "drawer", "value": "180ms ease", "purpose": "Mobile navigation visibility and translation." },
+      { "name": "live-pulse", "value": "2s ease-out infinite", "purpose": "Low-amplitude pulse on a healthy mock activity feed; removed in degraded state." },
+      { "name": "loading", "value": "1s ease-in-out infinite alternate", "purpose": "Progress indication while contract responses are being validated." },
+      { "name": "reduced-motion", "value": "0.01ms; 1 iteration", "purpose": "Effectively removes nonessential animation when reduced motion is requested." }
+    ],
+    "breakpoints": [
+      { "name": "compact-desktop", "value": "1050px" },
+      { "name": "stacked-workspace", "value": "820px" },
+      { "name": "stacked-activity", "value": "560px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Decision Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Consequential human-review or retry action with no lift or scale.",
+      "html": "<button class=\"ds-primary-action\" type=\"button\">Approve revision 3 <span aria-hidden=\"true\">→</span></button>",
+      "css": ".ds-primary-action { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 14px; color: var(--surface, #fff); background: var(--accent, #3f7c68); border: 0; border-radius: 6px; font: 600 13px/1.2 'DM Sans', ui-sans-serif, system-ui, sans-serif; cursor: pointer; } .ds-primary-action:hover { background: var(--accent-hover, #356b5a); } .ds-primary-action:focus-visible { outline: 2px solid var(--focus, #6d78df); outline-offset: 2px; } .ds-primary-action:active { background: #2e5f50; } .ds-primary-action:disabled { cursor: wait; opacity: .65; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Calm cancel or detail action beside a primary decision.",
+      "html": "<button class=\"ds-secondary-action\" type=\"button\">Cancel</button>",
+      "css": ".ds-secondary-action { min-height: 44px; padding: 0 14px; color: var(--ink, #202124); background: var(--surface, #fff); border: 1px solid var(--line-strong, #d3d5d9); border-radius: 6px; font: 600 13px/1.2 'DM Sans', ui-sans-serif, system-ui, sans-serif; cursor: pointer; } .ds-secondary-action:hover { background: var(--surface-hover, #f3f3f4); } .ds-secondary-action:focus-visible { outline: 2px solid var(--focus, #6d78df); outline-offset: 2px; } .ds-secondary-action:active { background: #ebebed; }"
+    },
+    {
+      "name": "Memory Search Field",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "Compact bordered query field with an attached dark action.",
+      "html": "<div class=\"ds-field-group\"><label for=\"ds-memory-query\">Search financial memory</label><div><input id=\"ds-memory-query\" value=\"Budget\"><button type=\"button\">Search</button></div><small>Returns cited mock facts and evidence.</small></div>",
+      "css": ".ds-field-group { display: grid; gap: 8px; color: var(--ink, #202124); font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif; } .ds-field-group label { font-size: 12px; font-weight: 600; } .ds-field-group > div { display: flex; align-items: center; padding-left: 10px; background: var(--surface, #fff); border: 1px solid var(--line-strong, #d3d5d9); border-radius: 6px; } .ds-field-group input { min-width: 0; flex: 1; height: 38px; color: var(--ink, #202124); background: transparent; border: 0; outline: 0; font: 400 13px/1.5 'DM Sans', ui-sans-serif, system-ui, sans-serif; } .ds-field-group button { align-self: stretch; padding: 0 16px; color: #fff; background: var(--ink, #202124); border: 0; border-radius: 0 5px 5px 0; font: 500 13px/1.2 'DM Sans', ui-sans-serif, system-ui, sans-serif; } .ds-field-group input:focus-visible, .ds-field-group button:focus-visible { outline: 2px solid var(--focus, #6d78df); outline-offset: 2px; } .ds-field-group button:hover { background: #343538; } .ds-field-group small { color: var(--ink-faint, #65686f); font-size: 12px; }"
+    },
+    {
+      "name": "Charcoal Rail Navigation",
+      "kind": "nav",
+      "refersTo": "nav-item",
+      "description": "Compact high-contrast navigation with muted default and filled active states.",
+      "html": "<nav class=\"ds-rail\" aria-label=\"Example navigation\"><strong>Alloc</strong><button class=\"ds-nav-item ds-active\" type=\"button\"><span aria-hidden=\"true\">▦</span>Overview</button><button class=\"ds-nav-item\" type=\"button\"><span aria-hidden=\"true\">□</span>Requests</button><button class=\"ds-nav-item\" type=\"button\"><span aria-hidden=\"true\">◷</span>Activity</button></nav>",
+      "css": ".ds-rail { width: 220px; display: grid; gap: 2px; padding: 14px 10px; color: var(--rail-ink, #ededee); background: var(--rail, #202123); font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif; } .ds-rail > strong { padding: 0 8px 12px; font-size: 14px; } .ds-nav-item { min-height: 36px; display: flex; align-items: center; gap: 10px; width: 100%; padding: 0 10px; color: var(--rail-muted, #9c9da2); background: transparent; border: 0; border-radius: 6px; text-align: left; font: 400 13px/1.2 'DM Sans', ui-sans-serif, system-ui, sans-serif; cursor: pointer; } .ds-nav-item:hover { color: var(--rail-ink, #ededee); background: var(--rail-2, #292a2d); } .ds-nav-item.ds-active { color: var(--rail-ink, #ededee); background: rgb(255 255 255 / 8%); } .ds-nav-item:focus-visible { outline: 2px solid var(--focus, #6d78df); outline-offset: -2px; } .ds-nav-item:active { background: rgb(255 255 255 / 12%); }"
+    },
+    {
+      "name": "Pending Review Status",
+      "kind": "chip",
+      "refersTo": "status-pending",
+      "description": "Explicit amber status label for work awaiting human authority.",
+      "html": "<span class=\"ds-status-pending\">PENDING</span>",
+      "css": ".ds-status-pending { display: inline-block; padding: 3px 6px; color: var(--amber, #a16207); background: var(--amber-soft, #fff8e8); border-radius: 4px; font: 700 11px/1.2 'DM Sans', ui-sans-serif, system-ui, sans-serif; letter-spacing: .055em; }"
+    },
+    {
+      "name": "Exact Exposure Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Hairline work surface for exact financial state and its authority note.",
+      "html": "<section class=\"ds-exposure-card\"><span>AUTHORIZED</span><strong>$500.00 USD</strong><small>Binding hard cap</small></section>",
+      "css": ".ds-exposure-card { width: 260px; display: grid; gap: 6px; padding: 18px 16px; color: var(--ink, #202124); background: var(--surface, #fff); border: 1px solid var(--line, #e1e2e5); border-radius: 8px; box-shadow: 0 1px 2px rgb(17 24 39 / 5%); font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif; } .ds-exposure-card > span { color: var(--ink-soft, #5f6269); font-size: 12px; font-weight: 600; letter-spacing: .055em; } .ds-exposure-card > strong { font-size: 29px; line-height: 1; font-weight: 600; letter-spacing: -.035em; font-variant-numeric: tabular-nums; } .ds-exposure-card > small { color: var(--ink-faint, #65686f); font-size: 12px; }"
+    },
+    {
+      "name": "Activity Polling Status",
+      "kind": "custom",
+      "description": "Live mock polling label with an equally explicit degraded variant.",
+      "html": "<div class=\"ds-feed-statuses\"><span class=\"ds-live-feed\" role=\"status\"><i></i>Live mock feed · 5s</span><span class=\"ds-live-feed ds-degraded\" role=\"status\"><i></i>Feed delayed · retrying</span></div>",
+      "css": ".ds-feed-statuses { display: grid; gap: 12px; font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif; } .ds-live-feed { display: inline-flex; align-items: center; gap: 7px; color: var(--green, #2f8065); font-size: 12px; font-weight: 600; } .ds-live-feed i { width: 7px; height: 7px; background: currentColor; border-radius: 50%; animation: ds-live-pulse 2s ease-out infinite; } .ds-live-feed.ds-degraded { color: var(--amber, #a16207); } .ds-live-feed.ds-degraded i { animation: none; } @keyframes ds-live-pulse { 0% { box-shadow: 0 0 0 0 rgb(47 128 101 / 30%); } 70%, 100% { box-shadow: 0 0 0 7px rgb(47 128 101 / 0%); } } @media (prefers-reduced-motion: reduce) { .ds-live-feed i { animation-duration: .01ms; animation-iteration-count: 1; } }"
+    },
+    {
+      "name": "Illustrative Forecast",
+      "kind": "custom",
+      "description": "Exact sourced total with an unmistakable interpolation disclosure.",
+      "html": "<section class=\"ds-forecast\"><div><span>Projected exposure</span><strong>$300.00 USD</strong><em>Illustrative interpolation · revision 1</em></div><svg viewBox=\"0 0 300 82\" role=\"img\" aria-label=\"Illustrative exposure rises from current actuals to the sourced horizon total\"><line x1=\"8\" x2=\"292\" y1=\"68\" y2=\"68\"></line><polyline points=\"8,66 55,58 102,50 149,41 196,32 243,22 292,12\"></polyline></svg><p>Intermediate points are not recorded periods.</p></section>",
+      "css": ".ds-forecast { width: 340px; padding: 16px; color: var(--ink, #202124); background: var(--surface, #fff); border: 1px solid var(--line, #e1e2e5); border-radius: 8px; box-shadow: 0 1px 2px rgb(17 24 39 / 5%); font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif; } .ds-forecast > div { display: grid; gap: 4px; } .ds-forecast span, .ds-forecast em, .ds-forecast p { color: var(--ink-faint, #65686f); font-size: 12px; font-style: normal; } .ds-forecast strong { font-size: 26px; letter-spacing: -.035em; font-variant-numeric: tabular-nums; } .ds-forecast svg { width: 100%; margin-top: 12px; overflow: visible; } .ds-forecast line { stroke: var(--line, #e1e2e5); } .ds-forecast polyline { fill: none; stroke: var(--accent, #3f7c68); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; } .ds-forecast p { margin: 6px 0 0; line-height: 1.45; }"
+    },
+    {
+      "name": "Human Decision Confirmation",
+      "kind": "custom",
+      "description": "Focused approval confirmation that repeats amount, authority, mock status, and warning context.",
+      "html": "<section class=\"ds-decision\" role=\"dialog\" aria-modal=\"true\" aria-labelledby=\"ds-decision-title\"><header><div><span>Human decision</span><h2 id=\"ds-decision-title\">Approve revision 3?</h2></div><button type=\"button\" aria-label=\"Close decision\">×</button></header><p class=\"ds-warning\"><strong>Cumulative amendment limit exceeded.</strong> Confirm the revised full amount and acting authority.</p><dl><div><dt>Revised total</dt><dd>$240.00 USD</dd></div><div><dt>Acting approver</dt><dd>Alex Morgan</dd></div></dl><p class=\"ds-authority\">Mock human decision · no model execution authority</p><footer><button class=\"ds-cancel\" type=\"button\">Cancel</button><button class=\"ds-approve\" type=\"button\">Approve revision 3</button></footer></section>",
+      "css": ".ds-decision { width: min(440px, 100%); overflow: hidden; color: var(--ink, #202124); background: var(--surface, #fff); border: 1px solid var(--line-strong, #d3d5d9); border-radius: 8px; box-shadow: 0 18px 50px rgb(20 21 23 / 18%); font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif; } .ds-decision header { display: flex; justify-content: space-between; gap: 16px; padding: 18px; border-bottom: 1px solid var(--line, #e1e2e5); } .ds-decision header span { color: var(--ink-faint, #65686f); font-size: 12px; } .ds-decision h2 { margin: 4px 0 0; font-size: 18px; } .ds-decision header button { width: 36px; height: 36px; color: var(--ink-soft, #5f6269); background: transparent; border: 0; border-radius: 5px; font-size: 20px; } .ds-decision header button:hover { background: var(--surface-hover, #f3f3f4); } .ds-warning { margin: 0; padding: 14px 18px; color: var(--ink-soft, #5f6269); background: var(--amber-soft, #fff8e8); border-bottom: 1px solid var(--line, #e1e2e5); font-size: 13px; line-height: 1.5; } .ds-warning strong { color: var(--ink, #202124); } .ds-decision dl { margin: 0; } .ds-decision dl div { display: flex; justify-content: space-between; gap: 16px; padding: 10px 18px; border-bottom: 1px solid var(--line, #e1e2e5); font-size: 12px; } .ds-decision dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; } .ds-authority { margin: 0; padding: 14px 18px; color: var(--ink-soft, #5f6269); font-size: 12px; } .ds-decision footer { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 18px; background: var(--surface-subtle, #fafafa); border-top: 1px solid var(--line, #e1e2e5); } .ds-decision footer button { min-height: 44px; padding: 0 14px; border-radius: 6px; font: 600 13px/1.2 'DM Sans', ui-sans-serif, system-ui, sans-serif; } .ds-cancel { color: var(--ink, #202124); background: var(--surface, #fff); border: 1px solid var(--line-strong, #d3d5d9); } .ds-approve { color: #fff; background: var(--accent, #3f7c68); border: 0; } .ds-cancel:hover { background: var(--surface-hover, #f3f3f4); } .ds-approve:hover { background: var(--accent-hover, #356b5a); } .ds-decision button:focus-visible { outline: 2px solid var(--focus, #6d78df); outline-offset: 2px; } .ds-decision button:active { filter: brightness(.92); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Quiet Operator",
+    "overview": "Alloc is a calm, data-rich financial workspace that lets operators scan exact state, understand the reason behind it, and act without visual ceremony. A warm neutral canvas and cool white work surfaces sit beside a compact charcoal rail; thin structure, concise labels, and selective semantic color keep a dense interface legible.\n\nThe system takes interaction discipline and information density from modern operator tools while retaining Alloc's own financial semantics. It explicitly replaces the obsolete field-ledger world: do not restore serif display type, paper textures, ruled sheets, acetate overlays, binder hardware, brass material metaphors, or decorative marginalia.",
+    "keyCharacteristics": [
+      "DM Sans across product, controls, labels, and financial figures.",
+      "Exact, tabular money with an explicit ISO currency suffix.",
+      "Warm canvas, white work surfaces, charcoal navigation, and thin gray hairlines.",
+      "Semantic green for action and recorded financial state, blue for provenance, amber for review, and red for blocking error.",
+      "Compact 11–13px supporting text that remains readable, paired with restrained 5–8px corners.",
+      "Explicit mock, authority, interpolation, polling, and degraded-state labels."
+    ],
+    "rules": [
+      { "name": "The Semantic Color Rule", "body": "Neutral structure does the layout work; green, blue, amber, red, and focus indigo appear only when their operational meaning is present.", "section": "colors" },
+      { "name": "The Non-Color State Rule", "body": "Every colored state includes plain-language text, a shape, a border, or an icon so status never depends on hue alone.", "section": "colors" },
+      { "name": "The Exact Money Rule", "body": "Every financial amount uses tabular numerals, two fractional digits, and a visible ISO currency code; never rely on a currency symbol alone.", "section": "typography" },
+      { "name": "The Legibility Floor Rule", "body": "Supporting interface text stays within the shipped 11–13px scale with sufficient contrast and line height; density is achieved through structure, not microscopic type.", "section": "typography" },
+      { "name": "The Canonical State First Rule", "body": "Exact financial state receives the widest, earliest position; explanations, provenance, review, and forecast context support it without masquerading as authority.", "section": "layout" },
+      { "name": "The Useful Stack Rule", "body": "Responsive layouts preserve task order and recompose dense activity into readable stacked records rather than shrinking columns until they fail.", "section": "layout" },
+      { "name": "The Low-Elevation Rule", "body": "Routine surfaces stay within the hairline lift; larger shadows mean a temporary layer that blocks or covers other work.", "section": "elevation" },
+      { "name": "The Radius Ceiling Rule", "body": "Operational containers stop at 8px. Do not drift into oversized rounded cards, bubbly navigation, or decorative capsules.", "section": "shapes" }
+    ],
+    "dos": [
+      "Do show exact tabular money with two decimals and an ISO currency code at every decision point.",
+      "Do label synthetic, mock-backed, live-polling, degraded, unavailable, interpolation, provenance, and human-authority states in words.",
+      "Do preserve the warm canvas, white surfaces, charcoal rail, thin hairlines, and restrained 5–8px radius system.",
+      "Do let green communicate action and recorded financial state, blue provenance, amber review, red failure, and indigo keyboard focus.",
+      "Do stack activity into readable mobile records and preserve expandable trace detail.",
+      "Do require an accessible confirmation step before recording a consequential human decision.",
+      "Do honor reduced-motion preference for every animation and transition."
+    ],
+    "donts": [
+      "Don't restore the field-ledger, serif, paper, acetate, binder, brass, or marginalia direction.",
+      "Don't imply that a model, narrative, cached value, mock response, or interpolated chart point carries financial authority.",
+      "Don't use proportional digits, omit currency codes, or shorten exact money into ambiguous compact notation.",
+      "Don't turn dense registers into a loose wall of floating metric cards or nested elevated panels.",
+      "Don't hide polling failure, unavailable data, pending review, or degraded state behind color alone.",
+      "Don't add ambient motion, hover lift, spring effects, or animated decoration to routine operator work."
+    ]
+  }
+}
