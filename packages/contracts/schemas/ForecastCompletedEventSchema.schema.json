@@ -1,0 +1,954 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "eventId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$"
+    },
+    "organizationId": {
+      "type": "string",
+      "pattern": "^org_[a-z0-9]+(?:_[a-z0-9]+)*$"
+    },
+    "aggregateRef": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$"
+        },
+        "revision": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "type",
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "aggregateRevision": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    },
+    "correlationId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$"
+    },
+    "causationId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$"
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+    },
+    "eventType": {
+      "type": "string",
+      "const": "forecast.completed"
+    },
+    "payload": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "string",
+          "const": "1.0.0"
+        },
+        "organizationId": {
+          "type": "string",
+          "pattern": "^org_[a-z0-9]+(?:_[a-z0-9]+)*$"
+        },
+        "forecastId": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$"
+        },
+        "revision": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "baseline",
+            "scenario"
+          ]
+        },
+        "scope": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "organization",
+                "department",
+                "project",
+                "category",
+                "location",
+                "vendor",
+                "employee",
+                "customer",
+                "asset",
+                "contract",
+                "legal_entity",
+                "account"
+              ]
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$"
+            }
+          },
+          "required": [
+            "type",
+            "id"
+          ],
+          "additionalProperties": false
+        },
+        "asOfCutoff": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "horizonEnd": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "calculationVersion": {
+          "type": "string",
+          "minLength": 1
+        },
+        "inputVersions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "minLength": 1
+              },
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$"
+              },
+              "revision": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "type",
+              "id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "sourceWatermarks": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "assumptions": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "assumptionId": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$"
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "scope": {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "organization",
+                          "department",
+                          "project",
+                          "category",
+                          "location",
+                          "vendor",
+                          "employee",
+                          "customer",
+                          "asset",
+                          "contract",
+                          "legal_entity",
+                          "account"
+                        ]
+                      },
+                      "id": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "id"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "effectiveFrom": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  },
+                  "effectiveTo": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  },
+                  "evidenceRefs": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "id": {
+                          "type": "string",
+                          "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$"
+                        },
+                        "revision": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "id"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "kind": {
+                    "type": "string",
+                    "const": "fixed_adjustment"
+                  },
+                  "amount": {
+                    "type": "object",
+                    "properties": {
+                      "amountMinor": {
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": -1
+                          },
+                          {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 9007199254740991
+                          }
+                        ]
+                      },
+                      "currency": {
+                        "type": "string",
+                        "const": "USD"
+                      }
+                    },
+                    "required": [
+                      "amountMinor",
+                      "currency"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "assumptionId",
+                  "name",
+                  "scope",
+                  "effectiveFrom",
+                  "effectiveTo",
+                  "evidenceRefs",
+                  "kind",
+                  "amount"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "assumptionId": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$"
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "scope": {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "organization",
+                          "department",
+                          "project",
+                          "category",
+                          "location",
+                          "vendor",
+                          "employee",
+                          "customer",
+                          "asset",
+                          "contract",
+                          "legal_entity",
+                          "account"
+                        ]
+                      },
+                      "id": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "id"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "effectiveFrom": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  },
+                  "effectiveTo": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  },
+                  "evidenceRefs": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "id": {
+                          "type": "string",
+                          "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$"
+                        },
+                        "revision": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "id"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "kind": {
+                    "type": "string",
+                    "const": "percentage_change"
+                  },
+                  "valueBasisPoints": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": -10000,
+                        "maximum": -1
+                      },
+                      {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 100000
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "assumptionId",
+                  "name",
+                  "scope",
+                  "effectiveFrom",
+                  "effectiveTo",
+                  "evidenceRefs",
+                  "kind",
+                  "valueBasisPoints"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "assumptionId": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$"
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "scope": {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "organization",
+                          "department",
+                          "project",
+                          "category",
+                          "location",
+                          "vendor",
+                          "employee",
+                          "customer",
+                          "asset",
+                          "contract",
+                          "legal_entity",
+                          "account"
+                        ]
+                      },
+                      "id": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "id"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "effectiveFrom": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  },
+                  "effectiveTo": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  },
+                  "evidenceRefs": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "id": {
+                          "type": "string",
+                          "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$"
+                        },
+                        "revision": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "id"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "kind": {
+                    "type": "string",
+                    "const": "timing_shift"
+                  },
+                  "targetRef": {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "id": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$"
+                      },
+                      "revision": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "id",
+                      "revision"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "shiftDays": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": -1
+                      },
+                      {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "assumptionId",
+                  "name",
+                  "scope",
+                  "effectiveFrom",
+                  "effectiveTo",
+                  "evidenceRefs",
+                  "kind",
+                  "targetRef",
+                  "shiftDays"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "components": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "inputRefs": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "id": {
+                          "type": "string",
+                          "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$"
+                        },
+                        "revision": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "id"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "kind": {
+                    "type": "string",
+                    "const": "actual_spend"
+                  },
+                  "amount": {
+                    "type": "object",
+                    "properties": {
+                      "amountMinor": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "currency": {
+                        "type": "string",
+                        "const": "USD"
+                      }
+                    },
+                    "required": [
+                      "amountMinor",
+                      "currency"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "inputRefs",
+                  "kind",
+                  "amount"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "inputRefs": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "id": {
+                          "type": "string",
+                          "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$"
+                        },
+                        "revision": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "id"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "kind": {
+                    "type": "string",
+                    "const": "outstanding_commitment"
+                  },
+                  "amount": {
+                    "type": "object",
+                    "properties": {
+                      "amountMinor": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "currency": {
+                        "type": "string",
+                        "const": "USD"
+                      }
+                    },
+                    "required": [
+                      "amountMinor",
+                      "currency"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "inputRefs",
+                  "kind",
+                  "amount"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "inputRefs": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "id": {
+                          "type": "string",
+                          "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$"
+                        },
+                        "revision": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "id"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "kind": {
+                    "type": "string",
+                    "const": "uncommitted_baseline"
+                  },
+                  "amount": {
+                    "type": "object",
+                    "properties": {
+                      "amountMinor": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "currency": {
+                        "type": "string",
+                        "const": "USD"
+                      }
+                    },
+                    "required": [
+                      "amountMinor",
+                      "currency"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "inputRefs",
+                  "kind",
+                  "amount"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "inputRefs": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "id": {
+                          "type": "string",
+                          "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$"
+                        },
+                        "revision": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "id"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "kind": {
+                    "type": "string",
+                    "const": "scenario_adjustment"
+                  },
+                  "amount": {
+                    "type": "object",
+                    "properties": {
+                      "amountMinor": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "currency": {
+                        "type": "string",
+                        "const": "USD"
+                      }
+                    },
+                    "required": [
+                      "amountMinor",
+                      "currency"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "inputRefs",
+                  "kind",
+                  "amount"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "total": {
+          "type": "object",
+          "properties": {
+            "amountMinor": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "currency": {
+              "type": "string",
+              "const": "USD"
+            }
+          },
+          "required": [
+            "amountMinor",
+            "currency"
+          ],
+          "additionalProperties": false
+        },
+        "sensitivity": {
+          "type": "object",
+          "properties": {
+            "low": {
+              "type": "object",
+              "properties": {
+                "amountMinor": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "currency": {
+                  "type": "string",
+                  "const": "USD"
+                }
+              },
+              "required": [
+                "amountMinor",
+                "currency"
+              ],
+              "additionalProperties": false
+            },
+            "base": {
+              "type": "object",
+              "properties": {
+                "amountMinor": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "currency": {
+                  "type": "string",
+                  "const": "USD"
+                }
+              },
+              "required": [
+                "amountMinor",
+                "currency"
+              ],
+              "additionalProperties": false
+            },
+            "high": {
+              "type": "object",
+              "properties": {
+                "amountMinor": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "currency": {
+                  "type": "string",
+                  "const": "USD"
+                }
+              },
+              "required": [
+                "amountMinor",
+                "currency"
+              ],
+              "additionalProperties": false
+            },
+            "calibratedProbability": {
+              "type": "boolean",
+              "const": false
+            }
+          },
+          "required": [
+            "low",
+            "base",
+            "high",
+            "calibratedProbability"
+          ],
+          "additionalProperties": false
+        },
+        "coverageWarnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "correctsForecastRef": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "minLength": 1
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$"
+            },
+            "revision": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "type",
+            "id"
+          ],
+          "additionalProperties": false
+        },
+        "completedAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "organizationId",
+        "forecastId",
+        "revision",
+        "kind",
+        "scope",
+        "asOfCutoff",
+        "horizonEnd",
+        "calculationVersion",
+        "inputVersions",
+        "sourceWatermarks",
+        "assumptions",
+        "components",
+        "total",
+        "sensitivity",
+        "coverageWarnings",
+        "completedAt"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "eventId",
+    "organizationId",
+    "aggregateRef",
+    "aggregateRevision",
+    "correlationId",
+    "occurredAt",
+    "eventType",
+    "payload"
+  ],
+  "additionalProperties": false,
+  "$id": "https://alloc.local/contracts/1.0.0/ForecastCompletedEventSchema.schema.json",
+  "title": "ForecastCompletedEventSchema",
+  "x-alloc-contract-version": "1.0.0"
+}

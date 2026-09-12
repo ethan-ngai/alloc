@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "string",
+  "enum": [
+    "VALIDATION_FAILED",
+    "NOT_FOUND",
+    "ACCESS_DENIED",
+    "AUTHORITY_DENIED",
+    "STALE_VERSION",
+    "IDEMPOTENCY_CONFLICT",
+    "POLICY_DENIED",
+    "REVIEW_REQUIRED",
+    "CAPACITY_EXCEEDED",
+    "OUTCOME_UNKNOWN",
+    "SOURCE_DUPLICATE",
+    "SOURCE_CONFLICT",
+    "DEPENDENCY_UNAVAILABLE",
+    "INTERNAL_ERROR"
+  ],
+  "$id": "https://alloc.local/contracts/1.0.0/ErrorCodeSchema.schema.json",
+  "title": "ErrorCodeSchema",
+  "x-alloc-contract-version": "1.0.0"
+}

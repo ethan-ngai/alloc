@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "string",
+  "enum": [
+    "pending",
+    "dispatching",
+    "succeeded",
+    "failed",
+    "outcome_unknown",
+    "canceled"
+  ],
+  "$id": "https://alloc.local/contracts/1.0.0/ActionStateSchema.schema.json",
+  "title": "ActionStateSchema",
+  "x-alloc-contract-version": "1.0.0"
+}

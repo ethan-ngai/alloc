@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "proposalId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$"
+    },
+    "disposition": {
+      "type": "string",
+      "enum": [
+        "accepted_for_evaluation",
+        "rejected",
+        "review_required"
+      ]
+    },
+    "reasonCodes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "createsFinancialEffect": {
+      "type": "boolean",
+      "const": false
+    }
+  },
+  "required": [
+    "proposalId",
+    "disposition",
+    "reasonCodes",
+    "createsFinancialEffect"
+  ],
+  "additionalProperties": false,
+  "$id": "https://alloc.local/contracts/1.0.0/ProposeActionToolResultSchema.schema.json",
+  "title": "ProposeActionToolResultSchema",
+  "x-alloc-contract-version": "1.0.0"
+}

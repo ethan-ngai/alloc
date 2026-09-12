@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "amountMinor": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": -1
+        },
+        {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      ]
+    },
+    "currency": {
+      "type": "string",
+      "const": "USD"
+    }
+  },
+  "required": [
+    "amountMinor",
+    "currency"
+  ],
+  "additionalProperties": false,
+  "$id": "https://alloc.local/contracts/1.0.0/SignedNonZeroMoneySchema.schema.json",
+  "title": "SignedNonZeroMoneySchema",
+  "x-alloc-contract-version": "1.0.0"
+}

@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "string",
+  "enum": [
+    "public",
+    "internal",
+    "confidential",
+    "restricted"
+  ],
+  "$id": "https://alloc.local/contracts/1.0.0/DataClassificationSchema.schema.json",
+  "title": "DataClassificationSchema",
+  "x-alloc-contract-version": "1.0.0"
+}

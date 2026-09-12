@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "string",
+  "enum": [
+    "food_expense",
+    "facilities",
+    "physical_assets",
+    "software_cloud_ai",
+    "labor",
+    "procurement_inventory",
+    "cash",
+    "liabilities",
+    "revenue_receivables",
+    "taxes_insurance",
+    "governance"
+  ],
+  "$id": "https://alloc.local/contracts/1.0.0/FinancialDomainSchema.schema.json",
+  "title": "FinancialDomainSchema",
+  "x-alloc-contract-version": "1.0.0"
+}

@@ -1,0 +1,8 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "string",
+  "pattern": "^org_[a-z0-9]+(?:_[a-z0-9]+)*$",
+  "$id": "https://alloc.local/contracts/1.0.0/OrganizationIdSchema.schema.json",
+  "title": "OrganizationIdSchema",
+  "x-alloc-contract-version": "1.0.0"
+}

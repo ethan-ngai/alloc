@@ -1,0 +1,310 @@
+{
+  "memory": {
+    "schemaVersion": "1.0.0",
+    "organizationId": "org_northstar",
+    "queryId": "query_beacon_trip",
+    "asOf": "2026-09-12T14:26:00Z",
+    "facts": [
+      {
+        "ref": {
+          "type": "request",
+          "id": "request_buffalo_trip",
+          "revision": 3
+        },
+        "label": "Approved trip amount",
+        "value": {
+          "amountMinor": 24000,
+          "currency": "USD"
+        },
+        "scopeRefs": [
+          {
+            "type": "organization",
+            "id": "org_northstar"
+          },
+          {
+            "type": "department",
+            "id": "department_field_engineering"
+          },
+          {
+            "type": "project",
+            "id": "project_beacon"
+          }
+        ],
+        "provenance": {
+          "kind": "synthetic",
+          "trust": "authoritative",
+          "sourceInstanceId": "source_northstar_simulator",
+          "sourceObjectId": "buffalo-trip-amendment-2",
+          "sourceRevision": "1",
+          "occurredAt": "2026-09-12T14:10:00Z",
+          "observedAt": "2026-09-12T14:10:00Z"
+        }
+      }
+    ],
+    "evidence": [],
+    "assumptions": [],
+    "missingFields": [],
+    "sourceWatermarks": {
+      "simulator": "delivery-26"
+    },
+    "page": {
+      "nextCursor": null,
+      "truncated": false
+    }
+  },
+  "forecast": {
+    "schemaVersion": "1.0.0",
+    "organizationId": "org_northstar",
+    "forecastId": "forecast_beacon_q3",
+    "revision": 1,
+    "kind": "baseline",
+    "scope": {
+      "type": "project",
+      "id": "project_beacon"
+    },
+    "asOfCutoff": "2026-09-12T14:30:00Z",
+    "horizonEnd": "2026-09-30T23:59:59Z",
+    "calculationVersion": "operational-spend-v1",
+    "inputVersions": [
+      {
+        "type": "posting",
+        "id": "posting_buffalo_hotel",
+        "revision": 1
+      }
+    ],
+    "sourceWatermarks": {
+      "simulator": "delivery-30"
+    },
+    "assumptions": [],
+    "components": [
+      {
+        "kind": "actual_spend",
+        "amount": {
+          "amountMinor": 24000,
+          "currency": "USD"
+        },
+        "inputRefs": [
+          {
+            "type": "posting",
+            "id": "posting_buffalo_hotel",
+            "revision": 1
+          }
+        ]
+      }
+    ],
+    "total": {
+      "amountMinor": 24000,
+      "currency": "USD"
+    },
+    "sensitivity": {
+      "low": {
+        "amountMinor": 24000,
+        "currency": "USD"
+      },
+      "base": {
+        "amountMinor": 24000,
+        "currency": "USD"
+      },
+      "high": {
+        "amountMinor": 24000,
+        "currency": "USD"
+      },
+      "calibratedProbability": false
+    },
+    "coverageWarnings": [],
+    "completedAt": "2026-09-12T14:31:00Z"
+  },
+  "reductionForecast": {
+    "schemaVersion": "1.0.0",
+    "organizationId": "org_northstar",
+    "forecastId": "forecast_beacon_reduction",
+    "revision": 1,
+    "kind": "scenario",
+    "scope": {
+      "type": "project",
+      "id": "project_beacon"
+    },
+    "asOfCutoff": "2026-09-12T14:30:00Z",
+    "horizonEnd": "2026-09-30T23:59:59Z",
+    "calculationVersion": "operational-spend-v1",
+    "inputVersions": [
+      {
+        "type": "posting",
+        "id": "posting_buffalo_hotel",
+        "revision": 1
+      }
+    ],
+    "sourceWatermarks": {
+      "simulator": "delivery-30"
+    },
+    "assumptions": [
+      {
+        "assumptionId": "assumption_reduce_usage",
+        "name": "Reduce training runs by 20%",
+        "kind": "percentage_change",
+        "valueBasisPoints": -2000,
+        "scope": {
+          "type": "project",
+          "id": "project_beacon"
+        },
+        "effectiveFrom": "2026-09-13T00:00:00Z",
+        "effectiveTo": "2026-09-30T23:59:59Z",
+        "evidenceRefs": [
+          {
+            "type": "evidence",
+            "id": "evidence_trip_active",
+            "revision": 1
+          }
+        ]
+      }
+    ],
+    "components": [
+      {
+        "kind": "uncommitted_baseline",
+        "amount": {
+          "amountMinor": 24000,
+          "currency": "USD"
+        },
+        "inputRefs": [
+          {
+            "type": "posting",
+            "id": "posting_buffalo_hotel",
+            "revision": 1
+          }
+        ]
+      },
+      {
+        "kind": "scenario_adjustment",
+        "amount": {
+          "amountMinor": -4800,
+          "currency": "USD"
+        },
+        "inputRefs": [
+          {
+            "type": "evidence",
+            "id": "evidence_trip_active",
+            "revision": 1
+          }
+        ]
+      }
+    ],
+    "total": {
+      "amountMinor": 19200,
+      "currency": "USD"
+    },
+    "sensitivity": {
+      "low": {
+        "amountMinor": 18000,
+        "currency": "USD"
+      },
+      "base": {
+        "amountMinor": 19200,
+        "currency": "USD"
+      },
+      "high": {
+        "amountMinor": 20400,
+        "currency": "USD"
+      },
+      "calibratedProbability": false
+    },
+    "coverageWarnings": [],
+    "completedAt": "2026-09-12T14:32:00Z"
+  },
+  "event": {
+    "schemaVersion": "1.0.0",
+    "eventId": "event_posting_recorded",
+    "organizationId": "org_northstar",
+    "eventType": "posting.recorded",
+    "aggregateRef": {
+      "type": "posting",
+      "id": "posting_buffalo_hotel",
+      "revision": 1
+    },
+    "aggregateRevision": 1,
+    "correlationId": "correlation_buffalo_trip",
+    "causationId": "command_record_posting",
+    "occurredAt": "2026-09-12T14:25:00Z",
+    "payload": {
+      "schemaVersion": "1.0.0",
+      "organizationId": "org_northstar",
+      "postingId": "posting_buffalo_hotel",
+      "revision": 1,
+      "amount": {
+        "amountMinor": 24000,
+        "currency": "USD"
+      },
+      "occurredAt": "2026-09-12T14:25:00Z",
+      "status": "posted",
+      "commitmentRef": {
+        "type": "commitment",
+        "id": "commitment_buffalo_trip",
+        "revision": 1
+      },
+      "sourceRef": {
+        "type": "action_receipt",
+        "id": "receipt_buffalo_purchase",
+        "revision": 1
+      },
+      "scopes": [
+        {
+          "type": "organization",
+          "id": "org_northstar"
+        },
+        {
+          "type": "department",
+          "id": "department_field_engineering"
+        },
+        {
+          "type": "project",
+          "id": "project_beacon"
+        }
+      ],
+      "provenance": {
+        "kind": "synthetic",
+        "trust": "authoritative",
+        "sourceInstanceId": "source_northstar_simulator",
+        "sourceObjectId": "sim-op-northstar-buffalo-v3",
+        "sourceRevision": "1",
+        "occurredAt": "2026-09-12T14:25:00Z",
+        "observedAt": "2026-09-12T14:25:00Z"
+      }
+    }
+  },
+  "toolInput": {
+    "requestId": "request_buffalo_trip"
+  },
+  "errors": {
+    "staleVersion": {
+      "schemaVersion": "1.0.0",
+      "code": "STALE_VERSION",
+      "message": "Request revision is no longer current",
+      "retryable": false,
+      "correlationId": "correlation_stale",
+      "details": {
+        "expected": 2,
+        "actual": 3
+      }
+    },
+    "deniedAuthority": {
+      "schemaVersion": "1.0.0",
+      "code": "AUTHORITY_DENIED",
+      "message": "Approver lacks authority for this scope",
+      "retryable": false,
+      "correlationId": "correlation_denied"
+    },
+    "idempotencyConflict": {
+      "schemaVersion": "1.0.0",
+      "code": "IDEMPOTENCY_CONFLICT",
+      "message": "Command ID was reused with a different payload",
+      "retryable": false,
+      "correlationId": "correlation_idempotency"
+    },
+    "unknownOutcome": {
+      "schemaVersion": "1.0.0",
+      "code": "OUTCOME_UNKNOWN",
+      "message": "Provider outcome requires reconciliation",
+      "retryable": false,
+      "correlationId": "correlation_unknown"
+    }
+  }
+}
