@@ -2,7 +2,9 @@
 
 Pure scheduling policy for task 5A. The package consumes the shared 1A durable-job
 contract and provides deterministic admission, fairness, state-transition, lease,
-retry, and coalescing decisions. Model or source text cannot choose its own priority;
+retry, and coalescing decisions. It also defines the repository port that the 1B
+MongoDB implementation will satisfy and provides a single-process in-memory
+reference store for synthetic contract tests. Model or source text cannot choose its own priority;
 the authenticated producer supplies a validated `DurableJobMessage`.
 
 Run from this directory:

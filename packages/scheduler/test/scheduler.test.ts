@@ -70,8 +70,26 @@ describe("admission", () => {
 
   it("reports expired and per-principal-limited work without admitting it", () => {
     const result = selectNextJob([
-      job({ jobId: "job_running_a", state: "running", priority: "P0" }),
-      job({ jobId: "job_running_b", state: "running", priority: "P0" }),
+      job({
+        jobId: "job_running_a",
+        state: "running",
+        priority: "P0",
+        lease: {
+          ownerId: "worker_a",
+          generation: 1,
+          expiresAt: "2026-09-12T16:01:00.000Z",
+        },
+      }),
+      job({
+        jobId: "job_running_b",
+        state: "running",
+        priority: "P0",
+        lease: {
+          ownerId: "worker_b",
+          generation: 1,
+          expiresAt: "2026-09-12T16:01:00.000Z",
+        },
+      }),
       job({ jobId: "job_limited", priority: "P0" }),
       job({
         jobId: "job_expired",
@@ -84,6 +102,19 @@ describe("admission", () => {
     expect(result.expiredJobIds).toEqual(["job_expired"]);
     expect(result.principalLimitedJobIds).toEqual(["job_limited"]);
     expect(result.fairness).toEqual(INITIAL_FAIRNESS_STATE);
+  });
+
+  it("selects an expired running job for fenced recovery", () => {
+    const expired = job({
+      jobId: "job_expired_worker",
+      state: "running",
+      lease: {
+        ownerId: "worker_stale",
+        generation: 2,
+        expiresAt: "2026-09-12T15:59:00.000Z",
+      },
+    });
+    expect(selectNextJob([expired], NOW).selected?.jobId).toBe("job_expired_worker");
   });
 });
 

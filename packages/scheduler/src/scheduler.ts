@@ -135,7 +135,11 @@ export function selectNextJob(
 
   const runningByPrincipal = new Map<string, number>();
   for (const job of jobs) {
-    if (job.state === "running") {
+    if (
+      job.state === "running"
+      && job.lease !== null
+      && milliseconds(job.lease.expiresAt) > nowMs
+    ) {
       runningByPrincipal.set(
         job.originPrincipalId,
         (runningByPrincipal.get(job.originPrincipalId) ?? 0) + 1,
@@ -147,7 +151,11 @@ export function selectNextJob(
   const principalLimitedJobIds: string[] = [];
   const candidates: DurableJobMessage[] = [];
   for (const job of jobs) {
-    if (job.state !== "pending" && job.state !== "waiting_for_retry") continue;
+    const expiredRunning =
+      job.state === "running"
+      && job.lease !== null
+      && milliseconds(job.lease.expiresAt) <= nowMs;
+    if (job.state !== "pending" && job.state !== "waiting_for_retry" && !expiredRunning) continue;
     if (milliseconds(job.eligibleAt) > nowMs) continue;
     if (job.deadlineAt !== null && milliseconds(job.deadlineAt) <= nowMs) {
       expiredJobIds.push(job.jobId);
