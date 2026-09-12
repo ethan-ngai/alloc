@@ -3,7 +3,7 @@ import { usd } from "@alloc/financial-rules";
 import { startMongoReplicaSet, type MongoTestCluster } from "@alloc/test-support";
 import { afterEach, describe, expect, it } from "vitest";
 import { ACTION_RECEIPTS_COLLECTION, PROVIDER_OPERATIONS_COLLECTION } from "../../src/execution/collections.js";
-import { EXECUTOR_SERVICE_IDENTITY, MongoActionExecutor, type ExecutorHooks, type IntentOutcome } from "../../src/execution/executor.js";
+import { EXECUTOR_SERVICE_IDENTITY, MongoActionExecutor, type IntentOutcome } from "../../src/execution/executor.js";
 import { SimulatedSpendProvider, type ProviderDeliveryResult, type SpendProvider } from "../../src/execution/provider.js";
 import { ACTION_INTENTS_COLLECTION, AUDIT_EVENTS_COLLECTION } from "../../src/finance/collections.js";
 import type { FinancialContext } from "../../src/finance/internal.js";
@@ -38,7 +38,7 @@ afterEach(async () => {
   harness = undefined;
 });
 
-async function open(hooks: ExecutorHooks = {}): Promise<Harness> {
+async function open(): Promise<Harness> {
   const cluster = await startMongoReplicaSet({ label: "execution" });
   const runtime = await connectMongoRuntime({ uri: cluster.uri, database: cluster.database });
   await runtime.finance.seed(ORGANIZATION_ID, northstarSeed(ORGANIZATION_ID));
@@ -48,7 +48,7 @@ async function open(hooks: ExecutorHooks = {}): Promise<Harness> {
     runtime,
     finance: runtime.finance,
     provider,
-    executor: new MongoActionExecutor(runtime.db, runtime.withTransaction, provider, undefined, hooks),
+    executor: new MongoActionExecutor(runtime.db, runtime.withTransaction, provider),
   };
   return harness;
 }
@@ -95,6 +95,34 @@ function settled(result: IntentOutcome): SettledOutcome {
     throw new Error(`expected a persisted provider outcome, received ${JSON.stringify(result)}`);
   }
   return result;
+}
+
+function receiptDocument(receiptId: string, providerOperationId: string) {
+  return {
+    schemaVersion: "1.0.0",
+    organizationId: ORGANIZATION_ID,
+    receiptId,
+    actionIntentRef: { type: "action_intent", id: "action_validator_probe", revision: 1 },
+    providerInstanceId: "provider_simulated_spend",
+    providerOperationId,
+    outcome: "succeeded",
+    amount: usd(1_000),
+    observedAt: "2026-09-12T14:00:00.000Z",
+  };
+}
+
+function operationDocument(providerOperationId: string, idempotencyKey: string) {
+  return {
+    schemaVersion: "1.0.0",
+    organizationId: ORGANIZATION_ID,
+    providerInstanceId: "provider_simulated_spend",
+    providerOperationId,
+    idempotencyKey,
+    amount: usd(1_000),
+    vendorId: VENDOR,
+    outcome: "applied",
+    observedAt: "2026-09-12T14:00:00.000Z",
+  };
 }
 
 /** The executor's own audit trail, ordered by the intent revision it records. */
@@ -296,6 +324,30 @@ describe("action executor against a real replica set", () => {
     const stillUnknown = examined(await offline.reconcileIntent(ORGANIZATION_ID, ambiguous.intent.actionIntentId));
     expect(stillUnknown).toMatchObject({ status: "outcome_unknown", intent: { state: "outcome_unknown" } });
     expect(await offline.receiptForIntent(ORGANIZATION_ID, ambiguous.intent.actionIntentId)).toBeNull();
+  }, 120_000);
+
+  it("refuses documents that violate the collection validators", async () => {
+    const { runtime } = await open();
+    const receipts = runtime.db.collection(ACTION_RECEIPTS_COLLECTION);
+    const operations = runtime.db.collection(PROVIDER_OPERATIONS_COLLECTION);
+
+    await receipts.insertOne(receiptDocument("receipt_validator_ok", "provider_operation_ok"));
+    await expect(receipts.insertOne({
+      ...receiptDocument("receipt_validator_outcome", "provider_operation_outcome"),
+      outcome: "refunded",
+    })).rejects.toMatchObject({ code: 121 });
+    const { observedAt: _observedAt, ...withoutObservedAt } = receiptDocument("receipt_validator_time", "provider_operation_time");
+    await expect(receipts.insertOne({ ...withoutObservedAt })).rejects.toMatchObject({ code: 121 });
+
+    await operations.insertOne(operationDocument("provider_operation_ok", "org_northstar:request_validator:1"));
+    await expect(operations.insertOne({
+      ...operationDocument("provider_operation_zero", "org_northstar:request_validator:2"),
+      amount: { amountMinor: 0, currency: "USD" },
+    })).rejects.toMatchObject({ code: 121 });
+    await expect(operations.insertOne({
+      ...operationDocument("provider_operation_extra", "org_northstar:request_validator:3"),
+      lease: { ownerId: "worker_extra" },
+    })).rejects.toMatchObject({ code: 121 });
   }, 120_000);
 
   it("isolates a failing attempt so the rest of the pass still runs", async () => {

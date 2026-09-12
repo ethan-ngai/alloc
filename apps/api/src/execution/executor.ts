@@ -329,8 +329,9 @@ export class MongoActionExecutor {
     if (settled === null) {
       return { status: "skipped", intent, reason: "intent changed while recording its outcome" };
     }
-    const stored = await this.receiptForIntent(intent.organizationId, intent.actionIntentId);
-    return { status: outcome, intent: settled, receipt: stored ?? receipt };
+    // The transaction wrote this receipt; reading it back could only fail on a
+    // transient error after the settle already committed.
+    return { status: outcome, intent: settled, receipt };
   }
 
   /** Adopts an already-recorded receipt without calling the provider again. */
