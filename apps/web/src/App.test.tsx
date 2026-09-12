@@ -82,12 +82,12 @@ describe("Alloc workspace", () => {
     expect(screen.getByText(/not a budget change/i)).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Initiatives" })).toBeInTheDocument();
     expect(screen.getAllByText("Hold company trips envelope").length).toBeGreaterThan(0);
-    fireEvent.click(screen.getByRole("button", { name: /hold cloud tooling envelope/i }));
-    expect(screen.getByText(/shared data environment/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /hold company trips envelope/i }));
+    expect(screen.getByText(/commissioning plan/i)).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Connected data" })).toBeInTheDocument();
-    expect(screen.getByRole("group", { name: /linked data for hold cloud tooling envelope/i })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: /linked data for hold company trips envelope/i })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /financial history/i }));
-    expect(screen.getByRole("heading", { name: /cloud services financial history/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /travel financial history/i })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Activity" }));
     expect(screen.getByLabelText("Activity by event type")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Memory" }));
