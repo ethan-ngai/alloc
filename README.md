@@ -10,5 +10,6 @@ This is the planning and experiment baseline. Application implementation is spli
 - [Architecture](docs/architecture/README.md)
 - [Verification gates at every stage](docs/architecture/08-delivery-and-validation.md)
 - [Reproducible MongoDB POC](experiments/finance-poc/README.md)
+- [Agent contract tool gateway](packages/agent-tools/README.md)
 
 Start with shared contracts (1A) and local foundation (1B). GB10 preflight (9A) can run independently when hardware is available. After contracts are defined, frontend mocks, company fixtures, financial rules, and runtime work can proceed in parallel according to their issue dependencies.
