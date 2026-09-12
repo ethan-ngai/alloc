@@ -4,6 +4,7 @@ import {
   ForecastAssumptionSchema, ForecastCommitmentProjectionSchema, ForecastSnapshotSchema,
   GetRequestToolInputSchema, MemoryResponseSchema, NonNegativeMoneySchema, PostingSchema,
   OrganizationIdSchema, PostingCorrectionSchema, ProposeActionToolInputSchema,
+  PolicyRuleSchema,
   PurchaseRequestRevisionSchema, RequestAmendmentSchema, SignedMoneySchema,
   ToolExecutionContextSchema,
 } from "../src/index.js";
@@ -28,6 +29,19 @@ describe("strict structural contracts", () => {
     expect(PurchaseRequestRevisionSchema.safeParse(withoutVersion).success).toBe(false);
     const { provenance: _provenance, ...withoutProvenance } = request;
     expect(PurchaseRequestRevisionSchema.safeParse(withoutProvenance).success).toBe(false);
+  });
+
+  it("keeps the 1.1.0 policy vocabulary optional and bounded", () => {
+    const base = { ruleId: "rule_small_purchase", effect: "permit", categoryIds: ["category_travel"], requesterRoles: ["employee"], requireActivePurpose: true, requiredEvidenceKinds: ["document_excerpt"] };
+    const extended = { ...base, eligibleVendorIds: ["vendor_buffalo_hotel"], maximumEvidenceAgeSeconds: 15_552_000, requiredApproverRole: "finance_manager", prohibitRequesterApproval: true, cumulativeLimitScope: "project" };
+    expect(PolicyRuleSchema.parse(base)).toEqual(base);
+    expect(PolicyRuleSchema.parse(extended)).toEqual(extended);
+    expect(PolicyRuleSchema.safeParse({ ...extended, cumulativeLimitScope: "trip" }).success).toBe(false);
+    expect(PolicyRuleSchema.safeParse({ ...extended, maximumEvidenceAgeSeconds: -1 }).success).toBe(false);
+    expect(PolicyRuleSchema.safeParse({ ...extended, maximumEvidenceAgeSeconds: 1.5 }).success).toBe(false);
+    expect(PolicyRuleSchema.safeParse({ ...extended, eligibleVendorIds: [] }).success).toBe(false);
+    expect(PolicyRuleSchema.safeParse({ ...extended, requiredApproverRole: "" }).success).toBe(false);
+    expect(PolicyRuleSchema.safeParse({ ...base, uninventedField: true }).success).toBe(false);
   });
 
   it("rejects authority, identity, priority, and lease injection in model arguments", () => {
