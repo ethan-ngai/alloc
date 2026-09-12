@@ -61,6 +61,11 @@ test("reject malformed money, references, tenants, provenance, and reconciliatio
     fixture => { fixture.budgets[0].available.amountMinor++; },
     fixture => { fixture.scenario.approvalGrant.exactAmount.amountMinor++; },
     fixture => { fixture.scenario.requestRevisions[1].cumulativeIncrease.amountMinor = 0; },
+    fixture => { fixture.scenario.actionIntent.requestRef.revision = 1; },
+    fixture => { fixture.scenario.actionIntent.decisionRef.id = fixture.scenario.initialDecisions[0].decisionId; },
+    fixture => { fixture.scenario.actionReceipt.actionIntentRef.revision = 2; },
+    fixture => { fixture.scenario.posting.commitmentRef.revision = 1; },
+    fixture => { fixture.scenario.posting.sourceRef.revision = 2; },
   ];
   for (const mutate of mutations) {
     const fixture = loadCompany("northstar");

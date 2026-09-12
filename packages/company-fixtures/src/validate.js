@@ -158,8 +158,13 @@ export function validateCompany(fixture) {
   assert.equal(scenario.reviewDecision.outcome, "review_required");
   assert.equal(scenario.reviewDecision.permittedAction, null);
   assert.deepEqual(scenario.actionIntent.action.amount, requests[2].fullAmount);
+  assert.deepEqual(scenario.actionIntent.requestRef, scenario.approvedDecision.requestRef, "action intent does not bind the approved request revision");
+  assert.deepEqual(scenario.actionIntent.decisionRef, { type: "decision", id: scenario.approvedDecision.decisionId, revision: 1 }, "action intent does not bind the approval decision");
   assert.deepEqual(scenario.actionReceipt.amount, scenario.actionIntent.action.amount);
+  assert.deepEqual(scenario.actionReceipt.actionIntentRef, { type: "action_intent", id: scenario.actionIntent.actionIntentId, revision: scenario.actionIntent.revision }, "receipt does not bind the action intent");
   assert.equal(scenario.actionReceipt.providerInstanceId, scenario.actionIntent.providerInstanceId);
+  assert.deepEqual(scenario.posting.commitmentRef, { type: "commitment", id: scenario.commitment.commitmentId, revision: scenario.commitment.revision }, "posting does not bind the final commitment");
+  assert.deepEqual(scenario.posting.sourceRef, { type: "action_receipt", id: scenario.actionReceipt.receiptId, revision: 1 }, "posting does not bind the action receipt");
   for (const commitment of [...scenario.commitmentSnapshots, scenario.commitment]) {
     assert.deepEqual(commitment.amount, resolve(commitment.requestRef).fullAmount);
     const decision = resolve(commitment.decisionRef);
