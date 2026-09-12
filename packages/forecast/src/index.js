@@ -9,7 +9,8 @@ const ref = record => ({ type: record.type ?? (record.postingId ? "posting" : re
 
 function occurrences(schedule, cutoff, horizonEnd) {
   const advance = { weekly: date => date.setUTCDate(date.getUTCDate() + 7), monthly: date => date.setUTCMonth(date.getUTCMonth() + 1), quarterly: date => date.setUTCMonth(date.getUTCMonth() + 3), annual: date => date.setUTCFullYear(date.getUTCFullYear() + 1) }[schedule.cadence];
-  if (!advance || schedule.status !== "active") return schedule.cadence === "once" && inRange(schedule.nextDueOn, cutoff, horizonEnd) ? [schedule.nextDueOn] : [];
+  if (schedule.status !== "active") return [];
+  if (!advance) return schedule.cadence === "once" && inRange(schedule.nextDueOn, cutoff, horizonEnd) ? [schedule.nextDueOn] : [];
   const dates = [];
   for (const at = new Date(`${schedule.nextDueOn}T00:00:00Z`); at <= new Date(horizonEnd); advance(at)) {
     const due = at.toISOString().slice(0, 10);
@@ -25,7 +26,7 @@ export function calculateForecast(input) {
   for (const record of [...postings, ...commitments, ...schedules]) if (record.amount.currency !== "USD") throw new Error("USD only");
   const selectedPostings = postings.filter(posting => posting.organizationId === organizationId && scopeMatches(posting, scope));
   const actual = selectedPostings.filter(posting => inRange(posting.occurredAt, periodStart, asOfCutoff));
-  const scopedCommitments = commitments.filter(item => item.organizationId === organizationId && scopeMatches(item, scope) && item.amount.amountMinor > 0);
+  const scopedCommitments = commitments.filter(item => item.organizationId === organizationId && scopeMatches(item, scope) && item.outstandingAmount.amountMinor > 0);
   const outstanding = scopedCommitments.filter(item => inRange(item.expectedAt, asOfCutoff, horizonEnd));
   const committedPeriods = new Set(outstanding.filter(item => item.obligationId).map(item => `${item.obligationId}:${day(item.expectedAt).slice(0, 7)}`));
   const recurring = schedules.filter(schedule => schedule.organizationId === organizationId && scopeMatches({ scopes: schedule.scopeRefs }, scope)).flatMap(schedule => occurrences(schedule, asOfCutoff, horizonEnd)
@@ -34,7 +35,7 @@ export function calculateForecast(input) {
   const historyDays = Math.max(1, Math.round((Date.parse(asOfCutoff) - Date.parse(periodStart)) / DAY) + 1);
   const remainingDays = Math.max(0, Math.round((Date.parse(horizonEnd) - Date.parse(asOfCutoff)) / DAY));
   const actualAmount = actual.reduce((sum, item) => sum + item.amount.amountMinor, 0);
-  const outstandingAmount = outstanding.reduce((sum, item) => sum + item.amount.amountMinor, 0);
+  const outstandingAmount = outstanding.reduce((sum, item) => sum + item.outstandingAmount.amountMinor, 0);
   const recurringAmount = recurring.reduce((sum, item) => sum + item.schedule.amount.amountMinor, 0);
   const baselineAmount = Math.round(historical.reduce((sum, item) => sum + item.amount.amountMinor, 0) * remainingDays / historyDays);
   const components = [
@@ -51,7 +52,7 @@ export function calculateForecast(input) {
       const commitment = scopedCommitments.find(item => (item.type ?? "commitment") === assumption.targetRef.type && (item.id ?? item.commitmentId) === assumption.targetRef.id && item.revision === assumption.targetRef.revision);
       if (!commitment) throw new Error("timing shift target not found");
       const shiftedAt = new Date(Date.parse(commitment.expectedAt) + assumption.shiftDays * DAY).toISOString();
-      amount = (inRange(shiftedAt, asOfCutoff, horizonEnd) ? commitment.amount.amountMinor : 0) - (inRange(commitment.expectedAt, asOfCutoff, horizonEnd) ? commitment.amount.amountMinor : 0);
+      amount = (inRange(shiftedAt, asOfCutoff, horizonEnd) ? commitment.outstandingAmount.amountMinor : 0) - (inRange(commitment.expectedAt, asOfCutoff, horizonEnd) ? commitment.outstandingAmount.amountMinor : 0);
       inputRefs = [...assumption.evidenceRefs, ref(commitment)];
     }
     if (amount) components.push({ kind: "scenario_adjustment", amount: money(amount), inputRefs });

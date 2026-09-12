@@ -88,6 +88,7 @@ describe("frozen representative examples", () => {
     for (const amendment of northstarScenario.amendments) RequestAmendmentSchema.parse(amendment);
     ActionReceiptSchema.parse(northstarScenario.actionReceipt);
     PostingSchema.parse(northstarScenario.posting);
+    expect(PostingSchema.parse({ ...northstarScenario.posting, obligationId: "contract_cloud" }).obligationId).toBe("contract_cloud");
     MemoryResponseSchema.parse(contractExamples.memory);
     ForecastSnapshotSchema.parse(contractExamples.forecast);
     const reduction = ForecastSnapshotSchema.parse(contractExamples.reductionForecast);

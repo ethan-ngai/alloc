@@ -10,8 +10,11 @@ const input = (overrides = {}) => ({ organizationId: "org_northstar", forecastId
 test("baseline counts canonical spend once and suppresses a committed recurring obligation", () => {
   const forecast = calculateForecast(input({
     postings: [1, 2, 3].map((id, index) => ({ type: "posting", id: `posting_test_${id}`, revision: 1, organizationId: "org_northstar", occurredAt: `2026-09-0${id}T00:00:00Z`, amount: usd(100), scopes: [scope] })),
-    commitments: [{ type: "commitment", id: "commitment_test", revision: 1, organizationId: "org_northstar", expectedAt: "2026-09-14T00:00:00Z", obligationId: "contract_hosting", amount: usd(500), scopes: [scope] }],
-    schedules: [{ scheduleId: "schedule_hosting", revision: 1, organizationId: "org_northstar", obligationId: "contract_hosting", cadence: "monthly", nextDueOn: "2026-09-14", endsOn: null, status: "active", amount: usd(500), scopeRefs: [scope] }],
+    commitments: [{ type: "commitment", id: "commitment_test", revision: 1, organizationId: "org_northstar", expectedAt: "2026-09-14T00:00:00Z", obligationId: "contract_hosting", amount: usd(900), outstandingAmount: usd(500), scopes: [scope] }],
+    schedules: [
+      { scheduleId: "schedule_hosting", revision: 1, organizationId: "org_northstar", obligationId: "contract_hosting", cadence: "monthly", nextDueOn: "2026-09-14", endsOn: null, status: "active", amount: usd(500), scopeRefs: [scope] },
+      { scheduleId: "schedule_inactive", revision: 1, organizationId: "org_northstar", obligationId: "contract_inactive", cadence: "once", nextDueOn: "2026-09-15", endsOn: null, status: "canceled", amount: usd(700), scopeRefs: [scope] },
+    ],
   }));
   assert.equal(forecast.total.amountMinor, 1400); // 300 actual + 500 commitment + 600 (300/10 days × 20 days)
   assert.equal(forecast.components[2].amount.amountMinor, 600);
@@ -30,7 +33,7 @@ test("scenario, late data, and non-USD boundaries are deterministic", () => {
 });
 
 test("timing shifts move a commitment across the horizon", () => {
-  const commitment = { type: "commitment", id: "commitment_shift", revision: 1, organizationId: "org_northstar", expectedAt: "2026-09-20T00:00:00Z", amount: usd(500), scopes: [scope] };
+  const commitment = { type: "commitment", id: "commitment_shift", revision: 1, organizationId: "org_northstar", expectedAt: "2026-09-20T00:00:00Z", amount: usd(900), outstandingAmount: usd(500), scopes: [scope] };
   const baseline = calculateForecast(input({ commitments: [commitment] }));
   const shifted = calculateForecast(input({ forecastId: "forecast_shifted", commitments: [commitment], assumptions: [{ kind: "timing_shift", assumptionId: "assumption_shift", name: "Defer commitment", scope, effectiveFrom: "2026-09-10T00:00:00Z", effectiveTo: "2026-10-31T00:00:00Z", evidenceRefs: [], targetRef: { type: "commitment", id: "commitment_shift", revision: 1 }, shiftDays: 20 }] }));
   assert.equal(baseline.total.amountMinor, 500);
