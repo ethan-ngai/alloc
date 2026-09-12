@@ -17,4 +17,4 @@ The planning baseline contains documentation and the standalone POC. Task 1A add
 | 6. Local agent | Planned | Qwen3.8 27B and OpenClaw not configured locally; exact checkpoint remains to be pinned |
 | 7. Forecasts | Planned | No application forecasts yet |
 | 8. Dashboard | Planned | No UI yet |
-| 9. GB10 release | Pending target hardware | No GB10/model measurements yet |
+| 9. GB10 release | Preflight harness built; pending target hardware | Task 9A has a dependency-free host/checkpoint inventory, memory-envelope evaluator, and loopback-only structured tool-call probe under `experiments/gb10-preflight`; no GB10/model measurements yet |
