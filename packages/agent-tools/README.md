@@ -13,6 +13,11 @@ with the principal injected from backend execution context. It deliberately leav
 `get_context` to 4A's verified relationship traversal and leaves forecasts/proposals to
 their owning backend services.
 
+`LocalOnlyJsonTransport` guards the eventual model-provider route. It accepts only an
+explicit credential-free numeric-loopback HTTP(S) origin and model identifier,
+disables redirects, rejects any request that changes origin, bounds response bytes,
+and fails on non-JSON responses. It has no hosted fallback.
+
 Run from this directory after building `packages/contracts` and `packages/mock-api`:
 
 ```sh
