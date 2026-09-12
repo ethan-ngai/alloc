@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { GraphAccessError } from "../../src/context/graph.js";
 import { connectMongoRuntime, type MongoRuntime } from "../../src/mongo/runtime.js";
 
-const fixture = JSON.parse(readFileSync(fileURLToPath(new URL("../../../../packages/company-fixtures/fixtures/northstar.json", import.meta.url)), "utf8")) as { entities: never[]; relationships: Array<Record<string, unknown>> };
+const fixture = JSON.parse(readFileSync(fileURLToPath(new URL("../../../../packages/company-fixtures/fixtures/northstar.json", import.meta.url)), "utf8")) as { entities: never[]; evidence: never[]; relationships: Array<Record<string, unknown>> };
 const principal = { principalId: "user_jd", organizationId: "org_northstar", roles: ["approver"] };
 const input = { subjectId: "employee_maya_chen", relationshipTypes: [], maxHops: 2, maxEntities: 50, asOf: "2026-09-12T14:00:00.000Z" };
 
@@ -17,6 +17,7 @@ describe("verified graph context against a real replica set", () => {
   it("bounds traversal, exposes evidence drill-down, and refreshes an access-safe summary", async () => {
     ({ cluster, runtime } = await open());
     await runtime.imports.seedEntities(fixture.entities);
+    await runtime.graph.seedEvidence(fixture.evidence);
     const first = fixture.relationships[0]!;
     const second = { ...first, relationshipId: "relationship_department_beacon", revision: 1, fromId: "department_field_engineering", toId: "project_beacon", type: "owned_by", evidenceRefs: [{ type: "evidence", id: "evidence_trip_active", revision: 1 }] };
     await runtime.graph.seedRelationships([first, second] as never);
@@ -25,6 +26,7 @@ describe("verified graph context against a real replica set", () => {
     expect(oneHop.entities.map((entity) => entity.entityId)).toEqual(["employee_maya_chen", "department_field_engineering"]);
     expect(oneHop.relationships).toHaveLength(1);
     expect(oneHop.evidenceRefs).toEqual([{ type: "evidence", id: "evidence_trip_active", revision: 1 }]);
+    expect((await runtime.graph.getEvidence("org_northstar", principal, "evidence_trip_active", 1)).evidenceId).toBe("evidence_trip_active");
 
     const twoHops = await runtime.graph.query("org_northstar", principal, input);
     expect(twoHops.entities.map((entity) => entity.entityId)).toContain("project_beacon");
@@ -41,6 +43,19 @@ describe("verified graph context against a real replica set", () => {
     const afterEvidenceEdit = await runtime.graph.query("org_northstar", principal, input);
     expect(afterEvidenceEdit.evidenceRefs.map((ref) => ref.revision)).toEqual([1, 2]);
     expect(await runtime.db.collection("scope_summaries").countDocuments()).toBeGreaterThan(1);
+  });
+
+  it("does not return an edge whose new endpoint exceeds the cap", async () => {
+    ({ cluster, runtime } = await open());
+    await runtime.imports.seedEntities(fixture.entities);
+    const first = fixture.relationships[0]!;
+    const second = { ...first, relationshipId: "relationship_employee_beacon", toId: "project_beacon", type: "owned_by" };
+    await runtime.graph.seedRelationships([first, second] as never);
+    const result = await runtime.graph.query("org_northstar", principal, { ...input, maxHops: 1, maxEntities: 2 });
+    expect(result.entities).toHaveLength(2);
+    expect(result.relationships).toHaveLength(1);
+    expect(result.relationships.every((relationship) => result.entities.some((entity) => entity.entityId === relationship.fromId) && result.entities.some((entity) => entity.entityId === relationship.toId))).toBe(true);
+    expect(result.truncated).toBe(true);
   });
 
   it("does not traverse candidate edges or disclose a restricted endpoint", async () => {

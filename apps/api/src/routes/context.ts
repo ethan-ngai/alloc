@@ -1,4 +1,4 @@
-import { GetGraphContextInputSchema, GetGraphContextResultSchema, QueryMemoryInputSchema, QueryMemoryResultSchema } from "@alloc/contracts";
+import { GetGraphContextInputSchema, GetGraphContextResultSchema, GetGraphEvidenceInputSchema, GetGraphEvidenceResultSchema, QueryMemoryInputSchema, QueryMemoryResultSchema } from "@alloc/contracts";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { requirePrincipal } from "../auth/plugin.js";
@@ -34,5 +34,14 @@ export function registerContextRoutes(app: FastifyInstance, context: ContextRepo
       subjectId: input.data.payload.subjectRef.id, relationshipTypes: input.data.payload.relationshipTypes,
       maxHops: input.data.payload.maxHops, maxEntities: input.data.payload.maxEntities, asOf,
     })));
+  });
+  app.post<ContextRoute>("/v1/organizations/:organizationId/context/evidence", { preHandler: app.authenticate }, async (request: FastifyRequest<ContextRoute>) => {
+    const params = ParamsSchema.safeParse(request.params);
+    const input = GetGraphEvidenceInputSchema.safeParse(request.body);
+    if (!params.success || !input.success || Object.keys(request.query as Record<string, unknown>).length) throw apiErrors.validation("Invalid evidence query");
+    const principal = requirePrincipal(request);
+    if (principal.organizationId !== params.data.organizationId || input.data.meta.organizationId !== principal.organizationId) throw apiErrors.forbidden();
+    const ref = input.data.payload.evidenceRef;
+    return GetGraphEvidenceResultSchema.parse(successEnvelope(correlationIdOf(request), await graph.getEvidence(principal.organizationId, principal, ref.id, ref.revision)));
   });
 }

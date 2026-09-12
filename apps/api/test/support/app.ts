@@ -102,7 +102,7 @@ const noImports: ImportRepository = {
   async seedMappings() {},
 };
 const noContext: ContextRepository = { async query() { throw new Error("context is not configured for this test"); } };
-const noGraph: GraphRepository = { async query() { throw new Error("graph is not configured for this test"); }, async seedRelationships() {} };
+const noGraph: GraphRepository = { async query() { throw new Error("graph is not configured for this test"); }, async seedRelationships() {}, async seedEvidence() {}, async getEvidence() { throw new Error("graph is not configured for this test"); } };
 
 export function buildTestApp(options: {
   config?: AppConfig;

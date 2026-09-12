@@ -1,10 +1,11 @@
 import { createHash } from "node:crypto";
-import { CONTRACT_SCHEMA_VERSION, CompanyEntitySchema, GraphContextSchema, RelationshipSchema, type CompanyEntity, type GraphContext, type Relationship } from "@alloc/contracts";
+import { CONTRACT_SCHEMA_VERSION, CompanyEntitySchema, EvidenceSchema, GraphContextSchema, RelationshipSchema, type CompanyEntity, type Evidence, type GraphContext, type Relationship } from "@alloc/contracts";
 import type { Db } from "mongodb";
 import type { Principal } from "../auth/principal.js";
 import { IMPORT_ENTITIES_COLLECTION } from "../imports/repository.js";
 
 export const RELATIONSHIPS_COLLECTION = "relationships";
+const EVIDENCE_COLLECTION = "evidence";
 const SUMMARIES_COLLECTION = "scope_summaries";
 
 export interface GraphQuery {
@@ -18,6 +19,8 @@ export interface GraphQuery {
 export interface GraphRepository {
   query(organizationId: string, principal: Principal, input: GraphQuery): Promise<GraphContext>;
   seedRelationships(relationships: readonly Relationship[]): Promise<void>;
+  seedEvidence(evidence: readonly Evidence[]): Promise<void>;
+  getEvidence(organizationId: string, principal: Principal, evidenceId: string, revision: number | undefined): Promise<Evidence>;
 }
 
 export async function ensureGraphCollections(db: Db): Promise<void> {
@@ -28,6 +31,7 @@ export async function ensureGraphCollections(db: Db): Promise<void> {
       { key: { organizationId: 1, relationshipId: 1 }, name: "relationship_identity", unique: true },
     ]),
     db.collection(SUMMARIES_COLLECTION).createIndex({ organizationId: 1, cacheKey: 1 }, { name: "summary_cache", unique: true }),
+    db.collection(EVIDENCE_COLLECTION).createIndex({ organizationId: 1, evidenceId: 1, revision: 1 }, { name: "evidence_identity", unique: true }),
   ]);
 }
 
@@ -47,6 +51,20 @@ export class MongoGraphRepository implements GraphRepository {
     }
   }
 
+  async seedEvidence(evidence: readonly Evidence[]): Promise<void> {
+    if (!evidence.length) return;
+    await this.db.collection(EVIDENCE_COLLECTION).bulkWrite(evidence.map((candidate) => {
+      const item = EvidenceSchema.parse(candidate);
+      return { replaceOne: { filter: { organizationId: item.organizationId, evidenceId: item.evidenceId, revision: item.revision }, replacement: item, upsert: true } };
+    }));
+  }
+
+  async getEvidence(organizationId: string, principal: Principal, evidenceId: string, revision: number | undefined): Promise<Evidence> {
+    const evidence = await this.db.collection<Evidence>(EVIDENCE_COLLECTION).findOne({ organizationId, evidenceId, ...(revision === undefined ? {} : { revision }) }, { projection: { _id: 0 }, sort: { revision: -1 } });
+    if (!evidence || !accessible(evidence, principal)) throw new GraphAccessError();
+    return EvidenceSchema.parse(evidence);
+  }
+
   async query(organizationId: string, principal: Principal, input: GraphQuery): Promise<GraphContext> {
     const entityMap = new Map((await this.db.collection<CompanyEntity>(IMPORT_ENTITIES_COLLECTION).find({ organizationId }, { projection: { _id: 0 } }).toArray()).map((entity) => [entity.entityId, CompanyEntitySchema.parse(entity)]));
     const subject = entityMap.get(input.subjectId);
@@ -59,6 +77,7 @@ export class MongoGraphRepository implements GraphRepository {
     const visited = new Set([subject.entityId]);
     const selected: Relationship[] = [];
     const selectedIds = new Set<string>();
+    let truncated = false;
     let frontier = [subject.entityId];
     for (let hop = 0; hop < input.maxHops && frontier.length && visited.size < input.maxEntities; hop += 1) {
       const next: string[] = [];
@@ -69,9 +88,10 @@ export class MongoGraphRepository implements GraphRepository {
         const from = entityMap.get(relationship.fromId);
         const to = entityMap.get(relationship.toId);
         if (!from || !to || !accessible(relationship, principal) || !accessible(from, principal) || !accessible(to, principal)) continue;
+        if (!visited.has(other) && visited.size === input.maxEntities) { truncated = true; continue; }
         selected.push(relationship);
         selectedIds.add(relationship.relationshipId);
-        if (!visited.has(other) && visited.size < input.maxEntities) { visited.add(other); next.push(other); }
+        if (!visited.has(other)) { visited.add(other); next.push(other); }
       }
       frontier = next;
     }
@@ -82,7 +102,7 @@ export class MongoGraphRepository implements GraphRepository {
     const cached = await this.db.collection<{ summary: string }>(SUMMARIES_COLLECTION).findOne({ organizationId, cacheKey }, { projection: { _id: 0, summary: 1 } });
     const summary = cached?.summary ?? `${selected.length} verified relationship${selected.length === 1 ? "" : "s"} across ${entities.length} accessible entit${entities.length === 1 ? "y" : "ies"}.`;
     if (!cached) await this.db.collection(SUMMARIES_COLLECTION).insertOne({ organizationId, cacheKey, summary, sourceWatermark, createdAt: new Date().toISOString() });
-    return GraphContextSchema.parse({ schemaVersion: CONTRACT_SCHEMA_VERSION, organizationId, subjectRef: { type: "entity", id: subject.entityId }, entities, relationships: selected, evidenceRefs, summary, sourceWatermark, truncated: visited.size >= input.maxEntities || (frontier.length > 0 && input.maxHops > 0) });
+    return GraphContextSchema.parse({ schemaVersion: CONTRACT_SCHEMA_VERSION, organizationId, subjectRef: { type: "entity", id: subject.entityId }, entities, relationships: selected, evidenceRefs, summary, sourceWatermark, truncated: truncated || (frontier.length > 0 && input.maxHops > 0) });
   }
 }
 

@@ -15,7 +15,7 @@ const API_ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const SERVER_ENTRY = path.join(API_ROOT, "dist", "server.js");
 const ORGANIZATION_PATH = `/v1/organizations/${NORTHSTAR_ORGANIZATION_ID}`;
 const OrganizationResultSchema = operationResult(CompanyEntitySchema);
-const fixture = JSON.parse(readFileSync(fileURLToPath(new URL("../../../../packages/company-fixtures/fixtures/northstar.json", import.meta.url)), "utf8")) as { entities: never[]; manifest: { mappings: never[] }; relationships: never[]; deliveries: SourceDelivery[] };
+const fixture = JSON.parse(readFileSync(fileURLToPath(new URL("../../../../packages/company-fixtures/fixtures/northstar.json", import.meta.url)), "utf8")) as { entities: never[]; evidence: never[]; manifest: { mappings: never[] }; relationships: never[]; deliveries: SourceDelivery[] };
 
 interface RunningApi {
   readonly child: ChildProcess;
@@ -152,6 +152,9 @@ describe("HTTP end to end", () => {
     const response = await post("/v1/organizations/org_northstar/context/graph", graphQuery(), token);
     expect(response.status).toBe(200);
     expect(response.body).toMatchObject({ ok: true, data: { subjectRef: { id: "employee_maya_chen" }, relationships: [expect.objectContaining({ verification: "verified" })], evidenceRefs: [expect.any(Object)] } });
+    const ref = (response.body.data as { evidenceRefs: Array<{ id: string; revision: number }> }).evidenceRefs[0]!;
+    const evidence = await post("/v1/organizations/org_northstar/context/evidence", evidenceQuery(ref.id, ref.revision), token);
+    expect(evidence).toMatchObject({ status: 200, body: { ok: true, data: { evidenceId: ref.id, revision: ref.revision } } });
     const denied = await post("/v1/organizations/org_juniper/context/graph", graphQuery(), token);
     expect(denied.status).toBe(403);
   });
@@ -238,6 +241,7 @@ async function seedImports(): Promise<void> {
   try {
     await runtime.imports.seedEntities(fixture.entities);
     await runtime.imports.seedMappings(fixture.manifest.mappings);
+    await runtime.graph.seedEvidence(fixture.evidence);
     await runtime.graph.seedRelationships(fixture.relationships);
   } finally {
     await runtime.close();
@@ -273,6 +277,10 @@ function memoryQuery(query: string, scopes: Array<{ type: string; id: string }>,
 
 function graphQuery() {
   return { meta: { schemaVersion: "1.0.0", organizationId: "org_northstar", correlationId: "correlation_graph_e2e" }, payload: { subjectRef: { type: "entity", id: "employee_maya_chen" }, relationshipTypes: [], maxHops: 2, maxEntities: 50 } };
+}
+
+function evidenceQuery(id: string, revision: number) {
+  return { meta: { schemaVersion: "1.0.0", organizationId: "org_northstar", correlationId: "correlation_evidence_e2e" }, payload: { evidenceRef: { type: "evidence", id, revision } } };
 }
 
 async function waitForHttp(url: string, timeoutMs: number, running: RunningApi): Promise<void> {
