@@ -1,0 +1,309 @@
+{
+  "ok": true,
+  "schemaVersion": "1.0.0",
+  "correlationId": "correlation_fixture_get_approved",
+  "data": {
+    "request": {
+      "schemaVersion": "1.0.0",
+      "organizationId": "org_northstar",
+      "requestId": "request_buffalo_trip",
+      "revision": 3,
+      "previousRevision": 2,
+      "requesterId": "employee_maya_chen",
+      "purpose": "Buffalo Beacon pilot trip",
+      "fullAmount": {
+        "amountMinor": 24000,
+        "currency": "USD"
+      },
+      "increaseFromPrevious": {
+        "amountMinor": 3000,
+        "currency": "USD"
+      },
+      "cumulativeIncrease": {
+        "amountMinor": 6000,
+        "currency": "USD"
+      },
+      "categoryId": "category_travel",
+      "vendorId": "vendor_buffalo_hotel",
+      "projectId": "project_beacon",
+      "scopes": [
+        {
+          "type": "organization",
+          "id": "org_northstar"
+        },
+        {
+          "type": "department",
+          "id": "department_field_engineering"
+        },
+        {
+          "type": "project",
+          "id": "project_beacon"
+        }
+      ],
+      "evaluationState": "review_required",
+      "submittedAt": "2026-09-12T14:02:00Z",
+      "provenance": {
+        "kind": "synthetic",
+        "trust": "authoritative",
+        "sourceInstanceId": "source_mock_simulator",
+        "sourceObjectId": "request_buffalo_trip-amendment-3",
+        "sourceRevision": "1",
+        "occurredAt": "2026-09-12T14:02:00Z",
+        "observedAt": "2026-09-12T14:02:00Z"
+      }
+    },
+    "decisions": [
+      {
+        "schemaVersion": "1.0.0",
+        "organizationId": "org_northstar",
+        "decisionId": "decision_mock_seed_approval",
+        "requestRef": {
+          "type": "request",
+          "id": "request_buffalo_trip",
+          "revision": 1
+        },
+        "outcome": "approved",
+        "reasonCodes": [
+          "WITHIN_AUTO_APPROVAL_LIMITS"
+        ],
+        "policyRef": {
+          "type": "policy",
+          "id": "policy_travel",
+          "revision": 1
+        },
+        "authorizationEpoch": 1,
+        "evaluatedFullAmount": {
+          "amountMinor": 18000,
+          "currency": "USD"
+        },
+        "evaluatedCumulativeIncrease": {
+          "amountMinor": 0,
+          "currency": "USD"
+        },
+        "factualInputs": [
+          {
+            "type": "request",
+            "id": "request_buffalo_trip",
+            "revision": 1
+          },
+          {
+            "type": "policy",
+            "id": "policy_travel",
+            "revision": 1
+          }
+        ],
+        "evidenceRefs": [
+          {
+            "type": "evidence",
+            "id": "evidence_trip_active",
+            "revision": 1
+          }
+        ],
+        "requiredApproverRole": null,
+        "permittedAction": {
+          "type": "simulate_purchase",
+          "amount": {
+            "amountMinor": 18000,
+            "currency": "USD"
+          }
+        },
+        "decidedAt": "2026-09-12T14:00:00Z"
+      },
+      {
+        "schemaVersion": "1.0.0",
+        "organizationId": "org_northstar",
+        "decisionId": "decision_mock_0002",
+        "requestRef": {
+          "type": "request",
+          "id": "request_buffalo_trip",
+          "revision": 2
+        },
+        "outcome": "approved",
+        "reasonCodes": [
+          "WITHIN_AUTO_APPROVAL_LIMITS"
+        ],
+        "policyRef": {
+          "type": "policy",
+          "id": "policy_travel",
+          "revision": 1
+        },
+        "authorizationEpoch": 1,
+        "evaluatedFullAmount": {
+          "amountMinor": 21000,
+          "currency": "USD"
+        },
+        "evaluatedCumulativeIncrease": {
+          "amountMinor": 3000,
+          "currency": "USD"
+        },
+        "factualInputs": [
+          {
+            "type": "request",
+            "id": "request_buffalo_trip",
+            "revision": 2
+          },
+          {
+            "type": "policy",
+            "id": "policy_travel",
+            "revision": 1
+          }
+        ],
+        "evidenceRefs": [
+          {
+            "type": "evidence",
+            "id": "evidence_trip_active",
+            "revision": 1
+          }
+        ],
+        "requiredApproverRole": null,
+        "permittedAction": {
+          "type": "simulate_purchase",
+          "amount": {
+            "amountMinor": 21000,
+            "currency": "USD"
+          }
+        },
+        "decidedAt": "2026-09-12T14:01:00Z"
+      },
+      {
+        "schemaVersion": "1.0.0",
+        "organizationId": "org_northstar",
+        "decisionId": "decision_mock_0006",
+        "requestRef": {
+          "type": "request",
+          "id": "request_buffalo_trip",
+          "revision": 3
+        },
+        "outcome": "review_required",
+        "reasonCodes": [
+          "CUMULATIVE_INCREASE_LIMIT_EXCEEDED"
+        ],
+        "policyRef": {
+          "type": "policy",
+          "id": "policy_travel",
+          "revision": 1
+        },
+        "authorizationEpoch": 1,
+        "evaluatedFullAmount": {
+          "amountMinor": 24000,
+          "currency": "USD"
+        },
+        "evaluatedCumulativeIncrease": {
+          "amountMinor": 6000,
+          "currency": "USD"
+        },
+        "factualInputs": [
+          {
+            "type": "request",
+            "id": "request_buffalo_trip",
+            "revision": 3
+          },
+          {
+            "type": "policy",
+            "id": "policy_travel",
+            "revision": 1
+          }
+        ],
+        "evidenceRefs": [
+          {
+            "type": "evidence",
+            "id": "evidence_trip_active",
+            "revision": 1
+          }
+        ],
+        "requiredApproverRole": "finance_manager",
+        "permittedAction": null,
+        "decidedAt": "2026-09-12T14:02:00Z"
+      },
+      {
+        "schemaVersion": "1.0.0",
+        "organizationId": "org_northstar",
+        "decisionId": "decision_mock_0009",
+        "requestRef": {
+          "type": "request",
+          "id": "request_buffalo_trip",
+          "revision": 3
+        },
+        "outcome": "approved",
+        "reasonCodes": [
+          "AUTHORIZED_HUMAN_EXCEPTION"
+        ],
+        "policyRef": {
+          "type": "policy",
+          "id": "policy_travel",
+          "revision": 1
+        },
+        "authorizationEpoch": 1,
+        "evaluatedFullAmount": {
+          "amountMinor": 24000,
+          "currency": "USD"
+        },
+        "evaluatedCumulativeIncrease": {
+          "amountMinor": 6000,
+          "currency": "USD"
+        },
+        "factualInputs": [
+          {
+            "type": "request",
+            "id": "request_buffalo_trip",
+            "revision": 3
+          },
+          {
+            "type": "policy",
+            "id": "policy_travel",
+            "revision": 1
+          }
+        ],
+        "evidenceRefs": [
+          {
+            "type": "evidence",
+            "id": "evidence_trip_active",
+            "revision": 1
+          }
+        ],
+        "requiredApproverRole": null,
+        "permittedAction": {
+          "type": "simulate_purchase",
+          "amount": {
+            "amountMinor": 24000,
+            "currency": "USD"
+          }
+        },
+        "decidedAt": "2026-09-12T14:02:00Z"
+      }
+    ],
+    "commitment": {
+      "schemaVersion": "1.0.0",
+      "organizationId": "org_northstar",
+      "commitmentId": "commitment_buffalo_trip",
+      "revision": 4,
+      "requestRef": {
+        "type": "request",
+        "id": "request_buffalo_trip",
+        "revision": 3
+      },
+      "decisionRef": {
+        "type": "decision",
+        "id": "decision_mock_0009",
+        "revision": 1
+      },
+      "amount": {
+        "amountMinor": 24000,
+        "currency": "USD"
+      },
+      "outstandingAmount": {
+        "amountMinor": 0,
+        "currency": "USD"
+      },
+      "state": "posted",
+      "budgetAccountRefs": [
+        {
+          "type": "budget_account",
+          "id": "budget_field_travel",
+          "revision": 1
+        }
+      ],
+      "createdAt": "2026-09-12T14:00:00Z"
+    }
+  }
+}

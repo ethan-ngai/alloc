@@ -1,0 +1,162 @@
+{
+  "generatedBy": "packages/mock-api/src/export-fixtures.ts",
+  "clock": "2026-09-12T14:00:00Z",
+  "provisional": true,
+  "scenarioIds": {
+    "org_northstar": "scenario_mock_northstar_v1",
+    "org_juniper_table": "scenario_mock_juniper_v1",
+    "org_forge_loom": "scenario_mock_forge_v1"
+  },
+  "fixtures": [
+    {
+      "file": "northstar/requests.amend.approved.json",
+      "operation": "requests.amend",
+      "variant": "approved",
+      "ok": true
+    },
+    {
+      "file": "northstar/requests.amend.review_required.json",
+      "operation": "requests.amend",
+      "variant": "review_required",
+      "ok": true
+    },
+    {
+      "file": "northstar/requests.get.review_required.json",
+      "operation": "requests.get",
+      "variant": "review_required",
+      "ok": true
+    },
+    {
+      "file": "northstar/reviews.decide.approved.json",
+      "operation": "reviews.decide",
+      "variant": "approved",
+      "ok": true
+    },
+    {
+      "file": "northstar/postings.record.matched.json",
+      "operation": "postings.record",
+      "variant": "matched",
+      "ok": true
+    },
+    {
+      "file": "northstar/postings.correct.json",
+      "operation": "postings.correct",
+      "variant": "corrected",
+      "ok": true
+    },
+    {
+      "file": "northstar/requests.get.approved.json",
+      "operation": "requests.get",
+      "variant": "approved",
+      "ok": true
+    },
+    {
+      "file": "northstar/memory.query.json",
+      "operation": "memory.query",
+      "variant": "travel",
+      "ok": true
+    },
+    {
+      "file": "northstar/forecasts.run.baseline.json",
+      "operation": "forecasts.run",
+      "variant": "baseline",
+      "ok": true
+    },
+    {
+      "file": "northstar/forecasts.get.baseline.json",
+      "operation": "forecasts.get",
+      "variant": "baseline",
+      "ok": true
+    },
+    {
+      "file": "northstar/forecasts.get.scenario.json",
+      "operation": "forecasts.get",
+      "variant": "scenario",
+      "ok": true
+    },
+    {
+      "file": "northstar/activity.list.json",
+      "operation": "activity.list",
+      "variant": "organization",
+      "ok": true
+    },
+    {
+      "file": "northstar/imports.ingest.accepted.json",
+      "operation": "imports.ingest",
+      "variant": "accepted",
+      "ok": true
+    },
+    {
+      "file": "northstar/imports.ingest.duplicate.json",
+      "operation": "imports.ingest",
+      "variant": "duplicate",
+      "ok": true
+    },
+    {
+      "file": "northstar/imports.ingest.quarantined.json",
+      "operation": "imports.ingest",
+      "variant": "quarantined",
+      "ok": true
+    },
+    {
+      "file": "northstar/requests.create.approved.json",
+      "operation": "requests.create",
+      "variant": "approved",
+      "ok": true
+    },
+    {
+      "file": "northstar/requests.create.denied.json",
+      "operation": "requests.create",
+      "variant": "denied",
+      "ok": true
+    },
+    {
+      "file": "northstar/requests.get.denied.json",
+      "operation": "requests.get",
+      "variant": "denied",
+      "ok": true
+    },
+    {
+      "file": "northstar/reviews.decide.denied.json",
+      "operation": "reviews.decide",
+      "variant": "denied",
+      "ok": true
+    },
+    {
+      "file": "errors/stale-version.json",
+      "schema": "ContractError",
+      "errorCode": "STALE_VERSION",
+      "variant": "stale-version"
+    },
+    {
+      "file": "errors/authority-denied.json",
+      "schema": "ContractError",
+      "errorCode": "AUTHORITY_DENIED",
+      "variant": "authority-denied"
+    },
+    {
+      "file": "errors/not-found.json",
+      "schema": "ContractError",
+      "errorCode": "NOT_FOUND",
+      "variant": "not-found"
+    },
+    {
+      "file": "errors/validation-failed.json",
+      "schema": "ContractError",
+      "errorCode": "VALIDATION_FAILED",
+      "variant": "validation-failed"
+    },
+    {
+      "file": "errors/dependency-unavailable.json",
+      "schema": "ContractError",
+      "errorCode": "DEPENDENCY_UNAVAILABLE",
+      "variant": "dependency-unavailable"
+    },
+    {
+      "file": "errors/idempotency-conflict.json",
+      "schema": "ContractError",
+      "errorCode": "IDEMPOTENCY_CONFLICT",
+      "variant": "idempotency-conflict"
+    }
+  ]
+}

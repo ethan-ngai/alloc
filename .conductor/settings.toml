@@ -1,0 +1,18 @@
+"$schema" = "https://conductor.build/schemas/settings.repo.schema.json"
+
+[scripts]
+# One root lockfile; every workspace installs from it.
+setup = "npm ci --no-audit --no-fund"
+# Each workspace owns a workspace-named MongoDB container and ports from its
+# own CONDUCTOR_PORT range, so several workspaces can run at the same time.
+run_mode = "concurrent"
+
+[scripts.run.dev]
+command = "npm run dev"
+available_in = ["local"]
+default = true
+icon = "play"
+
+[scripts.run.test]
+command = "npm test"
+icon = "test-tube"

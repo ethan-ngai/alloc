@@ -1,0 +1,106 @@
+{
+  "ok": true,
+  "schemaVersion": "1.0.0",
+  "correlationId": "correlation_fixture_amend_2",
+  "data": {
+    "request": {
+      "schemaVersion": "1.0.0",
+      "organizationId": "org_northstar",
+      "requestId": "request_buffalo_trip",
+      "revision": 3,
+      "previousRevision": 2,
+      "requesterId": "employee_maya_chen",
+      "purpose": "Buffalo Beacon pilot trip",
+      "fullAmount": {
+        "amountMinor": 24000,
+        "currency": "USD"
+      },
+      "increaseFromPrevious": {
+        "amountMinor": 3000,
+        "currency": "USD"
+      },
+      "cumulativeIncrease": {
+        "amountMinor": 6000,
+        "currency": "USD"
+      },
+      "categoryId": "category_travel",
+      "vendorId": "vendor_buffalo_hotel",
+      "projectId": "project_beacon",
+      "scopes": [
+        {
+          "type": "organization",
+          "id": "org_northstar"
+        },
+        {
+          "type": "department",
+          "id": "department_field_engineering"
+        },
+        {
+          "type": "project",
+          "id": "project_beacon"
+        }
+      ],
+      "evaluationState": "review_required",
+      "submittedAt": "2026-09-12T14:02:00Z",
+      "provenance": {
+        "kind": "synthetic",
+        "trust": "authoritative",
+        "sourceInstanceId": "source_mock_simulator",
+        "sourceObjectId": "request_buffalo_trip-amendment-3",
+        "sourceRevision": "1",
+        "occurredAt": "2026-09-12T14:02:00Z",
+        "observedAt": "2026-09-12T14:02:00Z"
+      }
+    },
+    "decision": {
+      "schemaVersion": "1.0.0",
+      "organizationId": "org_northstar",
+      "decisionId": "decision_mock_0006",
+      "requestRef": {
+        "type": "request",
+        "id": "request_buffalo_trip",
+        "revision": 3
+      },
+      "outcome": "review_required",
+      "reasonCodes": [
+        "CUMULATIVE_INCREASE_LIMIT_EXCEEDED"
+      ],
+      "policyRef": {
+        "type": "policy",
+        "id": "policy_travel",
+        "revision": 1
+      },
+      "authorizationEpoch": 1,
+      "evaluatedFullAmount": {
+        "amountMinor": 24000,
+        "currency": "USD"
+      },
+      "evaluatedCumulativeIncrease": {
+        "amountMinor": 6000,
+        "currency": "USD"
+      },
+      "factualInputs": [
+        {
+          "type": "request",
+          "id": "request_buffalo_trip",
+          "revision": 3
+        },
+        {
+          "type": "policy",
+          "id": "policy_travel",
+          "revision": 1
+        }
+      ],
+      "evidenceRefs": [
+        {
+          "type": "evidence",
+          "id": "evidence_trip_active",
+          "revision": 1
+        }
+      ],
+      "requiredApproverRole": "finance_manager",
+      "permittedAction": null,
+      "decidedAt": "2026-09-12T14:02:00Z"
+    }
+  }
+}

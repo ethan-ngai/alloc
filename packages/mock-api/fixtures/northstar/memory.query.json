@@ -1,0 +1,229 @@
+{
+  "ok": true,
+  "schemaVersion": "1.0.0",
+  "correlationId": "correlation_fixture_memory_query",
+  "data": {
+    "schemaVersion": "1.0.0",
+    "organizationId": "org_northstar",
+    "queryId": "query_mock_0012",
+    "asOf": "2026-09-12T14:02:00Z",
+    "facts": [
+      {
+        "ref": {
+          "type": "category",
+          "id": "category_travel",
+          "revision": 1
+        },
+        "label": "Travel category",
+        "value": "Travel",
+        "scopeRefs": [
+          {
+            "type": "organization",
+            "id": "org_northstar"
+          },
+          {
+            "type": "category",
+            "id": "category_travel"
+          }
+        ],
+        "provenance": {
+          "kind": "synthetic",
+          "trust": "authoritative",
+          "sourceInstanceId": "source_mock_simulator",
+          "sourceObjectId": "seed-category-category_travel",
+          "sourceRevision": "1",
+          "occurredAt": "2026-09-12T14:00:00Z",
+          "observedAt": "2026-09-12T14:00:00Z"
+        }
+      },
+      {
+        "ref": {
+          "type": "budget_account",
+          "id": "budget_field_travel",
+          "revision": 5
+        },
+        "label": "Budget authorized amount",
+        "value": {
+          "amountMinor": 50000,
+          "currency": "USD"
+        },
+        "scopeRefs": [
+          {
+            "type": "organization",
+            "id": "org_northstar"
+          },
+          {
+            "type": "account",
+            "id": "budget_field_travel"
+          },
+          {
+            "type": "department",
+            "id": "department_field_engineering"
+          }
+        ],
+        "provenance": {
+          "kind": "synthetic",
+          "trust": "authoritative",
+          "sourceInstanceId": "source_mock_simulator",
+          "sourceObjectId": "budget-account-budget_field_travel",
+          "sourceRevision": "1",
+          "occurredAt": "2026-09-12T14:00:00Z",
+          "observedAt": "2026-09-12T14:00:00Z"
+        }
+      },
+      {
+        "ref": {
+          "type": "budget_account",
+          "id": "budget_field_travel",
+          "revision": 5
+        },
+        "label": "Budget recognized spend",
+        "value": {
+          "amountMinor": 34000,
+          "currency": "USD"
+        },
+        "scopeRefs": [
+          {
+            "type": "organization",
+            "id": "org_northstar"
+          },
+          {
+            "type": "account",
+            "id": "budget_field_travel"
+          },
+          {
+            "type": "department",
+            "id": "department_field_engineering"
+          }
+        ],
+        "provenance": {
+          "kind": "synthetic",
+          "trust": "authoritative",
+          "sourceInstanceId": "source_mock_simulator",
+          "sourceObjectId": "budget-account-budget_field_travel",
+          "sourceRevision": "1",
+          "occurredAt": "2026-09-12T14:00:00Z",
+          "observedAt": "2026-09-12T14:00:00Z"
+        }
+      },
+      {
+        "ref": {
+          "type": "budget_account",
+          "id": "budget_field_travel",
+          "revision": 5
+        },
+        "label": "Budget outstanding commitments",
+        "value": {
+          "amountMinor": 0,
+          "currency": "USD"
+        },
+        "scopeRefs": [
+          {
+            "type": "organization",
+            "id": "org_northstar"
+          },
+          {
+            "type": "account",
+            "id": "budget_field_travel"
+          },
+          {
+            "type": "department",
+            "id": "department_field_engineering"
+          }
+        ],
+        "provenance": {
+          "kind": "synthetic",
+          "trust": "authoritative",
+          "sourceInstanceId": "source_mock_simulator",
+          "sourceObjectId": "budget-account-budget_field_travel",
+          "sourceRevision": "1",
+          "occurredAt": "2026-09-12T14:00:00Z",
+          "observedAt": "2026-09-12T14:00:00Z"
+        }
+      },
+      {
+        "ref": {
+          "type": "budget_account",
+          "id": "budget_field_travel",
+          "revision": 5
+        },
+        "label": "Budget available amount",
+        "value": {
+          "amountMinor": 16000,
+          "currency": "USD"
+        },
+        "scopeRefs": [
+          {
+            "type": "organization",
+            "id": "org_northstar"
+          },
+          {
+            "type": "account",
+            "id": "budget_field_travel"
+          },
+          {
+            "type": "department",
+            "id": "department_field_engineering"
+          }
+        ],
+        "provenance": {
+          "kind": "synthetic",
+          "trust": "authoritative",
+          "sourceInstanceId": "source_mock_simulator",
+          "sourceObjectId": "budget-account-budget_field_travel",
+          "sourceRevision": "1",
+          "occurredAt": "2026-09-12T14:00:00Z",
+          "observedAt": "2026-09-12T14:00:00Z"
+        }
+      }
+    ],
+    "evidence": [
+      {
+        "schemaVersion": "1.0.0",
+        "organizationId": "org_northstar",
+        "evidenceId": "evidence_trip_active",
+        "revision": 1,
+        "kind": "source_record",
+        "title": "Northstar Fieldworks active trip authorization",
+        "content": "Synthetic authorization record backing the active purpose of Buffalo Beacon pilot trip.",
+        "access": {
+          "classification": "internal",
+          "scopeRefs": [
+            {
+              "type": "organization",
+              "id": "org_northstar"
+            },
+            {
+              "type": "department",
+              "id": "department_field_engineering"
+            }
+          ],
+          "allowedPrincipalIds": []
+        },
+        "provenance": {
+          "kind": "synthetic",
+          "trust": "evidence",
+          "sourceInstanceId": "source_mock_simulator",
+          "sourceObjectId": "seed-trip-authorization",
+          "sourceRevision": "1",
+          "occurredAt": "2026-09-12T14:00:00Z",
+          "observedAt": "2026-09-12T14:00:00Z"
+        },
+        "authoritativeFor": [
+          "trip_active"
+        ]
+      }
+    ],
+    "assumptions": [],
+    "missingFields": [],
+    "sourceWatermarks": {
+      "mock_scenario": "scenario_mock_northstar_v1",
+      "mock_clock": "2026-09-12T14:02:00Z",
+      "mock_request_count": "3"
+    },
+    "page": {
+      "nextCursor": null,
+      "truncated": false
+    }
+  }
+}
