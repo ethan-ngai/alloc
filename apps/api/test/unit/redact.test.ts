@@ -14,6 +14,19 @@ describe("redactMongoUri", () => {
       "mongodb://127.0.0.1:27017/?replicaSet=alloc",
     );
   });
+
+  it("removes credentials carried in supported query options", () => {
+    const uri =
+      "mongodb://user:pass@cluster.example/alloc?authMechanism=MONGODB-AWS&authMechanismProperties=AWS_SESSION_TOKEN:session-secret&tlsCertificateKeyFilePassword=certificate-secret&proxyUsername=proxy-user&proxyPassword=proxy-secret";
+    const redacted = redactMongoUri(uri);
+
+    expect(redacted).not.toContain("user:pass");
+    expect(redacted).not.toContain("session-secret");
+    expect(redacted).not.toContain("certificate-secret");
+    expect(redacted).not.toContain("proxy-user");
+    expect(redacted).not.toContain("proxy-secret");
+    expect(redacted.match(/\[redacted\]/g)).toHaveLength(5);
+  });
 });
 
 describe("redactText", () => {
@@ -25,6 +38,16 @@ describe("redactText", () => {
     expect(redacted).not.toContain(secret);
     expect(redacted).not.toContain("hunter2");
     expect(redacted).toContain("[redacted]@127.0.0.1:27017");
+  });
+
+  it("removes URI query credentials from surrounding driver error text", () => {
+    const text =
+      "failed mongodb://user:pass@cluster.example/alloc?authMechanismProperties=AWS_SESSION_TOKEN:session-secret&proxyPassword=proxy-secret";
+    const redacted = redactText(text);
+
+    expect(redacted).not.toContain("user:pass");
+    expect(redacted).not.toContain("session-secret");
+    expect(redacted).not.toContain("proxy-secret");
   });
 
   it("ignores empty secrets", () => {

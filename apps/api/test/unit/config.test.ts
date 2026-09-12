@@ -98,13 +98,24 @@ describe("loadConfig", () => {
   });
 
   it("keeps secrets out of the redacted configuration", () => {
+    const sessionToken = "aws-session-secret";
+    const certificatePassword = "certificate-secret";
+    const proxyPassword = "proxy-secret";
     const config = loadConfig({
       ...REQUIRED_ENV,
-      MONGO_URI: "mongodb://alloc_admin:hunter2@127.0.0.1:27017/?replicaSet=alloc",
+      MONGO_URI:
+        `mongodb://alloc_admin:hunter2@127.0.0.1:27017/?replicaSet=alloc` +
+        `&authMechanismProperties=AWS_SESSION_TOKEN:${sessionToken}` +
+        `&tlsCertificateKeyFilePassword=${certificatePassword}` +
+        `&proxyUsername=proxy-user&proxyPassword=${proxyPassword}`,
     });
 
     const serialized = JSON.stringify(redactedConfig(config));
     expect(serialized).not.toContain("hunter2");
+    expect(serialized).not.toContain(sessionToken);
+    expect(serialized).not.toContain(certificatePassword);
+    expect(serialized).not.toContain("proxy-user");
+    expect(serialized).not.toContain(proxyPassword);
     expect(serialized).not.toContain(config.jwt.secret);
     expect(serialized).toContain("[redacted]");
     expect(configSecrets(config)).toEqual([config.jwt.secret, config.mongo.uri]);
