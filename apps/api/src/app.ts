@@ -5,6 +5,8 @@ import { configSecrets, type AppConfig } from "./config.js";
 import { CORRELATION_ID_HEADER, correlationIdOf, resolveCorrelationId } from "./correlation.js";
 import { apiErrors, describeError, errorEnvelope, toApiError } from "./errors.js";
 import type { OrganizationRepository } from "./mongo/organizations.js";
+import type { ImportRepository } from "./imports/repository.js";
+import { registerImportRoutes } from "./routes/imports.js";
 import { redactText } from "./redact.js";
 import type { Readiness } from "./readiness.js";
 import { registerHealthRoutes } from "./routes/health.js";
@@ -16,6 +18,7 @@ export interface AppDependencies {
   readonly config: AppConfig;
   readonly readiness: Readiness;
   readonly organizations: OrganizationRepository;
+  readonly imports: ImportRepository;
   /** Overridden in tests; defaults to the configured HS256 verifier. */
   readonly verifier?: TokenVerifier;
   /** Fastify logger options; pass `false` to silence logs in tests. */
@@ -35,6 +38,7 @@ export function buildApp(deps: AppDependencies): FastifyInstance {
     bodyLimit: 1_048_576,
     trustProxy: false,
   });
+  app.addContentTypeParser("text/csv", { parseAs: "string" }, (_request, body, done) => done(null, body));
   const redact = (text: string): string => redactText(text, configSecrets(deps.config));
 
   app.addHook("onRequest", async (request, reply) => {
@@ -47,6 +51,7 @@ export function buildApp(deps: AppDependencies): FastifyInstance {
   registerAuth(app, deps.verifier ?? createTokenVerifier(deps.config.jwt));
   registerHealthRoutes(app, deps.readiness);
   registerOrganizationRoutes(app, deps.organizations);
+  registerImportRoutes(app, deps.imports);
 
   app.setNotFoundHandler((request, reply) => {
     reply.code(404);

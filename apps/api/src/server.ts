@@ -27,6 +27,7 @@ async function main(): Promise<void> {
       config,
       readiness: runtime.readiness,
       organizations: runtime.organizations,
+      imports: runtime.imports,
     });
 
     let shuttingDown = false;

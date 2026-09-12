@@ -2,7 +2,8 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { createServer } from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { CompanyEntitySchema, operationResult } from "@alloc/contracts";
+import { CompanyEntitySchema, operationResult, type SourceDelivery } from "@alloc/contracts";
+import { readFileSync } from "node:fs";
 import { startMongoReplicaSet, startMongoStandalone, type MongoTestCluster } from "@alloc/test-support";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { ORGANIZATIONS_COLLECTION } from "../../src/mongo/organizations.js";
@@ -14,6 +15,7 @@ const API_ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const SERVER_ENTRY = path.join(API_ROOT, "dist", "server.js");
 const ORGANIZATION_PATH = `/v1/organizations/${NORTHSTAR_ORGANIZATION_ID}`;
 const OrganizationResultSchema = operationResult(CompanyEntitySchema);
+const fixture = JSON.parse(readFileSync(fileURLToPath(new URL("../../../../packages/company-fixtures/fixtures/northstar.json", import.meta.url)), "utf8")) as { entities: never[]; manifest: { mappings: never[] }; deliveries: SourceDelivery[] };
 
 interface RunningApi {
   readonly child: ChildProcess;
@@ -29,6 +31,7 @@ const spawned: ChildProcess[] = [];
 beforeAll(async () => {
   cluster = await startMongoReplicaSet({ label: "e2e" });
   await seedOrganization();
+  await seedImports();
   apiPort = await freePort();
   api = startApi();
   await waitForHttp(livenessUrl(apiPort), 30_000, api);
@@ -112,6 +115,19 @@ describe("HTTP end to end", () => {
     expect(response.status).toBe(200);
     expect(response.body).toMatchObject({ ok: true, data: { displayName: "Northstar Fieldworks" } });
   });
+
+  it("imports, retrieves, and safely replays a source revision over HTTP", async () => {
+    const token = await signTestToken({ expiresInSeconds: 3_600 });
+    const delivery = fixture.deliveries[0]!;
+    const first = await post("/v1/organizations/org_northstar/imports", command(delivery), token);
+    expect(first.status).toBe(200);
+    expect(first.body).toMatchObject({ ok: true, data: { disposition: "accepted" } });
+    const replay = { ...delivery, deliveryId: `${delivery.deliveryId}-replay`, observedAt: "2026-12-01T00:00:00.000Z", provenance: { ...delivery.provenance, observedAt: "2026-12-01T00:00:00.000Z" } };
+    expect((await post("/v1/organizations/org_northstar/imports", command(replay), token)).body).toMatchObject({ ok: true, data: { disposition: "duplicate" } });
+    const postings = await get("/v1/organizations/org_northstar/imports/postings", { authorization: `Bearer ${token}` });
+    expect(postings.body).toMatchObject({ ok: true, data: [{ postingId: (delivery.payload.posting as { postingId: string }).postingId }] });
+    expect((postings.body.data as unknown[])).toHaveLength(1);
+  });
 });
 
 describe("startup refusals", () => {
@@ -190,6 +206,16 @@ async function seedOrganization(): Promise<void> {
   }
 }
 
+async function seedImports(): Promise<void> {
+  const runtime = await connectMongoRuntime({ uri: cluster.uri, database: cluster.database });
+  try {
+    await runtime.imports.seedEntities(fixture.entities);
+    await runtime.imports.seedMappings(fixture.manifest.mappings);
+  } finally {
+    await runtime.close();
+  }
+}
+
 async function get(pathname: string, headers: Record<string, string> = {}): Promise<{
   status: number;
   body: Record<string, unknown>;
@@ -201,6 +227,16 @@ async function get(pathname: string, headers: Record<string, string> = {}): Prom
 
 function livenessUrl(port: number): string {
   return `http://127.0.0.1:${port}/health/live`;
+}
+
+async function post(pathname: string, payload: unknown, token: string): Promise<{ status: number; body: Record<string, unknown> }> {
+  const response = await fetch(`http://127.0.0.1:${apiPort}${pathname}`, { method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify(payload) });
+  return { status: response.status, body: await response.json() as Record<string, unknown> };
+}
+
+function command(delivery: SourceDelivery) {
+  const { organizationId: _organizationId, schemaVersion: _schemaVersion, ...payload } = delivery;
+  return { meta: { schemaVersion: "1.0.0", organizationId: "org_northstar", commandId: "command_import_e2e", correlationId: "correlation_import_e2e", expectedVersions: [] }, payload };
 }
 
 async function waitForHttp(url: string, timeoutMs: number, running: RunningApi): Promise<void> {
