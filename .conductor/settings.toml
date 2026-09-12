@@ -2,17 +2,22 @@
 
 [scripts]
 # One root lockfile; every workspace installs from it.
-setup = "npm ci --no-audit --no-fund"
+setup = "scripts/use-node.zsh npm ci --no-audit --no-fund"
 # Each workspace owns a workspace-named MongoDB container and ports from its
 # own CONDUCTOR_PORT range, so several workspaces can run at the same time.
 run_mode = "concurrent"
 
 [scripts.run.dev]
-command = "npm run dev"
+command = "scripts/use-node.zsh npm run dev"
 available_in = ["local"]
 default = true
 icon = "play"
 
 [scripts.run.test]
-command = "npm test"
+command = "scripts/use-node.zsh npm test"
 icon = "test-tube"
+
+[scripts.run.agent-smoke]
+command = "scripts/use-node.zsh npm run test:agent:e2e"
+available_in = ["local"]
+icon = "bot"

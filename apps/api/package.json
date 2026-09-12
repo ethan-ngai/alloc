@@ -24,6 +24,7 @@
     "@alloc/financial-rules": "*",
     "@alloc/forecast": "*",
     "@alloc/scheduler": "*",
+    "@fastify/cors": "^11.3.0",
     "fastify": "5.12.4",
     "jose": "6.2.12",
     "mongodb": "6.21.0",

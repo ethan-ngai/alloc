@@ -1,0 +1,44 @@
+{
+  "name": "@alloc/agent-tools",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@alloc/contracts": "file:../contracts",
+    "typebox": "1.3.30",
+    "zod": "4.1.5"
+  },
+  "peerDependencies": {
+    "openclaw": "2026.9.4"
+  },
+  "peerDependenciesMeta": {
+    "openclaw": { "optional": true }
+  },
+  "devDependencies": {
+    "@alloc/mock-api": "file:../mock-api",
+    "@types/node": "24.3.0",
+    "openclaw": "2026.9.4",
+    "typescript": "5.9.2",
+    "vitest": "3.2.4"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

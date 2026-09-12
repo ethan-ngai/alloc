@@ -38,6 +38,9 @@ process.on("SIGTERM", () => shutdown(0));
 try {
   await ensureMongo();
   run("npm", ["run", "build"]);
+  const { seedDevelopmentData } = await import("./seed-dev.mjs");
+  await seedDevelopmentData({ mongoUri, database });
+  console.log(`[dev] seeded synthetic Northstar, Juniper, and Forge profiles in ${database}`);
   watch("tsc --watch", ["run", "build", "--workspace", "@alloc/contracts", "--", "--watch"]);
   watch("tsc --watch", ["run", "build", "--workspace", "@alloc/api", "--", "--watch"]);
   watch("api", ["exec", "--", "node", "--watch", "apps/api/dist/server.js"], apiEnvironment());
@@ -156,7 +159,7 @@ function watch(label, args, env = process.env) {
 }
 
 async function printEndpoints() {
-  const token = await new SignJWT({ sub: "principal_dev", org: DEV_ORGANIZATION_ID, roles: ["approver"] })
+  const token = await new SignJWT({ sub: "principal_dev", org: DEV_ORGANIZATION_ID, roles: ["approver", "finance_manager"] })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuer(DEV_JWT_ISSUER)
     .setAudience(DEV_JWT_AUDIENCE)
@@ -171,9 +174,7 @@ async function printEndpoints() {
   console.log(
     `[dev] try        curl -s -H "Authorization: Bearer ${token}" http://127.0.0.1:${apiPort}/v1/organizations/${DEV_ORGANIZATION_ID}`,
   );
-  console.log(
-    `[dev] note       no organization record is seeded yet, so that call returns 404 until a company entity is stored in ${database}`,
-  );
+  console.log(`[dev] fixtures   synthetic Northstar, Juniper, and Forge data in ${database}`);
   console.log("[dev] the development token is signed with a public secret and is not valid outside local development");
 }
 
