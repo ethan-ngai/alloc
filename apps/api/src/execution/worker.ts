@@ -46,7 +46,7 @@ async function main(): Promise<void> {
       runtime.withTransaction,
       new SimulatedSpendProvider(runtime.db, { failureMode: config.providerFailureMode }),
       () => new Date(),
-      faultHook(config.fault, logger),
+      faultHook(config.fault, config.faultTarget, logger),
     );
 
     const shutdown = async (reason: string): Promise<void> => {
@@ -92,6 +92,7 @@ async function main(): Promise<void> {
       pollIntervalMs: config.pollIntervalMs,
       batchSize: config.batchSize,
       fault: config.fault,
+      faultTarget: config.faultTarget,
       providerFailureMode: config.providerFailureMode,
     });
 
@@ -123,12 +124,15 @@ async function main(): Promise<void> {
   }
 }
 
-function faultHook(fault: ExecutorFault, logger: Logger): ExecutorHooks {
-  if (fault !== "crash_after_provider_apply") {
+function faultHook(fault: ExecutorFault, target: string | null, logger: Logger): ExecutorHooks {
+  if (fault !== "crash_after_provider_apply" || target === null) {
     return {};
   }
   return {
     afterDelivery: async (intent) => {
+      if (intent.actionIntentId !== target) {
+        return;
+      }
       logger.warn("executor.crash_injected", { actionIntentId: intent.actionIntentId, state: intent.state });
       // Abrupt, uncatchable termination: the transaction that would persist the
       // receipt never runs.

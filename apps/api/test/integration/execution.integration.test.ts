@@ -162,6 +162,7 @@ describe("action executor against a real replica set", () => {
       amount: usd(18_000),
       vendorId: VENDOR,
       outcome: "applied",
+      observedAt: dispatched.receipt.observedAt,
     });
 
     // A replayed dispatch converges on the stored receipt and never re-delivers.

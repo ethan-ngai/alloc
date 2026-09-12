@@ -85,17 +85,14 @@ export class MongoActionExecutor {
     // the intent.
     const claimed = intent.state === "pending" ? await this.claim(intent) : intent;
     if (claimed === null) {
-      const current = await this.loadIntent(organizationId, actionIntentId);
-      return current === null
-        ? { status: "missing" }
-        : { status: "skipped", intent: current, reason: "another worker claimed the intent" };
+      return this.skipped(intent, "another worker claimed the intent");
     }
 
     const recorded = await this.receiptForIntent(organizationId, actionIntentId);
     if (recorded !== null) {
       const converged = await this.converge(claimed, recorded);
       return converged === null
-        ? { status: "skipped", intent: claimed, reason: "intent changed while adopting its receipt" }
+        ? this.skipped(claimed, "intent changed while adopting its receipt")
         : { status: recorded.outcome === "succeeded" ? "succeeded" : "failed", intent: converged, receipt: recorded };
     }
 
@@ -121,7 +118,7 @@ export class MongoActionExecutor {
           details: { providerInstanceId: claimed.providerInstanceId, reason: delivery.reason },
         });
         return flagged === null
-          ? { status: "skipped", intent: claimed, reason: "intent changed while recording the unknown outcome" }
+          ? this.skipped(claimed, "intent changed while recording the unknown outcome")
           : { status: "outcome_unknown", intent: flagged, reason: delivery.reason };
       }
       case "unavailable": {
@@ -130,7 +127,7 @@ export class MongoActionExecutor {
           details: { providerInstanceId: claimed.providerInstanceId, reason: delivery.reason },
         });
         return released === null
-          ? { status: "skipped", intent: claimed, reason: "intent changed while releasing the delivery" }
+          ? this.skipped(claimed, "intent changed while releasing the delivery")
           : { status: "pending", intent: released };
       }
     }
@@ -153,7 +150,7 @@ export class MongoActionExecutor {
     if (recorded !== null) {
       const converged = await this.converge(intent, recorded);
       return converged === null
-        ? { status: "skipped", intent, reason: "intent changed while adopting its receipt" }
+        ? this.skipped(intent, "intent changed while adopting its receipt")
         : { status: recorded.outcome === "succeeded" ? "succeeded" : "failed", intent: converged, receipt: recorded };
     }
 
@@ -173,7 +170,7 @@ export class MongoActionExecutor {
           details: { providerInstanceId: intent.providerInstanceId, disposition: "not_delivered" },
         });
         return released === null
-          ? { status: "skipped", intent, reason: "intent changed while reconciling" }
+          ? this.skipped(intent, "intent changed while reconciling")
           : { status: "pending", intent: released };
       }
       case "found":
@@ -219,6 +216,12 @@ export class MongoActionExecutor {
       { projection: { _id: 0 }, sort: { observedAt: -1 } },
     );
     return document === null ? null : ActionReceiptSchema.parse(document);
+  }
+
+  /** Reports a lost transition against the stored intent, not the stale claim. */
+  private async skipped(intent: ActionIntent, reason: string): Promise<IntentOutcome> {
+    const current = await this.loadIntent(intent.organizationId, intent.actionIntentId);
+    return { status: "skipped", intent: current ?? intent, reason };
   }
 
   private async loadIntent(organizationId: string, actionIntentId: string): Promise<ActionIntent | null> {
@@ -292,7 +295,8 @@ export class MongoActionExecutor {
       providerOperationId: operation.providerOperationId,
       outcome,
       amount: operation.amount,
-      observedAt: this.now().toISOString(),
+      // The provider's own timestamp: the audit entry records when we observed it.
+      observedAt: operation.observedAt,
       rawReceiptRef: { type: "provider_operation", id: operation.providerOperationId, revision: 1 },
     });
     const nextState = outcome === "succeeded" ? "succeeded" : "failed";
@@ -327,7 +331,7 @@ export class MongoActionExecutor {
       return next;
     });
     if (settled === null) {
-      return { status: "skipped", intent, reason: "intent changed while recording its outcome" };
+      return this.skipped(intent, "intent changed while recording its outcome");
     }
     // The transaction wrote this receipt; reading it back could only fail on a
     // transient error after the settle already committed.

@@ -49,7 +49,10 @@ describe("simulated action delivery end to end", () => {
 
     // The worker applies the provider operation and is killed before it can
     // persist a receipt, which is the crash-after-side-effect window.
-    const crashing = startWorker({ EXECUTOR_FAULT: "crash_after_provider_apply" });
+    const crashing = startWorker({
+      EXECUTOR_FAULT: "crash_after_provider_apply",
+      EXECUTOR_FAULT_TARGET: intent.actionIntentId,
+    });
     await waitForExit(crashing.child, 30_000);
     expect(await providerOperations(intent.idempotencyKey)).toBe(1);
     expect(await receiptsFor(requestId)).toHaveLength(0);
@@ -86,8 +89,14 @@ describe("simulated action delivery end to end", () => {
     const requestId = await createRequest("command_e2e_exec_timeout", 12_000, token);
     const intent = await pendingIntent(requestId);
 
-    const worker = startWorker({ SIMULATED_PROVIDER_FAILURE_MODE: "timeout_after_apply" });
+    const worker = startWorker({
+      SIMULATED_PROVIDER_FAILURE_MODE: "timeout_after_apply",
+      // Armed but aimed at another intent: the fault must not fire here.
+      EXECUTOR_FAULT: "crash_after_provider_apply",
+      EXECUTOR_FAULT_TARGET: "action_0123456789abcdef01234567",
+    });
     await waitForSuccess(async () => (await intentFor(requestId)).state === "succeeded", 30_000, "the reconciled intent to succeed", worker);
+    expect(worker.child.exitCode).toBeNull();
     await stopProcess(worker);
 
     expect(await providerOperations(intent.idempotencyKey)).toBe(1);

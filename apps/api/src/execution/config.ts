@@ -4,6 +4,7 @@
  * semantics, and adds only the executor's own knobs. Nothing is defaulted for
  * the connection: a missing URI or database is a startup failure.
  */
+import { IdSchema } from "@alloc/contracts";
 import { z } from "zod";
 import {
   ConfigError,
@@ -15,7 +16,12 @@ import { SIMULATED_FAILURE_MODES, type SimulatedFailureMode } from "./provider.j
 export const DEFAULT_EXECUTOR_POLL_INTERVAL_MS = 1_000;
 export const DEFAULT_EXECUTOR_BATCH_SIZE = 10;
 
-/** `crash_after_provider_apply` kills the process after the provider applied the operation. */
+/**
+ * `crash_after_provider_apply` kills the process after the provider applied the
+ * operation, but only for the intent named by `EXECUTOR_FAULT_TARGET`. The
+ * target is mandatory: a whole process that kills itself on arrival is a crash
+ * loop with no progress, so activation has to name the one intent under test.
+ */
 export const EXECUTOR_FAULTS = ["none", "crash_after_provider_apply"] as const;
 export type ExecutorFault = (typeof EXECUTOR_FAULTS)[number];
 
@@ -26,6 +32,8 @@ export interface ExecutorConfig {
   readonly pollIntervalMs: number;
   readonly batchSize: number;
   readonly fault: ExecutorFault;
+  /** Intent the fault applies to; required whenever `fault` is not `none`. */
+  readonly faultTarget: string | null;
   readonly providerFailureMode: SimulatedFailureMode;
 }
 
@@ -39,7 +47,16 @@ const RawExecutorConfigSchema = z.object({
   pollIntervalMs: z.coerce.number().int().min(100).max(60_000).describe("EXECUTOR_POLL_INTERVAL_MS"),
   batchSize: z.coerce.number().int().min(1).max(100).describe("EXECUTOR_BATCH_SIZE"),
   fault: z.enum(EXECUTOR_FAULTS).describe("EXECUTOR_FAULT"),
+  faultTarget: IdSchema.nullable().describe("EXECUTOR_FAULT_TARGET"),
   providerFailureMode: z.enum(SIMULATED_FAILURE_MODES).describe("SIMULATED_PROVIDER_FAILURE_MODE"),
+}).superRefine((config, context) => {
+  if (config.fault !== "none" && config.faultTarget === null) {
+    context.addIssue({
+      code: "custom",
+      path: ["faultTarget"],
+      message: "is required when EXECUTOR_FAULT is set",
+    });
+  }
 });
 
 type RawExecutorConfigKey = keyof z.infer<typeof RawExecutorConfigSchema>;
@@ -54,6 +71,7 @@ const ENV_NAMES: Record<RawExecutorConfigKey, string> = {
   pollIntervalMs: "EXECUTOR_POLL_INTERVAL_MS",
   batchSize: "EXECUTOR_BATCH_SIZE",
   fault: "EXECUTOR_FAULT",
+  faultTarget: "EXECUTOR_FAULT_TARGET",
   providerFailureMode: "SIMULATED_PROVIDER_FAILURE_MODE",
 };
 
@@ -68,6 +86,7 @@ export function loadExecutorConfig(env: Record<string, string | undefined> = pro
     pollIntervalMs: readEnv(env, "EXECUTOR_POLL_INTERVAL_MS") ?? String(DEFAULT_EXECUTOR_POLL_INTERVAL_MS),
     batchSize: readEnv(env, "EXECUTOR_BATCH_SIZE") ?? String(DEFAULT_EXECUTOR_BATCH_SIZE),
     fault: readEnv(env, "EXECUTOR_FAULT") ?? "none",
+    faultTarget: readEnv(env, "EXECUTOR_FAULT_TARGET") ?? null,
     providerFailureMode: readEnv(env, "SIMULATED_PROVIDER_FAILURE_MODE") ?? "none",
   };
 
@@ -88,6 +107,7 @@ export function loadExecutorConfig(env: Record<string, string | undefined> = pro
     pollIntervalMs: config.pollIntervalMs,
     batchSize: config.batchSize,
     fault: config.fault,
+    faultTarget: config.faultTarget,
     providerFailureMode: config.providerFailureMode,
   };
 }

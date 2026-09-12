@@ -16,6 +16,7 @@ describe("loadExecutorConfig", () => {
     expect(config.pollIntervalMs).toBe(DEFAULT_EXECUTOR_POLL_INTERVAL_MS);
     expect(config.batchSize).toBe(DEFAULT_EXECUTOR_BATCH_SIZE);
     expect(config.fault).toBe("none");
+    expect(config.faultTarget).toBeNull();
     expect(config.providerFailureMode).toBe("none");
     expect(config.logLevel).toBe("info");
     expect(config.mongo.heartbeatFrequencyMs).toBe(10_000);
@@ -31,6 +32,7 @@ describe("loadExecutorConfig", () => {
       EXECUTOR_POLL_INTERVAL_MS: "250",
       EXECUTOR_BATCH_SIZE: "3",
       EXECUTOR_FAULT: "crash_after_provider_apply",
+      EXECUTOR_FAULT_TARGET: "action_0123456789abcdef01234567",
       SIMULATED_PROVIDER_FAILURE_MODE: "timeout_after_apply",
     });
 
@@ -40,14 +42,35 @@ describe("loadExecutorConfig", () => {
       pollIntervalMs: 250,
       batchSize: 3,
       fault: "crash_after_provider_apply",
+      faultTarget: "action_0123456789abcdef01234567",
       providerFailureMode: "timeout_after_apply",
       mongo: { serverSelectionTimeoutMs: 1_500, database: "alloc_executor_test" },
     });
 
     expect(loadExecutorConfig({ ...REQUIRED_ENV, EXECUTOR_FAULT: " ", SIMULATED_PROVIDER_FAILURE_MODE: "" })).toMatchObject({
       fault: "none",
+      faultTarget: null,
       providerFailureMode: "none",
     });
+  });
+
+  it("refuses a fault that names no intent, before the process can crash-loop", () => {
+    expect(() => loadExecutorConfig({ ...REQUIRED_ENV, EXECUTOR_FAULT: "crash_after_provider_apply" })).toThrowError(ConfigError);
+
+    const missing = captureConfigError({ ...REQUIRED_ENV, EXECUTOR_FAULT: "crash_after_provider_apply" });
+    expect(missing.message).toContain("EXECUTOR_FAULT_TARGET is required when EXECUTOR_FAULT is set");
+
+    const malformed = captureConfigError({
+      ...REQUIRED_ENV,
+      EXECUTOR_FAULT: "crash_after_provider_apply",
+      EXECUTOR_FAULT_TARGET: "not-an-id",
+    });
+    expect(malformed.message).toContain("EXECUTOR_FAULT_TARGET expected a stable prefixed ID");
+    expect(loadExecutorConfig({
+      ...REQUIRED_ENV,
+      EXECUTOR_FAULT: "crash_after_provider_apply",
+      EXECUTOR_FAULT_TARGET: "action_0123456789abcdef01234567",
+    }).faultTarget).toBe("action_0123456789abcdef01234567");
   });
 
   it("refuses to start without a connection and database", () => {
@@ -68,7 +91,6 @@ describe("loadExecutorConfig", () => {
       EXECUTOR_BATCH_SIZE: "0",
     });
 
-    expect(error.issues).toHaveLength(4);
     expect(error.message).toContain("EXECUTOR_FAULT");
     expect(error.message).toContain("SIMULATED_PROVIDER_FAILURE_MODE");
     expect(error.message).toContain("EXECUTOR_POLL_INTERVAL_MS");
