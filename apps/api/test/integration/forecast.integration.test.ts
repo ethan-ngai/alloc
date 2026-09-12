@@ -23,10 +23,15 @@ describe("forecast snapshots against a real replica set", () => {
     const input = {
       organizationId: "org_northstar", forecastId: "forecast_northstar_q3", scope: { type: "organization" as const, id: "org_northstar" },
       periodStart: "2026-06-01T00:00:00.000Z", asOfCutoff: "2026-09-10T00:00:00.000Z", horizonEnd: "2026-09-30T00:00:00.000Z",
-      postings: fixture.postings, sourceWatermarks: { fixture: "2026-09-10T00:00:00.000Z" },
+      postings: fixture.postings, sourceWatermarks: { alpha: "2026-09-10T00:00:00.000Z", zeta: "2026-09-10T00:00:00.000Z" },
     };
     const first = await runtime.forecasts.refresh(input);
     expect((await runtime.forecasts.refresh(input)).revision).toBe(1);
+    expect((await runtime.forecasts.refresh({
+      ...input,
+      postings: [...input.postings].reverse(),
+      sourceWatermarks: { zeta: "2026-09-10T00:00:00.000Z", alpha: "2026-09-10T00:00:00.000Z" },
+    })).revision).toBe(1);
     const revised = await runtime.forecasts.refresh({ ...input, asOfCutoff: "2026-09-11T00:00:00.000Z", sourceWatermarks: { fixture: "2026-09-11T00:00:00.000Z" } });
 
     expect(revised).toMatchObject({ revision: 2, correctsForecastRef: { type: "forecast", id: input.forecastId, revision: 1 } });

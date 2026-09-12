@@ -36,7 +36,7 @@ export class MongoForecastRepository implements ForecastRepository {
 
   async refresh(candidate: ForecastCalculationInput): Promise<ForecastSnapshot> {
     const input = ForecastCalculationInputSchema.parse(candidate);
-    const inputHash = hash({ ...input, revision: undefined, completedAt: undefined });
+    const inputHash = hash(canonicalForecastInput(input));
     return this.withTransaction(async (session) => {
       const snapshots = this.db.collection(FORECAST_SNAPSHOTS_COLLECTION);
       const duplicate = await snapshots.findOne({ organizationId: input.organizationId, forecastId: input.forecastId, inputHash }, { session, projection: { _id: 0, inputHash: 0 } });
@@ -88,4 +88,25 @@ export function contributionDeltas(current: ForecastSnapshot, prior: ForecastSna
 
 function hash(value: unknown): string {
   return createHash("sha256").update(JSON.stringify(value)).digest("hex");
+}
+
+function canonicalForecastInput(input: ReturnType<typeof ForecastCalculationInputSchema.parse>): unknown {
+  const { postings, commitments, schedules, assumptions, revision: _revision, completedAt: _completedAt, ...rest } = input;
+  return {
+    ...(canonicalize(rest) as Record<string, unknown>),
+    postings: canonicalCollection(postings),
+    commitments: canonicalCollection(commitments),
+    schedules: canonicalCollection(schedules),
+    assumptions: canonicalCollection(assumptions),
+  };
+}
+
+function canonicalCollection(records: readonly unknown[]): unknown[] {
+  return records.map(canonicalize).sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right)));
+}
+
+function canonicalize(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonicalize);
+  if (!value || typeof value !== "object") return value;
+  return Object.fromEntries(Object.entries(value).sort(([left], [right]) => left.localeCompare(right)).map(([key, item]) => [key, canonicalize(item)]));
 }
