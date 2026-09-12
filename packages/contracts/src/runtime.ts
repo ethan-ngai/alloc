@@ -4,6 +4,8 @@ import {
   PrioritySchema, RecordRefSchema, RevisionSchema, ScopeRefSchema, SignedMoneySchema,
   SignedNonZeroMoneySchema, TimestampSchema,
 } from "./common.js";
+import { FinancialScheduleSchema } from "./memory.js";
+import { PostingSchema } from "./financial.js";
 
 const ForecastAssumptionShape = {
   assumptionId: IdSchema,
@@ -38,6 +40,35 @@ export const ForecastAssumptionSchema = z.discriminatedUnion("kind", [
     ]),
   }),
 ]);
+
+// A forecast consumes this projection, not an inferred shape of a financial commitment.
+export const ForecastCommitmentProjectionSchema = z.strictObject({
+  organizationId: OrganizationIdSchema,
+  commitmentRef: RecordRefSchema.extend({ revision: RevisionSchema }),
+  state: z.enum(["outstanding", "partially_posted", "posted", "canceled"]),
+  outstandingAmount: NonNegativeMoneySchema,
+  expectedAt: TimestampSchema,
+  scopes: z.array(ScopeRefSchema).min(1),
+  obligationId: IdSchema.optional(),
+});
+
+export const ForecastCalculationInputSchema = z.strictObject({
+  organizationId: OrganizationIdSchema,
+  forecastId: IdSchema,
+  revision: RevisionSchema.default(1),
+  scope: ScopeRefSchema,
+  periodStart: TimestampSchema,
+  asOfCutoff: TimestampSchema,
+  horizonEnd: TimestampSchema,
+  postings: z.array(PostingSchema),
+  commitments: z.array(ForecastCommitmentProjectionSchema).default([]),
+  schedules: z.array(FinancialScheduleSchema).default([]),
+  assumptions: z.array(ForecastAssumptionSchema).default([]),
+  sourceWatermarks: z.record(z.string(), z.string()).default({}),
+  coverageWarnings: z.array(z.string()).default([]),
+  completedAt: TimestampSchema.optional(),
+  calculationVersion: z.string().min(1).default("7a-v1"),
+});
 
 const ForecastComponentShape = { inputRefs: z.array(RecordRefSchema) };
 
