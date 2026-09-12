@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 import type { WorkspaceData } from "./data";
@@ -102,7 +102,11 @@ describe("Alloc workspace", () => {
     expect(screen.getAllByText("Increase field equipment envelope").length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: "Investigate evidence" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Decline limit change" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Stage human review" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Approve limit change" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Approve limit change" }));
+    expect(screen.getByRole("dialog", { name: "Approve project limit?" })).toBeInTheDocument();
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Approve limit change" }));
+    expect(screen.getByRole("button", { name: "Limit approved" })).toBeDisabled();
   });
 
   it("records a human review through the action without hiding its simulation status", async () => {

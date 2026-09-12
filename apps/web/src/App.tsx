@@ -447,23 +447,23 @@ function projectLimitProposal(company: CompanyConfig, data: WorkspaceData) {
   return { initiative, currentLimit: { amountMinor: currentLimit, currency }, proposedLimit: { amountMinor: proposedLimit, currency }, change: { amountMinor: proposedLimit - currentLimit, currency } };
 }
 
-function RequestsView({ company, data, onInvestigate, onOpenForecast, onDeny, onReviewLimit, notice }: { company: CompanyConfig; data: WorkspaceData; onInvestigate: () => void; onOpenForecast: () => void; onDeny: () => void; onReviewLimit: () => void; notice: string | null }) {
+function RequestsView({ company, data, onInvestigate, onOpenForecast, onDeny, onApproveLimit, notice, approved }: { company: CompanyConfig; data: WorkspaceData; onInvestigate: () => void; onOpenForecast: () => void; onDeny: () => void; onApproveLimit: () => void; notice: string | null; approved: boolean }) {
   const proposal = projectLimitProposal(company, data);
   return (
     <div className="split-page">
       <section className="request-index" aria-labelledby="requests-heading">
         <div className="register-heading"><h2 id="requests-heading">Request register</h2><span>1 current</span></div>
         <article className="request-row active" aria-current="true">
-          <span className="request-state review_required">project limit change</span>
+          <span className={`request-state ${approved ? "approved" : "review_required"}`}>{approved ? "approved" : "project limit change"}</span>
           <strong>{proposal.initiative.title}</strong>
           <span>{company.projectName ?? company.departmentName} · linked to {proposal.initiative.area}</span>
           <b>+{money(proposal.change)}</b>
           </article>
           <ProjectLimitImpact proposal={proposal} projectName={company.projectName ?? company.departmentName} />
-          <section className="request-actions" aria-labelledby="request-actions-title"><div><h3 id="request-actions-title">Decide this project limit</h3><p>WHY: {proposal.initiative.why} This proposal changes a project envelope, not an individual purchase.</p></div><div><button type="button" onClick={onInvestigate}>Investigate evidence</button><button type="button" onClick={onOpenForecast}>Open linked initiative</button><button type="button" className="deny-action" onClick={onDeny}>Decline limit change</button><button type="button" className="primary-action" onClick={onReviewLimit}>Stage human review</button></div>{notice && <p className="request-notice" role="status">{notice}</p>}</section>
+          <section className="request-actions" aria-labelledby="request-actions-title"><div><h3 id="request-actions-title">Decide this project limit</h3><p>WHY: {proposal.initiative.why} This proposal changes a project envelope, not an individual purchase.</p></div><div><button type="button" onClick={onInvestigate}>Investigate evidence</button><button type="button" onClick={onOpenForecast}>Open linked initiative</button><button type="button" className="deny-action" onClick={onDeny} disabled={approved}>Decline limit change</button><button type="button" className="primary-action" onClick={onApproveLimit} disabled={approved}>{approved ? "Limit approved" : "Approve limit change"}</button></div>{notice && <p className="request-notice" role="status">{notice}</p>}</section>
           <div className="empty-ledger"><FileCheck2 size={22} /><p>No more requests in this synthetic scenario.</p></div>
       </section>
-      <aside className="project-limit-card"><span>Linked initiative</span><h2>{proposal.initiative.title}</h2><p>{proposal.initiative.summary}</p><dl><div><dt>Current project limit</dt><dd>{money(proposal.currentLimit)}</dd></div><div><dt>Proposed project limit</dt><dd>{money(proposal.proposedLimit)}</dd></div><div><dt>Change requested</dt><dd>+{money(proposal.change)}</dd></div><div><dt>Decision owner</dt><dd>{company.approver}</dd></div></dl><small>Proposal only · requires an explicit human decision</small></aside>
+      <aside className="project-limit-card"><span>Linked initiative</span><h2>{proposal.initiative.title}</h2><p>{proposal.initiative.summary}</p><dl><div><dt>Current project limit</dt><dd>{money(proposal.currentLimit)}</dd></div><div><dt>Proposed project limit</dt><dd>{money(proposal.proposedLimit)}</dd></div><div><dt>Change requested</dt><dd>+{money(proposal.change)}</dd></div><div><dt>Decision owner</dt><dd>{company.approver}</dd></div></dl><small>{approved ? "Approved in this synthetic scenario" : "Proposal only · requires an explicit human decision"}</small></aside>
     </div>
   );
 }
@@ -603,6 +603,8 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [approving, setApproving] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [projectLimitConfirmOpen, setProjectLimitConfirmOpen] = useState(false);
+  const [projectLimitApproved, setProjectLimitApproved] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [streamEnabled, setStreamEnabled] = useState(true);
   const [denyNotice, setDenyNotice] = useState<string | null>(null);
@@ -655,11 +657,12 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (confirmOpen) dialogRef.current?.focus();
-  }, [confirmOpen]);
+    if (confirmOpen || projectLimitConfirmOpen) dialogRef.current?.focus();
+  }, [confirmOpen, projectLimitConfirmOpen]);
 
   function closeConfirmation() {
     setConfirmOpen(false);
+    setProjectLimitConfirmOpen(false);
     requestAnimationFrame(() => document.querySelector<HTMLButtonElement>(".review-trigger")?.focus());
   }
 
@@ -693,16 +696,22 @@ export default function App() {
     }
   }
 
+  function handleProjectLimitApprove() {
+    setProjectLimitApproved(true);
+    setProjectLimitConfirmOpen(false);
+    setProjectLimitNotice(`Approved by ${company.approver} in this synthetic scenario. A policy-backed command still records the canonical project limit.`);
+  }
+
   return (
     <div className="app-shell">
-      <a className="skip-link" href="#main-content" tabIndex={confirmOpen ? -1 : undefined}>Skip to content</a>
-      <aside inert={confirmOpen ? true : undefined} id="primary-navigation" className={`side-rail ${menuOpen ? "open" : ""}`} aria-label="Primary navigation">
+      <a className="skip-link" href="#main-content" tabIndex={confirmOpen || projectLimitConfirmOpen ? -1 : undefined}>Skip to content</a>
+      <aside inert={confirmOpen || projectLimitConfirmOpen ? true : undefined} id="primary-navigation" className={`side-rail ${menuOpen ? "open" : ""}`} aria-label="Primary navigation">
         <div className="brand"><span className="brand-mark" aria-hidden="true">A</span><strong>Alloc</strong><button className="mobile-close" aria-label="Close navigation" onClick={() => setMenuOpen(false)}><X /></button></div>
         <nav>{navItems.map((item) => { const Icon = item.icon; return <button key={item.id} type="button" className={view === item.id ? "active" : ""} onClick={() => { setView(item.id); setMenuOpen(false); }}><Icon size={19} /><span>{item.label}</span></button>; })}</nav>
         <div className="rail-companies"><span>Companies</span>{companies.map((item) => <button type="button" key={item.key} className={companyKey === item.key ? "active" : ""} onClick={() => { setCompanyKey(item.key); setMenuOpen(false); }}><i />{item.shortName}</button>)}</div>
         <div className="rail-footer"><span className="avatar">{company.approverInitials}</span><span><strong>{company.approver}</strong><small>Finance approver</small></span></div>
       </aside>
-      <div className="workspace" inert={confirmOpen ? true : undefined}>
+      <div className="workspace" inert={confirmOpen || projectLimitConfirmOpen ? true : undefined}>
         <div className="utility-bar">
           <button className="menu-button" aria-label="Open navigation" aria-controls="primary-navigation" aria-expanded={menuOpen} onClick={() => setMenuOpen(true)}><Menu /></button>
           <div className="company-control"><Building2 size={15} /><label htmlFor={companySelectId}>Company</label><select id={companySelectId} value={companyKey} onChange={(event) => setCompanyKey(event.target.value as CompanyKey)}>{companies.map((item) => <option value={item.key} key={item.key}>{item.shortName}</option>)}</select><ChevronDown size={14} aria-hidden="true" /></div>
@@ -714,7 +723,7 @@ export default function App() {
           <main className="main-canvas" id="main-content">
             <TitleBlock company={company} data={data} view={view} />
             {view === "overview" && <Overview company={company} data={data} onApprove={() => setConfirmOpen(true)} onOpenRequests={() => setView("requests")} onOpenForecast={() => setView("forecast")} approving={approving} streaming={streamEnabled} />}
-            {view === "requests" && <RequestsView company={company} data={data} onInvestigate={() => setView("memory")} onOpenForecast={() => setView("forecast")} onDeny={() => setProjectLimitNotice("Decline is staged for human confirmation. This project envelope remains unchanged until a typed decision command is connected.")} onReviewLimit={() => setProjectLimitNotice(`Human review is staged for ${company.approver}. No project limit changes until an authorized decision is recorded.`)} notice={projectLimitNotice ?? denyNotice} />}
+            {view === "requests" && <RequestsView company={company} data={data} onInvestigate={() => setView("memory")} onOpenForecast={() => setView("forecast")} onDeny={() => setProjectLimitNotice("Decline is staged for human confirmation. This project envelope remains unchanged until a typed decision command is connected.")} onApproveLimit={() => setProjectLimitConfirmOpen(true)} notice={projectLimitNotice ?? denyNotice} approved={projectLimitApproved} />}
             {view === "memory" && <MemoryView company={company} data={data} focusArea={memoryFocus?.area} focusEvidence={memoryFocus?.evidence} />}
             {view === "forecast" && <ForecastView company={company} data={data} onOpenRequests={() => setView("requests")} onOpenMemory={(area, evidence) => { setMemoryFocus({ area, evidence }); setView("memory"); }} onOpenActivity={(focus) => { setHistoryFocus(focus ?? null); setView("activity"); }} />}
             {view === "activity" && <ActivityRegister company={company} data={data} streaming={streamEnabled} historyFocus={historyFocus} />}
@@ -730,6 +739,17 @@ export default function App() {
             <dl className="review-details dialog-details"><div><dt>Request</dt><dd>{data.request.purpose}</dd></div><div><dt>Revised total</dt><dd>{money(data.request.fullAmount)}</dd></div><div><dt>Cumulative change</dt><dd className="danger-ink">+{money(data.request.cumulativeIncrease)}</dd></div><div><dt>Acting approver</dt><dd>{company.approver}</dd></div></dl>
             <p className="dialog-authority"><ShieldCheck size={15} />This records an authenticated human decision in the synthetic scenario. No model has execution authority.</p>
             <div className="dialog-actions"><button type="button" className="secondary-action" onClick={closeConfirmation}>Cancel</button><button type="button" className="primary-action" disabled={approving} onClick={handleApprove}>{approving ? <><RefreshCw className="spin" size={17} />Recording…</> : <>Approve revision {data.request.revision}<ArrowRight size={16} /></>}</button></div>
+          </section>
+        </div>
+      ) : null}
+      {projectLimitConfirmOpen && data ? (
+        <div className="dialog-backdrop" role="presentation" onMouseDown={closeConfirmation}>
+          <section ref={dialogRef} tabIndex={-1} className="decision-dialog" role="dialog" aria-modal="true" aria-labelledby="limit-decision-title" onKeyDown={handleDialogKeyDown} onMouseDown={(event) => event.stopPropagation()}>
+            <div className="dialog-head"><div><span>Human decision</span><h2 id="limit-decision-title">Approve project limit?</h2></div><button type="button" aria-label="Close decision" onClick={closeConfirmation}><X size={18} /></button></div>
+            <div className="dialog-warning"><TriangleAlert size={18} /><p><strong>Project envelope change.</strong> Confirm the operating milestone, proposed limit, and acting authority before recording this decision.</p></div>
+            <dl className="review-details dialog-details"><div><dt>Initiative</dt><dd>{projectLimitProposal(company, data).initiative.title}</dd></div><div><dt>Current limit</dt><dd>{money(projectLimitProposal(company, data).currentLimit)}</dd></div><div><dt>Proposed limit</dt><dd>{money(projectLimitProposal(company, data).proposedLimit)}</dd></div><div><dt>Acting approver</dt><dd>{company.approver}</dd></div></dl>
+            <p className="dialog-authority"><ShieldCheck size={15} />This records a human decision in the synthetic scenario. No model has execution authority.</p>
+            <div className="dialog-actions"><button type="button" className="secondary-action" onClick={closeConfirmation}>Cancel</button><button type="button" className="primary-action" onClick={handleProjectLimitApprove}>Approve limit change<ArrowRight size={16} /></button></div>
           </section>
         </div>
       ) : null}
