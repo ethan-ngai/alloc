@@ -49,14 +49,18 @@ export const RunForecastToolInputSchema = z.strictObject({
 });
 export const RunForecastToolResultSchema = z.strictObject({ forecast: ForecastSnapshotSchema, calculatedBy: z.literal("deterministic_backend") });
 
-export const ProposeActionToolInputSchema = z.strictObject({
+const ProposeActionShape = {
   requestId: IdSchema,
   requestRevision: RevisionSchema,
-  type: z.enum(["simulate_purchase", "request_human_review", "cancel_request"]),
-  amount: PositiveMoneySchema.optional(),
   rationale: z.string().min(1).max(2_000),
   evidenceRefs: z.array(RecordRefSchema).max(20),
-});
+};
+
+export const ProposeActionToolInputSchema = z.discriminatedUnion("type", [
+  z.strictObject({ ...ProposeActionShape, type: z.literal("simulate_purchase"), amount: PositiveMoneySchema }),
+  z.strictObject({ ...ProposeActionShape, type: z.literal("request_human_review") }),
+  z.strictObject({ ...ProposeActionShape, type: z.literal("cancel_request") }),
+]);
 export const ProposeActionToolResultSchema = z.strictObject({
   proposalId: IdSchema,
   disposition: z.enum(["accepted_for_evaluation", "rejected", "review_required"]),

@@ -13,7 +13,8 @@
     "./fixtures": {
       "types": "./dist/fixtures.d.ts",
       "import": "./dist/fixtures.js"
-    }
+    },
+    "./schemas/*.schema.json": "./schemas/*.schema.json"
   },
   "files": [
     "dist",

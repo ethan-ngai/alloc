@@ -15,7 +15,7 @@ const command: AmendRequestInput = AmendRequestInputSchema.parse(untrustedJson);
 const event = EventEnvelopeSchema.parse(serializedEventFromAnotherProcess);
 ```
 
-Examples are available from `@alloc/contracts/fixtures`. JSON Schema consumers can load named files from `schemas/`, such as `AmendRequestInputSchema.schema.json`.
+Examples are available from `@alloc/contracts/fixtures`. JSON Schema consumers can load exported package subpaths such as `@alloc/contracts/schemas/AmendRequestInputSchema.schema.json`.
 
 ## Commands
 
@@ -49,7 +49,7 @@ Consumers must reject unsupported schema versions. Historical records and events
 | `requests.create` | command | Create and evaluate a purchase request revision |
 | `requests.amend` | command | Submit a revised full amount against expected versions |
 | `requests.get` | query | Fetch the current request, decisions, and commitment |
-| `reviews.decide` | command | Record an authenticated human review decision/grant |
+| `reviews.decide` | command | Record an authenticated human review decision; the backend derives its grant |
 | `postings.record` | command | Record observed spend and an optional commitment match |
 | `postings.correct` | command | Add a traceable signed correction |
 | `imports.ingest` | command | Accept a source delivery/revision for normalization |
@@ -59,6 +59,8 @@ Consumers must reject unsupported schema versions. Historical records and events
 | `activity.list` | query | Page through auditable activity summaries |
 
 Commands carry organization, command identity, correlation, causation, and expected record versions. Query metadata carries organization and correlation. Authentication derives the organization and principal at the service boundary; callers cannot use metadata alone as proof of authority.
+
+Forecast assumptions are discriminated by kind. Fixed adjustments carry signed amounts, percentage changes carry non-zero basis points, and timing shifts identify a versioned target plus non-zero day offset. Scenario adjustment components may be signed so reductions reconcile exactly to the non-negative forecast total.
 
 Event envelopes bind aggregate revision, correlation, causation, time, and schema version to a typed payload. Tool argument schemas are intentionally narrower than API commands. `ToolExecutionContextSchema` documents backend-issued identity, authority, priority, job, and lease context, but that context is separate from model-supplied arguments. A tool adapter must inject it after authentication and must not merge similarly named model fields into it.
 

@@ -5,7 +5,7 @@ import {
   RevisionSchema, ScopeRefSchema, TimestampSchema,
 } from "./common.js";
 import {
-  ApprovalGrantSchema, CommitmentSchema, DecisionSchema, PostingCorrectionSchema, PostingSchema,
+  CommitmentSchema, DecisionSchema, PostingCorrectionSchema, PostingSchema,
   PurchaseRequestRevisionSchema,
 } from "./financial.js";
 import { MemoryResponseSchema, SourceDeliverySchema } from "./memory.js";
@@ -49,7 +49,12 @@ export const GetRequestResultSchema = operationResult(z.strictObject({ request: 
 
 export const DecideReviewInputSchema = z.strictObject({
   meta: CommandMetaSchema,
-  payload: z.strictObject({ requestId: IdSchema, requestRevision: RevisionSchema, outcome: z.enum(["approved", "denied"]), rationale: z.string().min(1), grant: ApprovalGrantSchema.optional() }),
+  payload: z.strictObject({
+    requestId: IdSchema,
+    requestRevision: RevisionSchema,
+    outcome: z.enum(["approved", "denied"]),
+    rationale: z.string().min(1),
+  }),
 });
 export const DecideReviewResultSchema = operationResult(z.strictObject({ decision: DecisionSchema, commitment: CommitmentSchema.nullable() }));
 

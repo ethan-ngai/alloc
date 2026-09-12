@@ -128,6 +128,23 @@ export const contractExamples = Object.freeze({
     total: usd(24_000), sensitivity: { low: usd(24_000), base: usd(24_000), high: usd(24_000), calibratedProbability: false },
     coverageWarnings: [], completedAt: at(31),
   },
+  reductionForecast: {
+    schemaVersion: CONTRACT_SCHEMA_VERSION, organizationId: orgId, forecastId: "forecast_beacon_reduction", revision: 1, kind: "scenario",
+    scope: { type: "project", id: "project_beacon" }, asOfCutoff: at(30), horizonEnd: "2026-09-30T23:59:59Z",
+    calculationVersion: "operational-spend-v1", inputVersions: [{ type: "posting", id: "posting_buffalo_hotel", revision: 1 }],
+    sourceWatermarks: { simulator: "delivery-30" },
+    assumptions: [{
+      assumptionId: "assumption_reduce_usage", name: "Reduce training runs by 20%", kind: "percentage_change", valueBasisPoints: -2_000,
+      scope: { type: "project", id: "project_beacon" }, effectiveFrom: "2026-09-13T00:00:00Z", effectiveTo: "2026-09-30T23:59:59Z",
+      evidenceRefs: [{ type: "evidence", id: "evidence_trip_active", revision: 1 }],
+    }],
+    components: [
+      { kind: "uncommitted_baseline", amount: usd(24_000), inputRefs: [{ type: "posting", id: "posting_buffalo_hotel", revision: 1 }] },
+      { kind: "scenario_adjustment", amount: usd(-4_800), inputRefs: [{ type: "evidence", id: "evidence_trip_active", revision: 1 }] },
+    ],
+    total: usd(19_200), sensitivity: { low: usd(18_000), base: usd(19_200), high: usd(20_400), calibratedProbability: false },
+    coverageWarnings: [], completedAt: at(32),
+  },
   event: {
     schemaVersion: CONTRACT_SCHEMA_VERSION, eventId: "event_posting_recorded", organizationId: orgId,
     eventType: "posting.recorded", aggregateRef: { type: "posting", id: "posting_buffalo_hotel", revision: 1 }, aggregateRevision: 1,

@@ -114,6 +114,102 @@
     "coverageWarnings": [],
     "completedAt": "2026-09-12T14:31:00Z"
   },
+  "reductionForecast": {
+    "schemaVersion": "1.0.0",
+    "organizationId": "org_northstar",
+    "forecastId": "forecast_beacon_reduction",
+    "revision": 1,
+    "kind": "scenario",
+    "scope": {
+      "type": "project",
+      "id": "project_beacon"
+    },
+    "asOfCutoff": "2026-09-12T14:30:00Z",
+    "horizonEnd": "2026-09-30T23:59:59Z",
+    "calculationVersion": "operational-spend-v1",
+    "inputVersions": [
+      {
+        "type": "posting",
+        "id": "posting_buffalo_hotel",
+        "revision": 1
+      }
+    ],
+    "sourceWatermarks": {
+      "simulator": "delivery-30"
+    },
+    "assumptions": [
+      {
+        "assumptionId": "assumption_reduce_usage",
+        "name": "Reduce training runs by 20%",
+        "kind": "percentage_change",
+        "valueBasisPoints": -2000,
+        "scope": {
+          "type": "project",
+          "id": "project_beacon"
+        },
+        "effectiveFrom": "2026-09-13T00:00:00Z",
+        "effectiveTo": "2026-09-30T23:59:59Z",
+        "evidenceRefs": [
+          {
+            "type": "evidence",
+            "id": "evidence_trip_active",
+            "revision": 1
+          }
+        ]
+      }
+    ],
+    "components": [
+      {
+        "kind": "uncommitted_baseline",
+        "amount": {
+          "amountMinor": 24000,
+          "currency": "USD"
+        },
+        "inputRefs": [
+          {
+            "type": "posting",
+            "id": "posting_buffalo_hotel",
+            "revision": 1
+          }
+        ]
+      },
+      {
+        "kind": "scenario_adjustment",
+        "amount": {
+          "amountMinor": -4800,
+          "currency": "USD"
+        },
+        "inputRefs": [
+          {
+            "type": "evidence",
+            "id": "evidence_trip_active",
+            "revision": 1
+          }
+        ]
+      }
+    ],
+    "total": {
+      "amountMinor": 19200,
+      "currency": "USD"
+    },
+    "sensitivity": {
+      "low": {
+        "amountMinor": 18000,
+        "currency": "USD"
+      },
+      "base": {
+        "amountMinor": 19200,
+        "currency": "USD"
+      },
+      "high": {
+        "amountMinor": 20400,
+        "currency": "USD"
+      },
+      "calibratedProbability": false
+    },
+    "coverageWarnings": [],
+    "completedAt": "2026-09-12T14:32:00Z"
+  },
   "event": {
     "schemaVersion": "1.0.0",
     "eventId": "event_posting_recorded",

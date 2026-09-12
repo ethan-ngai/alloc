@@ -1,26 +1,52 @@
 import { z } from "zod";
 import {
   ContractSchemaVersionSchema, IdSchema, NonNegativeMoneySchema, OrganizationIdSchema,
-  PrioritySchema, RecordRefSchema, RevisionSchema, ScopeRefSchema, TimestampSchema,
+  PrioritySchema, RecordRefSchema, RevisionSchema, ScopeRefSchema, SignedMoneySchema,
+  SignedNonZeroMoneySchema, TimestampSchema,
 } from "./common.js";
 
-export const ForecastAssumptionSchema = z.strictObject({
+const ForecastAssumptionShape = {
   assumptionId: IdSchema,
   name: z.string().min(1),
-  kind: z.enum(["fixed_adjustment", "percentage_change", "timing_shift"]),
-  valueBasisPoints: z.number().int().min(-10_000).max(100_000).optional(),
-  amount: NonNegativeMoneySchema.optional(),
   scope: ScopeRefSchema,
   effectiveFrom: TimestampSchema,
   effectiveTo: TimestampSchema,
   evidenceRefs: z.array(RecordRefSchema),
-});
+};
 
-export const ForecastComponentSchema = z.strictObject({
-  kind: z.enum(["actual_spend", "outstanding_commitment", "uncommitted_baseline", "scenario_adjustment"]),
-  amount: NonNegativeMoneySchema,
-  inputRefs: z.array(RecordRefSchema),
-});
+export const ForecastAssumptionSchema = z.discriminatedUnion("kind", [
+  z.strictObject({
+    ...ForecastAssumptionShape,
+    kind: z.literal("fixed_adjustment"),
+    amount: SignedNonZeroMoneySchema,
+  }),
+  z.strictObject({
+    ...ForecastAssumptionShape,
+    kind: z.literal("percentage_change"),
+    valueBasisPoints: z.union([
+      z.number().int().safe().min(-10_000).max(-1),
+      z.number().int().safe().min(1).max(100_000),
+    ]),
+  }),
+  z.strictObject({
+    ...ForecastAssumptionShape,
+    kind: z.literal("timing_shift"),
+    targetRef: RecordRefSchema.extend({ revision: RevisionSchema }),
+    shiftDays: z.union([
+      z.number().int().safe().max(-1),
+      z.number().int().safe().min(1),
+    ]),
+  }),
+]);
+
+const ForecastComponentShape = { inputRefs: z.array(RecordRefSchema) };
+
+export const ForecastComponentSchema = z.discriminatedUnion("kind", [
+  z.strictObject({ ...ForecastComponentShape, kind: z.literal("actual_spend"), amount: NonNegativeMoneySchema }),
+  z.strictObject({ ...ForecastComponentShape, kind: z.literal("outstanding_commitment"), amount: NonNegativeMoneySchema }),
+  z.strictObject({ ...ForecastComponentShape, kind: z.literal("uncommitted_baseline"), amount: NonNegativeMoneySchema }),
+  z.strictObject({ ...ForecastComponentShape, kind: z.literal("scenario_adjustment"), amount: SignedMoneySchema }),
+]);
 
 export const ForecastSnapshotSchema = z.strictObject({
   schemaVersion: ContractSchemaVersionSchema,

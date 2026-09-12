@@ -6,7 +6,7 @@ The planning baseline contains documentation and the standalone POC. Task 1A now
 
 | Stage | Status | Evidence |
 | --- | --- | --- |
-| 1A. Contracts | Implemented; contract gate verified | `packages/contracts`: strict Zod and inferred TypeScript contracts, draft 2020-12 JSON Schema, operation/tool catalog, frozen fixtures, and contract-level Northstar E2E trace. Verified with Node.js `v24.13.1`, npm `11.8.0`: `npm run build`, `npm run typecheck`, `npm run schema:export`, and `npm test` (12 tests). Deterministic scenario `scenario_northstar_amendment_v1`, seed `northstar-contracts-2026-09-12-v1`. This is not a MongoDB, HTTP, model, or hardware pass. |
+| 1A. Contracts | Implemented; contract gate verified | `packages/contracts`: strict Zod and inferred TypeScript contracts, draft 2020-12 JSON Schema, operation/tool catalog, frozen fixtures, and contract-level Northstar E2E trace. Verified with Node.js `v24.13.1`, npm `11.8.0`: `npm run build`, `npm run typecheck`, `npm run schema:export`, and `npm test` (16 tests). Deterministic scenario `scenario_northstar_amendment_v1`, seed `northstar-contracts-2026-09-12-v1`. This is not a MongoDB, HTTP, model, or hardware pass. |
 | 1B. Local foundation | Planned | No application runtime, HTTP service, authentication, or MongoDB integration harness shipped by 1A |
 | 2A–2C. Fixtures/imports/mocks | Planned | POC has three synthetic profiles; application fixtures/importer/mocks remain to build |
 | 3A–3B. Financial core | Planned | POC validates selected financial contracts; no application acceptance gates passed |

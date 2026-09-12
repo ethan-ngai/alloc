@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
-  ActionReceiptSchema, ContractErrorSchema, EventEnvelopeSchema, ForecastSnapshotSchema,
+  ActionReceiptSchema, ContractErrorSchema, DecideReviewInputSchema, EventEnvelopeSchema,
+  ForecastAssumptionSchema, ForecastSnapshotSchema,
   GetRequestToolInputSchema, MemoryResponseSchema, NonNegativeMoneySchema, PostingSchema,
-  OrganizationIdSchema, PostingCorrectionSchema, PurchaseRequestRevisionSchema, RequestAmendmentSchema, SignedMoneySchema, SourceDeliverySchema,
+  OrganizationIdSchema, PostingCorrectionSchema, ProposeActionToolInputSchema,
+  PurchaseRequestRevisionSchema, RequestAmendmentSchema, SignedMoneySchema,
   ToolExecutionContextSchema,
 } from "../src/index.js";
 import { contractExamples, northstarScenario, validateNorthstarScenario } from "../src/fixtures.js";
@@ -42,6 +44,39 @@ describe("strict structural contracts", () => {
     }).success).toBe(true);
   });
 
+  it("requires action-specific model proposal fields", () => {
+    const shared = { requestId: "request_buffalo_trip", requestRevision: 3, rationale: "Proceed", evidenceRefs: [] };
+    expect(ProposeActionToolInputSchema.safeParse({ ...shared, type: "simulate_purchase" }).success).toBe(false);
+    expect(ProposeActionToolInputSchema.safeParse({ ...shared, type: "simulate_purchase", amount: { amountMinor: 24_000, currency: "USD" } }).success).toBe(true);
+    expect(ProposeActionToolInputSchema.safeParse({ ...shared, type: "cancel_request", amount: { amountMinor: 24_000, currency: "USD" } }).success).toBe(false);
+    expect(ProposeActionToolInputSchema.safeParse({ ...shared, type: "cancel_request" }).success).toBe(true);
+  });
+
+  it("keeps authority grants out of caller-supplied review decisions", () => {
+    const reviewInput = {
+      meta: {
+        schemaVersion: "1.0.0", organizationId: "org_northstar", commandId: "command_review_buffalo",
+        correlationId: "correlation_buffalo_trip", expectedVersions: [],
+      },
+      payload: { requestId: "request_buffalo_trip", requestRevision: 3, outcome: "approved", rationale: "Approved" },
+    };
+    expect(DecideReviewInputSchema.safeParse(reviewInput).success).toBe(true);
+    expect(DecideReviewInputSchema.safeParse({ ...reviewInput, payload: { ...reviewInput.payload, grant: northstarScenario.approvalGrant } }).success).toBe(false);
+  });
+
+  it("requires complete variant-specific forecast assumptions", () => {
+    const shared = {
+      assumptionId: "assumption_usage", name: "Adjust usage", scope: { type: "project", id: "project_beacon" },
+      effectiveFrom: "2026-09-13T00:00:00Z", effectiveTo: "2026-09-30T23:59:59Z", evidenceRefs: [],
+    };
+    expect(ForecastAssumptionSchema.safeParse({ ...shared, kind: "fixed_adjustment" }).success).toBe(false);
+    expect(ForecastAssumptionSchema.safeParse({ ...shared, kind: "fixed_adjustment", amount: { amountMinor: -3_000, currency: "USD" } }).success).toBe(true);
+    expect(ForecastAssumptionSchema.safeParse({ ...shared, kind: "percentage_change", valueBasisPoints: -2_000, amount: { amountMinor: 1, currency: "USD" } }).success).toBe(false);
+    expect(ForecastAssumptionSchema.safeParse({ ...shared, kind: "timing_shift", targetRef: { type: "schedule", id: "schedule_cloud", revision: 1 }, shiftDays: 7 }).success).toBe(true);
+    expect(ForecastAssumptionSchema.safeParse({ ...shared, kind: "timing_shift", targetRef: { type: "schedule", id: "schedule_cloud" }, shiftDays: 7 }).success).toBe(false);
+    expect(ForecastAssumptionSchema.safeParse({ ...shared, kind: "timing_shift", targetRef: { type: "schedule", id: "schedule_cloud", revision: 1 }, shiftDays: 0 }).success).toBe(false);
+  });
+
   it("validates stable failure response fixtures without claiming enforcement", () => {
     for (const error of Object.values(contractExamples.errors)) expect(ContractErrorSchema.parse(error).code).toBeTruthy();
   });
@@ -55,6 +90,8 @@ describe("frozen representative examples", () => {
     PostingSchema.parse(northstarScenario.posting);
     MemoryResponseSchema.parse(contractExamples.memory);
     ForecastSnapshotSchema.parse(contractExamples.forecast);
+    const reduction = ForecastSnapshotSchema.parse(contractExamples.reductionForecast);
+    expect(reduction.components.reduce((total, component) => total + component.amount.amountMinor, 0)).toBe(reduction.total.amountMinor);
     EventEnvelopeSchema.parse(contractExamples.event);
     GetRequestToolInputSchema.parse(contractExamples.toolInput);
     for (const error of Object.values(contractExamples.errors)) ContractErrorSchema.parse(error);
