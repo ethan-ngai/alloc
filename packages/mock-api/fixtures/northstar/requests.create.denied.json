@@ -1,0 +1,54 @@
+{
+  "ok": true,
+  "schemaVersion": "1.0.0",
+  "correlationId": "correlation_fixture_create_denied",
+  "data": {
+    "schemaVersion": "1.0.0",
+    "organizationId": "org_northstar",
+    "requestId": "request_mock_0028",
+    "revision": 1,
+    "previousRevision": null,
+    "requesterId": "employee_maya_chen",
+    "purpose": "Full field-lab relocation",
+    "fullAmount": {
+      "amountMinor": 150000,
+      "currency": "USD"
+    },
+    "increaseFromPrevious": {
+      "amountMinor": 0,
+      "currency": "USD"
+    },
+    "cumulativeIncrease": {
+      "amountMinor": 0,
+      "currency": "USD"
+    },
+    "categoryId": "category_equipment",
+    "vendorId": "vendor_buffalo_hotel",
+    "projectId": "project_beacon",
+    "scopes": [
+      {
+        "type": "organization",
+        "id": "org_northstar"
+      },
+      {
+        "type": "department",
+        "id": "department_field_engineering"
+      },
+      {
+        "type": "project",
+        "id": "project_beacon"
+      }
+    ],
+    "evaluationState": "denied",
+    "submittedAt": "2026-09-12T14:06:00Z",
+    "provenance": {
+      "kind": "synthetic",
+      "trust": "authoritative",
+      "sourceInstanceId": "source_mock_simulator",
+      "sourceObjectId": "request_mock_0028-submission",
+      "sourceRevision": "1",
+      "occurredAt": "2026-09-12T14:06:00Z",
+      "observedAt": "2026-09-12T14:06:00Z"
+    }
+  }
+}

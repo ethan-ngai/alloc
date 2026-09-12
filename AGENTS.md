@@ -30,7 +30,7 @@ Product decisions are settled. Task 1A formalizes their executable schemas and e
 - Use idempotent commands, source deduplication, version checks, durable action intents, and explicit reconciliation for uncertain outcomes. Do not promise universal rollback of external financial actions.
 - P0 interactive work precedes pending operational/background reasoning. Already-running inference requires bounded steps or verified cancellation; queue ordering alone does not prove GPU preemption.
 - OpenClaw is the selected framework. At least one of OpenClaw/NemoClaw/OpenShell is required under the user's clarification; all three are not mandatory. Hosted inference fallback is out of scope.
-- The selected model family is Qwen3.8 Flash; the local candidate is `Qwen/Qwen3.8-Flash-Next`. Its full checkpoint, additional embedding/MTP components, and serving overhead need a measured GB10 fit test. Do not size memory from active parameters alone.
+- The selected local model is Qwen3.8 27B, replacing the earlier Qwen3.8 Flash/125B-class candidate. Pin the exact checkpoint and serving format during the GB10 fit test. Size memory from the complete artifact and measured runtime overhead, not the 27B parameter count alone.
 - Begin with one shared model server and one active generation globally. Subagents have bounded tasks, restricted scope, and no financial execution authority.
 - Demo profiles: Northstar Fieldworks (software), Juniper Table (restaurants), and Forge & Loom (manufacturing). Clearly identify synthetic/imported/live data. Live connectors require confirmed access and event compatibility; never create external company accounts or send messages as part of seed generation.
 

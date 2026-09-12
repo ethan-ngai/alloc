@@ -1,0 +1,15 @@
+{
+  "ok": false,
+  "schemaVersion": "1.0.0",
+  "correlationId": "correlation_mock_unparsed",
+  "error": {
+    "schemaVersion": "1.0.0",
+    "code": "VALIDATION_FAILED",
+    "message": "request body is not valid JSON",
+    "retryable": false,
+    "correlationId": "correlation_mock_unparsed",
+    "details": {
+      "reasonCode": "malformedJson"
+    }
+  }
+}
