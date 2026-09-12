@@ -27,8 +27,6 @@ import type { Collection, Db } from "mongodb";
 import { recordId } from "../finance/ids.js";
 import { PROVIDER_OPERATIONS_COLLECTION } from "./collections.js";
 
-export const SIMULATED_PROVIDER_INSTANCE_ID = "provider_simulated_spend";
-
 export const SIMULATED_FAILURE_MODES = [
   "none",
   "decline",
@@ -164,7 +162,7 @@ export class SimulatedSpendProvider implements SpendProvider {
       observedAt: this.#now().toISOString(),
     };
     const collection = this.#collection();
-    const inserted = await collection.findOneAndUpdate(
+    const stored = await collection.findOneAndUpdate(
       {
         organizationId: operation.organizationId,
         providerInstanceId: operation.providerInstanceId,
@@ -173,8 +171,10 @@ export class SimulatedSpendProvider implements SpendProvider {
       { $setOnInsert: { schemaVersion: CONTRACT_SCHEMA_VERSION, ...operation } },
       { upsert: true, returnDocument: "after", projection: { _id: 0 } },
     );
-    if (inserted !== null) {
-      return operation;
+    if (stored !== null) {
+      // The stored record is authoritative, including a concurrent winner.
+      const { schemaVersion: _schemaVersion, ...recorded } = stored;
+      return recorded;
     }
     // A concurrent delivery can lose the upsert race; the winner's operation is authoritative.
     const existing = await this.find(operation);

@@ -17,7 +17,7 @@ import { type LogLevel } from "../config.js";
 import { describeError } from "../errors.js";
 import { connectMongoRuntime, type MongoRuntime } from "../mongo/runtime.js";
 import { redactText } from "../redact.js";
-import { loadExecutorConfig } from "./config.js";
+import { loadExecutorConfig, type ExecutorFault } from "./config.js";
 import { MongoActionExecutor, type ExecutionSweep, type ExecutorHooks } from "./executor.js";
 import { SimulatedSpendProvider } from "./provider.js";
 
@@ -101,6 +101,11 @@ async function main(): Promise<void> {
         if (!sweep.idle) {
           logger.info("executor.sweep", { results: summarize(sweep) });
         }
+        for (const result of sweep.results) {
+          if (result.status === "error") {
+            logger.error("executor.attempt_failed", { actionIntentId: result.intent.actionIntentId, reason: redact(result.reason) });
+          }
+        }
       } catch (error) {
         logger.error("executor.sweep_failed", { error: describeError(error, redact) });
       }
@@ -118,7 +123,7 @@ async function main(): Promise<void> {
   }
 }
 
-function faultHook(fault: string, logger: Logger): ExecutorHooks {
+function faultHook(fault: ExecutorFault, logger: Logger): ExecutorHooks {
   if (fault !== "crash_after_provider_apply") {
     return {};
   }

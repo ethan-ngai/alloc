@@ -53,6 +53,8 @@ export type IntentOutcome =
   /** No delivery took effect; the intent is eligible for another attempt. */
   | { readonly status: "pending"; readonly intent: ActionIntent }
   | { readonly status: "skipped"; readonly intent: ActionIntent; readonly reason: string }
+  /** The attempt failed outright; the intent keeps its stored state. */
+  | { readonly status: "error"; readonly intent: ActionIntent; readonly reason: string }
   | { readonly status: "missing" };
 
 export interface ExecutionSweep {
@@ -197,9 +199,15 @@ export class MongoActionExecutor {
     const results: IntentOutcome[] = [];
     for (const document of documents) {
       const intent = ActionIntentSchema.parse(document);
-      results.push(intent.state === "outcome_unknown"
-        ? await this.reconcileIntent(intent.organizationId, intent.actionIntentId)
-        : await this.dispatchIntent(intent.organizationId, intent.actionIntentId));
+      // One failing attempt must not stop the pass: the intent keeps its state
+      // and the remaining work still runs.
+      try {
+        results.push(intent.state === "outcome_unknown"
+          ? await this.reconcileIntent(intent.organizationId, intent.actionIntentId)
+          : await this.dispatchIntent(intent.organizationId, intent.actionIntentId));
+      } catch (error) {
+        results.push({ status: "error", intent, reason: error instanceof Error ? error.message : String(error) });
+      }
     }
     const idle = results.every((result) => result.status === "skipped" || result.status === "missing");
     return { results, idle };

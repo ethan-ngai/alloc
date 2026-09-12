@@ -298,6 +298,31 @@ describe("action executor against a real replica set", () => {
     expect(await offline.receiptForIntent(ORGANIZATION_ID, ambiguous.intent.actionIntentId)).toBeNull();
   }, 120_000);
 
+  it("isolates a failing attempt so the rest of the pass still runs", async () => {
+    const { runtime, finance, provider } = await open();
+    await approvedRequest(finance, "command_execute_isolated_a");
+    await approvedRequest(finance, "command_execute_isolated_b", 12_000);
+    const exploding: SpendProvider = {
+      deliver: async () => {
+        throw new Error("simulated provider fault");
+      },
+      lookup: async () => ({ kind: "absent" }),
+    };
+
+    const failing = new MongoActionExecutor(runtime.db, runtime.withTransaction, exploding);
+    const sweep = await failing.runOnce();
+    expect(sweep).toMatchObject({ idle: false });
+    expect(sweep.results.map((result) => result.status)).toEqual(["error", "error"]);
+    expect(await runtime.db.collection(ACTION_RECEIPTS_COLLECTION).countDocuments({ organizationId: ORGANIZATION_ID })).toBe(0);
+
+    // Both attempts left their intents recoverable, and neither blocks the other.
+    const healthy = new MongoActionExecutor(runtime.db, runtime.withTransaction, provider);
+    const recovered = await healthy.runOnce();
+    expect(recovered.results.map((result) => result.status)).toEqual(["succeeded", "succeeded"]);
+    expect(await runtime.db.collection(ACTION_RECEIPTS_COLLECTION).countDocuments({ organizationId: ORGANIZATION_ID })).toBe(2);
+    expect(await runtime.db.collection(PROVIDER_OPERATIONS_COLLECTION).countDocuments({ organizationId: ORGANIZATION_ID })).toBe(2);
+  }, 120_000);
+
   it("recovers an intent left dispatching by a crash after the side effect", async () => {
     const { runtime, finance, provider } = await open();
     const { intent, revision } = await approvedRequest(finance, "command_execute_crash");
