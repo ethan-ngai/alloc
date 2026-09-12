@@ -14,6 +14,8 @@ import { redactText } from "./redact.js";
 import type { Readiness } from "./readiness.js";
 import { registerHealthRoutes } from "./routes/health.js";
 import { registerOrganizationRoutes } from "./routes/organizations.js";
+import type { ForecastRepository } from "./forecasts/repository.js";
+import { registerForecastRoutes } from "./routes/forecasts.js";
 
 const REDACT_PATHS = ["req.headers.authorization", "req.headers.cookie", "res.headers['set-cookie']"];
 
@@ -24,6 +26,7 @@ export interface AppDependencies {
   readonly imports: ImportRepository;
   readonly context: ContextRepository;
   readonly graph: GraphRepository;
+  readonly forecasts: ForecastRepository;
   /** Overridden in tests; defaults to the configured HS256 verifier. */
   readonly verifier?: TokenVerifier;
   /** Fastify logger options; pass `false` to silence logs in tests. */
@@ -58,6 +61,7 @@ export function buildApp(deps: AppDependencies): FastifyInstance {
   registerOrganizationRoutes(app, deps.organizations);
   registerImportRoutes(app, deps.imports);
   registerContextRoutes(app, deps.context, deps.graph);
+  registerForecastRoutes(app, deps.forecasts);
 
   app.setNotFoundHandler((request, reply) => {
     reply.code(404);

@@ -15,7 +15,7 @@ const API_ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const SERVER_ENTRY = path.join(API_ROOT, "dist", "server.js");
 const ORGANIZATION_PATH = `/v1/organizations/${NORTHSTAR_ORGANIZATION_ID}`;
 const OrganizationResultSchema = operationResult(CompanyEntitySchema);
-const fixture = JSON.parse(readFileSync(fileURLToPath(new URL("../../../../packages/company-fixtures/fixtures/northstar.json", import.meta.url)), "utf8")) as { entities: never[]; evidence: never[]; manifest: { mappings: never[] }; relationships: never[]; deliveries: SourceDelivery[] };
+const fixture = JSON.parse(readFileSync(fileURLToPath(new URL("../../../../packages/company-fixtures/fixtures/northstar.json", import.meta.url)), "utf8")) as { entities: never[]; evidence: never[]; manifest: { mappings: never[] }; relationships: never[]; deliveries: SourceDelivery[]; postings: never[] };
 
 interface RunningApi {
   readonly child: ChildProcess;
@@ -32,6 +32,7 @@ beforeAll(async () => {
   cluster = await startMongoReplicaSet({ label: "e2e" });
   await seedOrganization();
   await seedImports();
+  await seedForecasts();
   apiPort = await freePort();
   api = startApi();
   await waitForHttp(livenessUrl(apiPort), 30_000, api);
@@ -158,6 +159,15 @@ describe("HTTP end to end", () => {
     const denied = await post("/v1/organizations/org_juniper/context/graph", graphQuery(), token);
     expect(denied.status).toBe(403);
   });
+
+  it("retrieves the current forecast and its linked immutable prior revision over HTTP", async () => {
+    const token = await signTestToken({ expiresInSeconds: 3_600 });
+    const current = await get("/v1/organizations/org_northstar/forecasts/forecast_northstar_q3", { authorization: `Bearer ${token}` });
+    expect(current).toMatchObject({ status: 200, body: { ok: true, data: { revision: 2, correctsForecastRef: { revision: 1 } } } });
+    const prior = await get("/v1/organizations/org_northstar/forecasts/forecast_northstar_q3?revision=1", { authorization: `Bearer ${token}` });
+    expect(prior).toMatchObject({ status: 200, body: { ok: true, data: { revision: 1 } } });
+    expect((prior.body.data as { total: { amountMinor: number } }).total.amountMinor).toBeLessThanOrEqual((current.body.data as { total: { amountMinor: number } }).total.amountMinor);
+  });
 });
 
 describe("startup refusals", () => {
@@ -243,6 +253,21 @@ async function seedImports(): Promise<void> {
     await runtime.imports.seedMappings(fixture.manifest.mappings);
     await runtime.graph.seedEvidence(fixture.evidence);
     await runtime.graph.seedRelationships(fixture.relationships);
+  } finally {
+    await runtime.close();
+  }
+}
+
+async function seedForecasts(): Promise<void> {
+  const runtime = await connectMongoRuntime({ uri: cluster.uri, database: cluster.database });
+  try {
+    const input = {
+      organizationId: NORTHSTAR_ORGANIZATION_ID, forecastId: "forecast_northstar_q3", scope: { type: "organization" as const, id: NORTHSTAR_ORGANIZATION_ID },
+      periodStart: "2026-06-01T00:00:00.000Z", asOfCutoff: "2026-09-10T00:00:00.000Z", horizonEnd: "2026-09-30T00:00:00.000Z",
+      postings: fixture.postings, sourceWatermarks: { fixture: "2026-09-10T00:00:00.000Z" },
+    };
+    await runtime.forecasts.refresh(input);
+    await runtime.forecasts.refresh({ ...input, asOfCutoff: "2026-09-11T00:00:00.000Z", sourceWatermarks: { fixture: "2026-09-11T00:00:00.000Z" } });
   } finally {
     await runtime.close();
   }

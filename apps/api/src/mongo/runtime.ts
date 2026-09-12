@@ -3,6 +3,7 @@ import { createReadiness, type Readiness } from "../readiness.js";
 import { ensureImportCollections, MongoImportRepository, type ImportRepository } from "../imports/repository.js";
 import { ensureContextIndexes, MongoContextRepository, type ContextRepository } from "../context/repository.js";
 import { ensureGraphCollections, MongoGraphRepository, type GraphRepository } from "../context/graph.js";
+import { ensureForecastCollections, MongoForecastRepository, type ForecastRepository } from "../forecasts/repository.js";
 import {
   ensureOrganizationCollection,
   MongoOrganizationRepository,
@@ -37,6 +38,7 @@ export interface MongoRuntime {
   readonly imports: ImportRepository;
   readonly context: ContextRepository;
   readonly graph: GraphRepository;
+  readonly forecasts: ForecastRepository;
   withTransaction<T>(work: (session: ClientSession) => Promise<T>): Promise<T>;
   close(): Promise<void>;
 }
@@ -63,6 +65,7 @@ export async function connectMongoRuntime(options: MongoRuntimeOptions): Promise
     await ensureImportCollections(db);
     await ensureContextIndexes(db);
     await ensureGraphCollections(db);
+    await ensureForecastCollections(db);
 
     let closed = false;
     client.on("serverHeartbeatFailed", () => {
@@ -91,15 +94,24 @@ export async function connectMongoRuntime(options: MongoRuntimeOptions): Promise
       }
     };
 
+    const forecasts = new MongoForecastRepository(db, withTransaction);
+
     return {
       client,
       db,
       readiness,
       topology,
       organizations: new MongoOrganizationRepository(db),
-      imports: new MongoImportRepository(db, withTransaction),
+      imports: new MongoImportRepository(db, withTransaction, async (posting, delivery, session) => {
+        const scopes = [{ type: "organization", id: posting.organizationId }, ...posting.scopes];
+        await Promise.all(scopes.map((scope) => forecasts.schedule({
+          organizationId: posting.organizationId, scope,
+          sourceWatermark: { sourceInstanceId: delivery.sourceInstanceId, observedAt: delivery.observedAt },
+        }, session)));
+      }),
       context: new MongoContextRepository(db),
       graph: new MongoGraphRepository(db),
+      forecasts,
 
       /**
        * Runs `work` inside a multi-document transaction. The driver retries on

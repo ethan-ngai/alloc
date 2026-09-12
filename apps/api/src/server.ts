@@ -30,6 +30,7 @@ async function main(): Promise<void> {
       imports: runtime.imports,
       context: runtime.context,
       graph: runtime.graph,
+      forecasts: runtime.forecasts,
     });
 
     let shuttingDown = false;

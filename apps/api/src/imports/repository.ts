@@ -24,6 +24,8 @@ export interface ImportRepository {
   seedMappings(mappings: readonly { sourceInstanceId: string; sourceObjectId: string; entityId: string; organizationId?: string }[]): Promise<void>;
 }
 
+export type AcceptedPostingHandler = (posting: Posting, delivery: SourceDelivery, session: ClientSession) => Promise<void>;
+
 /** Creates the small, append-only import ledger. Financial projections are deliberately not updated here: 3B owns them. */
 export async function ensureImportCollections(db: Db): Promise<void> {
   await Promise.all([
@@ -44,7 +46,7 @@ export async function ensureImportCollections(db: Db): Promise<void> {
 }
 
 export class MongoImportRepository implements ImportRepository {
-  constructor(private readonly db: Db, private readonly withTransaction: <T>(work: (session: ClientSession) => Promise<T>) => Promise<T>) {}
+  constructor(private readonly db: Db, private readonly withTransaction: <T>(work: (session: ClientSession) => Promise<T>) => Promise<T>, private readonly onAcceptedPosting?: AcceptedPostingHandler) {}
 
   async ingest(candidate: SourceDelivery): Promise<IngestResult> {
     const delivery = SourceDeliverySchema.parse(candidate);
@@ -79,6 +81,7 @@ export class MongoImportRepository implements ImportRepository {
           { session },
         );
         await this.db.collection(NORMALIZED_POSTINGS_COLLECTION).insertOne({ ...posting.data, deliveryRef, sourceInstanceId: delivery.sourceInstanceId, sourceObjectId: delivery.sourceObjectId, sourceRevision: delivery.sourceRevision, current: true }, { session });
+        await this.onAcceptedPosting?.(posting.data, delivery, session);
       }
       return result;
     });

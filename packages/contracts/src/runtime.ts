@@ -131,4 +131,5 @@ export const DurableJobMessageSchema = z.strictObject({
 });
 
 export type ForecastSnapshot = z.infer<typeof ForecastSnapshotSchema>;
+export type ForecastCalculationInput = z.input<typeof ForecastCalculationInputSchema>;
 export type DurableJobMessage = z.infer<typeof DurableJobMessageSchema>;
