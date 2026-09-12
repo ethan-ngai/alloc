@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "string",
+  "enum": [
+    "employee",
+    "purpose",
+    "project"
+  ],
+  "$id": "https://alloc.local/contracts/1.0.0/CumulativeLimitScopeSchema.schema.json",
+  "title": "CumulativeLimitScopeSchema",
+  "x-alloc-contract-version": "1.0.0"
+}

@@ -77,6 +77,34 @@
         "type": "string",
         "minLength": 1
       }
+    },
+    "eligibleVendorIds": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$"
+      }
+    },
+    "maximumEvidenceAgeSeconds": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "requiredApproverRole": {
+      "type": "string",
+      "minLength": 1
+    },
+    "prohibitRequesterApproval": {
+      "type": "boolean"
+    },
+    "cumulativeLimitScope": {
+      "type": "string",
+      "enum": [
+        "employee",
+        "purpose",
+        "project"
+      ]
     }
   },
   "required": [

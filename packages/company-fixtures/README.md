@@ -47,7 +47,7 @@ Each `loadCompany` returns a fresh copy. Frozen files can also be read directly 
 | Field | Meaning |
 | --- | --- |
 | `manifest` | Contract/fixture/generator versions, fixed seed/date, profile, simulator-only identity, repository mappings |
-| `entities`, `policies`, `evidence`, `relationships`, `schedules`, `facts` | Records validated by their corresponding 1A schemas |
+| `entities`, `policies`, `evidence`, `relationships`, `schedules`, `facts` | Records validated by their corresponding 1A schemas; the travel policy uses the 1.1.0 rule vocabulary (vendor allowlist, evidence freshness, required approver role, self-approval prohibition, `purpose` cumulative scope) |
 | `postings` | Canonical baseline expenses; count each once regardless of overlapping category/vendor/location scopes |
 | `deliveries` | Baseline `SourceDelivery` envelopes; `fixture.expense` payload contains the corresponding contract-valid `posting` |
 | `scenario` | Test-only request, amendment, decision, grant, commitment, action and receipt snapshots, reusing 1A's Northstar trace |

@@ -42,6 +42,11 @@ npm test
 
 Consumers must reject unsupported schema versions. Historical records and events retain the version under which they were created.
 
+### Release notes
+
+- **1.1.0** — compatible minor; wire `schemaVersion` stays `"1.0.0"` and existing payloads remain valid. `PolicyRuleSchema` gains the optional `eligibleVendorIds`, `maximumEvidenceAgeSeconds`, `requiredApproverRole`, `prohibitRequesterApproval`, and `cumulativeLimitScope` fields (omitted `cumulativeLimitScope` means `purpose`), `CumulativeLimitScopeSchema` joins the registry, and `Policy`, `PolicyRule`, `BudgetAccount`, `RecordRef`, `ScopeRef`, and `Provenance` are exported as inferred types.
+- **1.0.0** — initial contract line.
+
 ## Operation catalog
 
 | Operation | Kind | Purpose |
