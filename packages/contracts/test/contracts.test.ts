@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   ActionReceiptSchema, ContractErrorSchema, DecideReviewInputSchema, EventEnvelopeSchema,
-  ForecastAssumptionSchema, ForecastSnapshotSchema,
+  ForecastAssumptionSchema, ForecastCommitmentProjectionSchema, ForecastSnapshotSchema,
   GetRequestToolInputSchema, MemoryResponseSchema, NonNegativeMoneySchema, PostingSchema,
   OrganizationIdSchema, PostingCorrectionSchema, ProposeActionToolInputSchema,
   PurchaseRequestRevisionSchema, RequestAmendmentSchema, SignedMoneySchema,
@@ -77,6 +77,21 @@ describe("strict structural contracts", () => {
     expect(ForecastAssumptionSchema.safeParse({ ...shared, kind: "timing_shift", targetRef: { type: "schedule", id: "schedule_cloud", revision: 1 }, shiftDays: 0 }).success).toBe(false);
   });
 
+  it("requires timing and scope in forecast commitment projections", () => {
+    const commitment = northstarScenario.commitment;
+    const projection = {
+      organizationId: commitment.organizationId,
+      commitmentRef: { type: "commitment", id: commitment.commitmentId, revision: commitment.revision },
+      state: commitment.state,
+      outstandingAmount: commitment.outstandingAmount,
+      expectedAt: "2026-09-14T00:00:00Z",
+      scopes: northstarScenario.requestRevisions[2]!.scopes,
+    };
+    expect(ForecastCommitmentProjectionSchema.parse(projection)).toMatchObject(projection);
+    const { expectedAt: _expectedAt, ...withoutTiming } = projection;
+    expect(ForecastCommitmentProjectionSchema.safeParse(withoutTiming).success).toBe(false);
+  });
+
   it("validates stable failure response fixtures without claiming enforcement", () => {
     for (const error of Object.values(contractExamples.errors)) expect(ContractErrorSchema.parse(error).code).toBeTruthy();
   });
@@ -88,6 +103,7 @@ describe("frozen representative examples", () => {
     for (const amendment of northstarScenario.amendments) RequestAmendmentSchema.parse(amendment);
     ActionReceiptSchema.parse(northstarScenario.actionReceipt);
     PostingSchema.parse(northstarScenario.posting);
+    expect(PostingSchema.parse({ ...northstarScenario.posting, obligationId: "contract_cloud" }).obligationId).toBe("contract_cloud");
     MemoryResponseSchema.parse(contractExamples.memory);
     ForecastSnapshotSchema.parse(contractExamples.forecast);
     const reduction = ForecastSnapshotSchema.parse(contractExamples.reductionForecast);

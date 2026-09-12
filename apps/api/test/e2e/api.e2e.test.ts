@@ -1,0 +1,258 @@
+import { spawn, type ChildProcess } from "node:child_process";
+import { createServer } from "node:net";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { CompanyEntitySchema, operationResult } from "@alloc/contracts";
+import { startMongoReplicaSet, startMongoStandalone, type MongoTestCluster } from "@alloc/test-support";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { ORGANIZATIONS_COLLECTION } from "../../src/mongo/organizations.js";
+import { connectMongoRuntime } from "../../src/mongo/runtime.js";
+import { signTestToken, TEST_JWT_AUDIENCE, TEST_JWT_ISSUER, TEST_JWT_SECRET } from "../support/app.js";
+import { juniperOrganizationId, NORTHSTAR_ORGANIZATION_ID, northstarOrganization } from "../support/organizations.js";
+
+const API_ROOT = fileURLToPath(new URL("../..", import.meta.url));
+const SERVER_ENTRY = path.join(API_ROOT, "dist", "server.js");
+const ORGANIZATION_PATH = `/v1/organizations/${NORTHSTAR_ORGANIZATION_ID}`;
+const OrganizationResultSchema = operationResult(CompanyEntitySchema);
+
+interface RunningApi {
+  readonly child: ChildProcess;
+  /** Combined process output, used only to explain a failure. */
+  output(): string;
+}
+
+let cluster: MongoTestCluster;
+let apiPort: number;
+let api: RunningApi;
+const spawned: ChildProcess[] = [];
+
+beforeAll(async () => {
+  cluster = await startMongoReplicaSet({ label: "e2e" });
+  await seedOrganization();
+  apiPort = await freePort();
+  api = startApi();
+  await waitForHttp(livenessUrl(apiPort), 30_000, api);
+}, 240_000);
+
+afterAll(async () => {
+  for (const child of spawned.splice(0)) {
+    if (child.exitCode === null) {
+      child.kill("SIGTERM");
+      await waitForExit(child, 10_000).catch(() => child.kill("SIGKILL"));
+    }
+  }
+  await cluster?.stop();
+});
+
+describe("HTTP end to end", () => {
+  it("answers liveness and readiness on a real listening process", async () => {
+    const live = await get("/health/live");
+    expect(live.status).toBe(200);
+    expect(live.body).toMatchObject({ ok: true, data: { status: "live" } });
+    expect(live.headers.get("x-correlation-id")).toBe(live.body.correlationId);
+
+    const ready = await get("/health/ready");
+    expect(ready.status).toBe(200);
+    expect(ready.body).toMatchObject({ ok: true, data: { status: "ready" } });
+  });
+
+  it("rejects unauthenticated access with the shared error contract", async () => {
+    const response = await get(ORGANIZATION_PATH);
+
+    expect(response.status).toBe(401);
+    expect(response.body).toMatchObject({ ok: false, error: { code: "ACCESS_DENIED", retryable: false } });
+    expect(response.headers.get("x-correlation-id")).toBe(response.body.correlationId);
+  });
+
+  it("returns the seeded organization for a valid token", async () => {
+    const token = await signTestToken({ expiresInSeconds: 3_600 });
+    const response = await get(ORGANIZATION_PATH, { authorization: `Bearer ${token}` });
+
+    expect(response.status).toBe(200);
+    const parsed = OrganizationResultSchema.parse(response.body);
+    if (!parsed.ok) {
+      throw new Error("expected a successful envelope");
+    }
+    expect(parsed.data).toEqual(northstarOrganization);
+  });
+
+  it("blocks cross-tenant access without searching the other tenant", async () => {
+    const northstarToken = await signTestToken({ expiresInSeconds: 3_600 });
+    const crossTenant = await get(`/v1/organizations/${juniperOrganizationId}`, {
+      authorization: `Bearer ${northstarToken}`,
+    });
+    expect(crossTenant.status).toBe(403);
+    expect(crossTenant.body).toMatchObject({ ok: false, error: { code: "ACCESS_DENIED" } });
+
+    const juniperToken = await signTestToken({ expiresInSeconds: 3_600, claims: { org: juniperOrganizationId } });
+    const otherTenant = await get(ORGANIZATION_PATH, { authorization: `Bearer ${juniperToken}` });
+    expect(otherTenant.status).toBe(403);
+
+    const ownMissingTenant = await get(`/v1/organizations/${juniperOrganizationId}`, {
+      authorization: `Bearer ${juniperToken}`,
+    });
+    expect(ownMissingTenant.status).toBe(404);
+    expect(ownMissingTenant.body).not.toContain(NORTHSTAR_ORGANIZATION_ID);
+  });
+
+  it("restarts only the API and keeps the Mongo-backed record", async () => {
+    api.child.kill("SIGTERM");
+    expect(await waitForExit(api.child, 20_000)).toBe(0);
+
+    await expect(fetch(livenessUrl(apiPort), { signal: AbortSignal.timeout(1_000) })).rejects.toThrowError();
+
+    api = startApi();
+    await waitForHttp(livenessUrl(apiPort), 30_000, api);
+
+    const ready = await get("/health/ready");
+    expect(ready.status).toBe(200);
+
+    const token = await signTestToken({ expiresInSeconds: 3_600 });
+    const response = await get(ORGANIZATION_PATH, { authorization: `Bearer ${token}` });
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({ ok: true, data: { displayName: "Northstar Fieldworks" } });
+  });
+});
+
+describe("startup refusals", () => {
+  it("rejects malformed configuration before listening", async () => {
+    const port = await freePort();
+    const secret = "too-short-secret-value";
+    const refused = startApi({ port, env: { JWT_SECRET: secret }, keep: false });
+
+    expect(await waitForExit(refused.child, 20_000)).toBe(1);
+    expect(refused.output()).toContain("JWT_SECRET must be at least 32 bytes");
+    expect(refused.output()).not.toContain(secret);
+    await expect(fetch(livenessUrl(port), { signal: AbortSignal.timeout(1_000) })).rejects.toThrowError();
+  });
+
+  it("refuses to start against a standalone MongoDB deployment", async () => {
+    const standalone = await startMongoStandalone({ label: "e2e-standalone" });
+    try {
+      const port = await freePort();
+      const refused = startApi({ port, mongoUri: standalone.uri, database: standalone.database, keep: false });
+
+      expect(await waitForExit(refused.child, 30_000)).toBe(1);
+      expect(refused.output()).toContain("replica set is required");
+      await expect(fetch(livenessUrl(port), { signal: AbortSignal.timeout(1_000) })).rejects.toThrowError();
+    } finally {
+      await standalone.stop();
+    }
+  });
+});
+
+function startApi(options: { port?: number; mongoUri?: string; database?: string; env?: Record<string, string>; keep?: boolean } = {}): RunningApi {
+  const port = options.port ?? apiPort;
+  const child = spawn(process.execPath, [SERVER_ENTRY], {
+    cwd: API_ROOT,
+    env: {
+      ...baseEnvironment(),
+      HOST: "127.0.0.1",
+      PORT: String(port),
+      CONDUCTOR_PORT: String(port),
+      LOG_LEVEL: "error",
+      MONGO_URI: options.mongoUri ?? cluster.uri,
+      MONGO_DATABASE: options.database ?? cluster.database,
+      JWT_SECRET: TEST_JWT_SECRET,
+      JWT_ISSUER: TEST_JWT_ISSUER,
+      JWT_AUDIENCE: TEST_JWT_AUDIENCE,
+      ...options.env,
+    },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+
+  let output = "";
+  child.stdout?.on("data", (chunk: Buffer) => {
+    output += chunk.toString();
+  });
+  child.stderr?.on("data", (chunk: Buffer) => {
+    output += chunk.toString();
+  });
+  if (options.keep ?? true) {
+    spawned.push(child);
+  }
+  return { child, output: () => output };
+}
+
+function baseEnvironment(): NodeJS.ProcessEnv {
+  // CONDUCTOR_PORT and PORT are stripped so each spawned process binds exactly
+  // the port this test allocated.
+  const { CONDUCTOR_PORT: _conductorPort, PORT: _port, ...rest } = process.env;
+  return rest;
+}
+
+async function seedOrganization(): Promise<void> {
+  const runtime = await connectMongoRuntime({ uri: cluster.uri, database: cluster.database });
+  try {
+    await runtime.db.collection(ORGANIZATIONS_COLLECTION).insertOne({ ...northstarOrganization });
+  } finally {
+    await runtime.close();
+  }
+}
+
+async function get(pathname: string, headers: Record<string, string> = {}): Promise<{
+  status: number;
+  body: Record<string, unknown>;
+  headers: Headers;
+}> {
+  const response = await fetch(`http://127.0.0.1:${apiPort}${pathname}`, { headers });
+  return { status: response.status, body: (await response.json()) as Record<string, unknown>, headers: response.headers };
+}
+
+function livenessUrl(port: number): string {
+  return `http://127.0.0.1:${port}/health/live`;
+}
+
+async function waitForHttp(url: string, timeoutMs: number, running: RunningApi): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    try {
+      const response = await fetch(url, { signal: AbortSignal.timeout(2_000) });
+      if (response.ok) {
+        return;
+      }
+    } catch {
+      // not listening yet
+    }
+    if (running.child.exitCode !== null) {
+      throw new Error(`api exited with code ${running.child.exitCode}\n${running.output()}`);
+    }
+    if (Date.now() >= deadline) {
+      throw new Error(`api did not answer ${url} within ${timeoutMs}ms\n${running.output()}`);
+    }
+    await sleep(200);
+  }
+}
+
+function waitForExit(child: ChildProcess, timeoutMs: number): Promise<number | null> {
+  return new Promise((resolve, reject) => {
+    if (child.exitCode !== null) {
+      resolve(child.exitCode);
+      return;
+    }
+    const timer = setTimeout(() => {
+      child.kill("SIGKILL");
+      reject(new Error(`process ${child.pid ?? "unknown"} did not exit within ${timeoutMs}ms`));
+    }, timeoutMs);
+    child.once("exit", (code) => {
+      clearTimeout(timer);
+      resolve(code);
+    });
+  });
+}
+
+async function freePort(): Promise<number> {
+  const server = createServer();
+  await new Promise<void>((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", resolve);
+  });
+  const address = server.address();
+  const port = typeof address === "object" && address !== null ? address.port : 0;
+  await new Promise<void>((resolve) => server.close(() => resolve()));
+  return port;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
