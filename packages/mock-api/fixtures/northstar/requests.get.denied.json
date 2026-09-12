@@ -1,0 +1,109 @@
+{
+  "ok": true,
+  "schemaVersion": "1.0.0",
+  "correlationId": "correlation_fixture_get_denied",
+  "data": {
+    "request": {
+      "schemaVersion": "1.0.0",
+      "organizationId": "org_northstar",
+      "requestId": "request_mock_0028",
+      "revision": 1,
+      "previousRevision": null,
+      "requesterId": "employee_maya_chen",
+      "purpose": "Full field-lab relocation",
+      "fullAmount": {
+        "amountMinor": 150000,
+        "currency": "USD"
+      },
+      "increaseFromPrevious": {
+        "amountMinor": 0,
+        "currency": "USD"
+      },
+      "cumulativeIncrease": {
+        "amountMinor": 0,
+        "currency": "USD"
+      },
+      "categoryId": "category_equipment",
+      "vendorId": "vendor_buffalo_hotel",
+      "projectId": "project_beacon",
+      "scopes": [
+        {
+          "type": "organization",
+          "id": "org_northstar"
+        },
+        {
+          "type": "department",
+          "id": "department_field_engineering"
+        },
+        {
+          "type": "project",
+          "id": "project_beacon"
+        }
+      ],
+      "evaluationState": "denied",
+      "submittedAt": "2026-09-12T14:06:00Z",
+      "provenance": {
+        "kind": "synthetic",
+        "trust": "authoritative",
+        "sourceInstanceId": "source_mock_simulator",
+        "sourceObjectId": "request_mock_0028-submission",
+        "sourceRevision": "1",
+        "occurredAt": "2026-09-12T14:06:00Z",
+        "observedAt": "2026-09-12T14:06:00Z"
+      }
+    },
+    "decisions": [
+      {
+        "schemaVersion": "1.0.0",
+        "organizationId": "org_northstar",
+        "decisionId": "decision_mock_0029",
+        "requestRef": {
+          "type": "request",
+          "id": "request_mock_0028",
+          "revision": 1
+        },
+        "outcome": "denied",
+        "reasonCodes": [
+          "FULL_AMOUNT_EXCEEDS_HARD_LIMIT"
+        ],
+        "policyRef": {
+          "type": "policy",
+          "id": "policy_travel",
+          "revision": 1
+        },
+        "authorizationEpoch": 1,
+        "evaluatedFullAmount": {
+          "amountMinor": 150000,
+          "currency": "USD"
+        },
+        "evaluatedCumulativeIncrease": {
+          "amountMinor": 0,
+          "currency": "USD"
+        },
+        "factualInputs": [
+          {
+            "type": "request",
+            "id": "request_mock_0028",
+            "revision": 1
+          },
+          {
+            "type": "policy",
+            "id": "policy_travel",
+            "revision": 1
+          }
+        ],
+        "evidenceRefs": [
+          {
+            "type": "evidence",
+            "id": "evidence_trip_active",
+            "revision": 1
+          }
+        ],
+        "requiredApproverRole": null,
+        "permittedAction": null,
+        "decidedAt": "2026-09-12T14:06:00Z"
+      }
+    ],
+    "commitment": null
+  }
+}

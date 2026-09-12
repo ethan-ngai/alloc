@@ -1,0 +1,96 @@
+{
+  "ok": true,
+  "schemaVersion": "1.0.0",
+  "correlationId": "correlation_fixture_decide_approved",
+  "data": {
+    "decision": {
+      "schemaVersion": "1.0.0",
+      "organizationId": "org_northstar",
+      "decisionId": "decision_mock_0009",
+      "requestRef": {
+        "type": "request",
+        "id": "request_buffalo_trip",
+        "revision": 3
+      },
+      "outcome": "approved",
+      "reasonCodes": [
+        "AUTHORIZED_HUMAN_EXCEPTION"
+      ],
+      "policyRef": {
+        "type": "policy",
+        "id": "policy_travel",
+        "revision": 1
+      },
+      "authorizationEpoch": 1,
+      "evaluatedFullAmount": {
+        "amountMinor": 24000,
+        "currency": "USD"
+      },
+      "evaluatedCumulativeIncrease": {
+        "amountMinor": 6000,
+        "currency": "USD"
+      },
+      "factualInputs": [
+        {
+          "type": "request",
+          "id": "request_buffalo_trip",
+          "revision": 3
+        },
+        {
+          "type": "policy",
+          "id": "policy_travel",
+          "revision": 1
+        }
+      ],
+      "evidenceRefs": [
+        {
+          "type": "evidence",
+          "id": "evidence_trip_active",
+          "revision": 1
+        }
+      ],
+      "requiredApproverRole": null,
+      "permittedAction": {
+        "type": "simulate_purchase",
+        "amount": {
+          "amountMinor": 24000,
+          "currency": "USD"
+        }
+      },
+      "decidedAt": "2026-09-12T14:02:00Z"
+    },
+    "commitment": {
+      "schemaVersion": "1.0.0",
+      "organizationId": "org_northstar",
+      "commitmentId": "commitment_buffalo_trip",
+      "revision": 3,
+      "requestRef": {
+        "type": "request",
+        "id": "request_buffalo_trip",
+        "revision": 3
+      },
+      "decisionRef": {
+        "type": "decision",
+        "id": "decision_mock_0009",
+        "revision": 1
+      },
+      "amount": {
+        "amountMinor": 24000,
+        "currency": "USD"
+      },
+      "outstandingAmount": {
+        "amountMinor": 24000,
+        "currency": "USD"
+      },
+      "state": "outstanding",
+      "budgetAccountRefs": [
+        {
+          "type": "budget_account",
+          "id": "budget_field_travel",
+          "revision": 1
+        }
+      ],
+      "createdAt": "2026-09-12T14:00:00Z"
+    }
+  }
+}

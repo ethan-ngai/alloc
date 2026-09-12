@@ -1,0 +1,20 @@
+{
+  "ok": false,
+  "schemaVersion": "1.0.0",
+  "correlationId": "correlation_fixture_stale",
+  "error": {
+    "schemaVersion": "1.0.0",
+    "code": "STALE_VERSION",
+    "message": "request request_buffalo_trip is at revision 1, not 2",
+    "retryable": false,
+    "correlationId": "correlation_fixture_stale",
+    "details": {
+      "expected": 2,
+      "actual": 1,
+      "ref": {
+        "type": "request",
+        "id": "request_buffalo_trip"
+      }
+    }
+  }
+}

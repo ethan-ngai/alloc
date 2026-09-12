@@ -1,0 +1,14 @@
+{
+  "ok": true,
+  "schemaVersion": "1.0.0",
+  "correlationId": "correlation_fixture_ingest_quarantined",
+  "data": {
+    "deliveryRef": {
+      "type": "source_delivery",
+      "id": "delivery_mock_0022",
+      "revision": 1
+    },
+    "disposition": "quarantined",
+    "normalizedRefs": []
+  }
+}

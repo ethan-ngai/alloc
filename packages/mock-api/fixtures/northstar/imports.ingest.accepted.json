@@ -1,0 +1,20 @@
+{
+  "ok": true,
+  "schemaVersion": "1.0.0",
+  "correlationId": "correlation_fixture_ingest",
+  "data": {
+    "deliveryRef": {
+      "type": "source_delivery",
+      "id": "delivery_mock_0019",
+      "revision": 1
+    },
+    "disposition": "accepted",
+    "normalizedRefs": [
+      {
+        "type": "normalized_record",
+        "id": "normalized_mock_0020",
+        "revision": 1
+      }
+    ]
+  }
+}
