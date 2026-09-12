@@ -1,0 +1,16 @@
+{
+  "ok": false,
+  "schemaVersion": "1.0.0",
+  "correlationId": "correlation_fixture_fault",
+  "error": {
+    "schemaVersion": "1.0.0",
+    "code": "DEPENDENCY_UNAVAILABLE",
+    "message": "Mock fault injection: DEPENDENCY_UNAVAILABLE",
+    "retryable": true,
+    "correlationId": "correlation_fixture_fault",
+    "details": {
+      "injected": true,
+      "operation": "requests.get"
+    }
+  }
+}

@@ -36,7 +36,7 @@ Product decisions are settled. Task 1A formalizes their executable schemas and e
 
 ## Verification available in this baseline
 
-Only the standalone POC is runnable here:
+Task 1B added the root workspace commands; the standalone POC remains independently runnable:
 
 ```sh
 cd experiments/finance-poc
@@ -46,7 +46,19 @@ npm test
 
 It requires Node.js and Docker, creates its own loopback-only MongoDB replica set, and removes that ephemeral test container afterward. Its eight checks cover selected retrieval, cap, idempotency, hostile-proposal, and posting contracts. See [results and limitations](experiments/finance-poc/README.md). It does not test OpenClaw, Qwen, scheduler preemption, a live provider, or the GB10.
 
-There is no root application install/start/test command in this planning baseline. Task 1B supplies those commands and the isolated integration harness; task 8A supplies frontend tooling. Document them as they become real.
+The root workspace owns one lockfile and the canonical commands. Install and run them from the repository root:
+
+```sh
+npm ci                      # installs every workspace from the root lockfile
+npm test                    # build + unit tests (contracts and API)
+npm run test:integration    # real mongo:8.0.30 replica set in owned containers
+npm run test:e2e            # real API process against a real replica set
+npm run verify              # schema check, build, typecheck, unit, integration, and E2E
+npm run dev                 # workspace-scoped MongoDB + API on CONDUCTOR_PORT
+npm start                   # run a built API; requires MONGO_URI, MONGO_DATABASE, and JWT_SECRET
+```
+
+Integration and E2E tests require Docker; they start and remove only their own containers. `npm run dev` needs the `CONDUCTOR_PORT` range and is available to local workspaces only. Task 8A supplies frontend tooling.
 
 ## Tool and review policy
 
