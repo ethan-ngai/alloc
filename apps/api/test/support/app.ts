@@ -6,6 +6,7 @@ import { loadConfig, type AppConfig } from "../../src/config.js";
 import type { OrganizationRepository } from "../../src/mongo/organizations.js";
 import type { ImportRepository } from "../../src/imports/repository.js";
 import type { ContextRepository } from "../../src/context/repository.js";
+import type { GraphRepository } from "../../src/context/graph.js";
 import { createReadiness, type Readiness } from "../../src/readiness.js";
 import { northstarOrganization } from "./organizations.js";
 
@@ -101,6 +102,7 @@ const noImports: ImportRepository = {
   async seedMappings() {},
 };
 const noContext: ContextRepository = { async query() { throw new Error("context is not configured for this test"); } };
+const noGraph: GraphRepository = { async query() { throw new Error("graph is not configured for this test"); }, async seedRelationships() {}, async seedEvidence() {}, async getEvidence() { throw new Error("graph is not configured for this test"); } };
 
 export function buildTestApp(options: {
   config?: AppConfig;
@@ -108,11 +110,12 @@ export function buildTestApp(options: {
   organizations?: OrganizationRepository;
   imports?: ImportRepository;
   context?: ContextRepository;
+  graph?: GraphRepository;
 } = {}): TestApp {
   const config = options.config ?? testConfig();
   const readiness = options.readiness ?? readyReadiness();
   const organizations = options.organizations ?? recordingRepository([northstarOrganization]);
   // Logging is disabled: tests assert on responses, not stdout.
-  const app = buildApp({ config, readiness, organizations, imports: options.imports ?? noImports, context: options.context ?? noContext, logger: false });
+  const app = buildApp({ config, readiness, organizations, imports: options.imports ?? noImports, context: options.context ?? noContext, graph: options.graph ?? noGraph, logger: false });
   return { app, config, readiness, organizations };
 }
