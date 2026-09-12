@@ -25,7 +25,7 @@ from urllib.parse import urlparse
 
 DECIMAL_GB = 1_000_000_000
 WEIGHT_SUFFIXES = {".bin", ".gguf", ".pt", ".pth", ".safetensors"}
-DEFAULT_MODEL_ID = "Qwen/Qwen3.8-Flash-Next"
+SELECTED_MODEL_FAMILY = "Qwen3.8 27B"
 
 
 @dataclass(frozen=True)
@@ -33,10 +33,10 @@ class MemoryBudget:
     total_bytes: int
     available_bytes: int | None
     checkpoint_bytes: int
-    os_application_bytes: int = 16 * DECIMAL_GB
-    maximum_weight_bytes: int = 90 * DECIMAL_GB
-    runtime_bytes: int = 10 * DECIMAL_GB
-    minimum_headroom_bytes: int = 12 * DECIMAL_GB
+    os_application_bytes: int = 24 * DECIMAL_GB
+    maximum_weight_bytes: int = 64 * DECIMAL_GB
+    runtime_bytes: int = 24 * DECIMAL_GB
+    minimum_headroom_bytes: int = 16 * DECIMAL_GB
 
     def evaluate(self) -> dict[str, Any]:
         planned = self.os_application_bytes + self.checkpoint_bytes + self.runtime_bytes
@@ -224,6 +224,7 @@ def inspect_host(checkpoint: Path, model_id: str) -> dict[str, Any]:
         "schema_version": 1,
         "kind": "gb10_host_preflight",
         "captured_at": utc_now(),
+        "selected_model_family": SELECTED_MODEL_FAMILY,
         "model_id": model_id,
         "host": {
             "hostname": socket.gethostname(),
@@ -347,7 +348,11 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     subparsers = parser.add_subparsers(dest="command", required=True)
     inspect_parser = subparsers.add_parser("inspect", help="inventory host and checkpoint")
     inspect_parser.add_argument("--checkpoint", type=Path, required=True)
-    inspect_parser.add_argument("--model-id", default=DEFAULT_MODEL_ID)
+    inspect_parser.add_argument(
+        "--model-id",
+        required=True,
+        help="exact repository/revision or artifact identifier; the 27B family name is insufficient",
+    )
     inspect_parser.add_argument("--output", type=Path)
 
     probe_parser = subparsers.add_parser("probe", help="probe a loopback OpenAI-compatible API")

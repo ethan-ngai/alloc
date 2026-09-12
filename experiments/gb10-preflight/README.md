@@ -1,8 +1,9 @@
 # GB10 model and runtime preflight
 
-This experiment implements the reproducible evidence collection for task 9A. It
-does not claim that Qwen3.8 Flash-Next fits or runs on a GB10 until the commands
-below are executed on the assigned machine with the exact checkpoint and server.
+This experiment implements the reproducible evidence collection for task 9A. The
+selected family is Qwen3.8 27B. It does not claim that a particular checkpoint
+fits or runs on a GB10 until the exact repository, revision, quantization and
+serving format are pinned and the commands below run on the assigned machine.
 It uses only the Python standard library and does not download a model.
 
 ## Verify the harness
@@ -18,14 +19,15 @@ Run this on the GB10 after the checkpoint is present on local storage:
 
 ```sh
 python3 gb10_preflight.py inspect \
-  --checkpoint /absolute/path/to/Qwen3.8-Flash-Next \
+  --checkpoint /absolute/path/to/qwen3.8-27b-checkpoint \
+  --model-id exact-repository@revision-or-artifact-id \
   --output evidence/host-before-load.json
 ```
 
 The report records CPU architecture, physical and available memory, storage,
 GPU/driver data from `nvidia-smi`, relevant installed software, exact checkpoint
 file totals, a deterministic path/size manifest digest, and the provisional
-16/90/10/12 GB memory-envelope checks from the approved architecture. Checkpoint
+24/64/24/16 GB memory-envelope checks from the approved architecture. Checkpoint
 disk size is explicitly treated as a lower bound rather than measured runtime
 residency.
 
@@ -45,7 +47,7 @@ nonzero status if the response does not contain the exact expected arguments.
 ```sh
 python3 gb10_preflight.py probe \
   --base-url http://127.0.0.1:8000 \
-  --model Qwen/Qwen3.8-Flash-Next \
+  --model exact-local-server-model-id \
   --output evidence/tool-call-first-run.json
 ```
 

@@ -12,17 +12,17 @@ class PreflightTests(unittest.TestCase):
         report = gb10_preflight.MemoryBudget(
             total_bytes=128 * gb10_preflight.DECIMAL_GB,
             available_bytes=128 * gb10_preflight.DECIMAL_GB,
-            checkpoint_bytes=90 * gb10_preflight.DECIMAL_GB,
+            checkpoint_bytes=64 * gb10_preflight.DECIMAL_GB,
         ).evaluate()
         self.assertTrue(report["passes_static_envelope"])
-        self.assertEqual(report["projected_headroom_bytes"], 12 * gb10_preflight.DECIMAL_GB)
+        self.assertEqual(report["projected_headroom_bytes"], 16 * gb10_preflight.DECIMAL_GB)
         self.assertTrue(report["checks"]["checkpoint_within_weight_envelope"])
 
     def test_budget_rejects_checkpoint_above_weight_envelope(self):
         report = gb10_preflight.MemoryBudget(
             total_bytes=128 * gb10_preflight.DECIMAL_GB,
             available_bytes=128 * gb10_preflight.DECIMAL_GB,
-            checkpoint_bytes=91 * gb10_preflight.DECIMAL_GB,
+            checkpoint_bytes=65 * gb10_preflight.DECIMAL_GB,
         ).evaluate()
         self.assertFalse(report["passes_static_envelope"])
         self.assertFalse(report["checks"]["checkpoint_within_weight_envelope"])
