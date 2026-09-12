@@ -35,6 +35,15 @@ describe("forecast snapshots against a real replica set", () => {
     expect(await runtime.forecasts.get(input.organizationId, input.forecastId, 1)).toEqual(first);
     expect(contributionDeltas(revised, first)).toHaveLength(revised.components.length);
 
+    const priorWithTwoAdjustments = {
+      ...first,
+      components: [...first.components,
+        { kind: "scenario_adjustment" as const, amount: { amountMinor: 10, currency: "USD" as const }, inputRefs: [] },
+        { kind: "scenario_adjustment" as const, amount: { amountMinor: 15, currency: "USD" as const }, inputRefs: [] },
+      ],
+    };
+    expect(contributionDeltas(first, priorWithTwoAdjustments)).toContainEqual({ kind: "scenario_adjustment", amountMinor: -25 });
+
     await runtime.imports.seedEntities(fixture.entities);
     await runtime.imports.seedMappings(fixture.manifest.mappings);
     await runtime.imports.ingest(fixture.deliveries[0]!);

@@ -80,8 +80,10 @@ export class MongoForecastRepository implements ForecastRepository {
 
 /** Exact component-by-component change for a linked forecast revision. */
 export function contributionDeltas(current: ForecastSnapshot, prior: ForecastSnapshot): Array<{ kind: string; amountMinor: number }> {
-  const previous = new Map(prior.components.map(({ kind, amount }) => [kind, amount.amountMinor]));
-  return current.components.map(({ kind, amount }) => ({ kind, amountMinor: amount.amountMinor - (previous.get(kind) ?? 0) }));
+  const totals = (snapshot: ForecastSnapshot) => snapshot.components.reduce((result, { kind, amount }) => result.set(kind, (result.get(kind) ?? 0) + amount.amountMinor), new Map<string, number>());
+  const currentTotals = totals(current);
+  const priorTotals = totals(prior);
+  return Array.from(new Set([...currentTotals.keys(), ...priorTotals.keys()]), (kind) => ({ kind, amountMinor: (currentTotals.get(kind) ?? 0) - (priorTotals.get(kind) ?? 0) }));
 }
 
 function hash(value: unknown): string {
