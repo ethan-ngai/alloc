@@ -1,0 +1,24 @@
+{
+  "name": "alloc",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "npm run build --workspace @alloc/contracts && npm run build --workspace @alloc/test-support && npm run build --workspace @alloc/api",
+    "typecheck": "npm run build && npm run typecheck --workspaces --if-present",
+    "test": "npm run build && npm run test --workspaces --if-present",
+    "test:integration": "npm run build && npm run test:integration --workspace @alloc/api",
+    "test:e2e": "npm run build && npm run test:e2e --workspace @alloc/api",
+    "verify": "npm run schema:check && npm run typecheck && npm run test && npm run test:integration && npm run test:e2e",
+    "schema:check": "npm run schema:check --workspace @alloc/contracts",
+    "dev": "node scripts/dev.mjs",
+    "start": "npm run start --workspace @alloc/api"
+  }
+}
