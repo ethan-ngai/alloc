@@ -244,9 +244,9 @@ type Initiative = { title: string; direction: string; area: string; summary: str
 
 function initiativesFor(company: CompanyConfig, data: WorkspaceData): Initiative[] {
   const utilization = data.budget.authorized.amountMinor ? data.budget.recognized.amountMinor / data.budget.authorized.amountMinor : 0;
-  if (company.key === "northstar") return [{ title: utilization < .75 ? "Hold company trips envelope" : "Review company trips envelope", direction: utilization < .75 ? "Hold" : "Review", area: "Travel", summary: "Keep field visits at the current planning level.", why: `Recorded spend is ${Math.round(utilization * 100)}% of the company limit. Capacity alone is not evidence for more travel; review individual trips before expanding the envelope.` }, { title: utilization < .75 ? "Hold cloud tooling envelope" : "Review cloud tooling envelope", direction: utilization < .75 ? "Hold" : "Review", area: "Cloud services", summary: "Keep cloud services aligned with the current operating plan.", why: `Recorded spend is ${Math.round(utilization * 100)}% of the company limit. Confirm a provider commitment and delivery need before expanding the envelope.` }, { title: "Increase field equipment envelope", direction: "Increase", area: "Field equipment", summary: "Add capacity for the next Beacon pilot deployment milestone.", why: "Three high-value field equipment purchases are approaching the synthetic equipment envelope. Finance should review the deployment plan and decide whether to add a controlled allocation." }];
-  if (company.key === "juniper") return [{ title: "Lower food cost target", direction: "Reduce", area: "Food cost", summary: "Protect margin through tighter purchasing.", why: "Food cost is a core operating area. Ask the owner to validate the next purchasing plan before changing the target." }, { title: "Hold labor plan", direction: "Hold", area: "Labor", summary: "Keep staffing stable until the next forecast refresh.", why: "Labor changes should follow an owner review and an updated operating forecast." }, { title: "Review utilities allocation", direction: "Review", area: "Rent & utilities", summary: "Confirm the next facilities commitment.", why: "Use the next reviewed request to decide whether utilities need a new planning envelope." }];
-  return [{ title: "Increase material buffer", direction: "Increase", area: "Raw materials", summary: "Protect planned line work from supply gaps.", why: "Raw materials underpin the active production plan. Confirm the next supplier commitment with the owner." }, { title: "Review freight budget", direction: "Review", area: "Freight", summary: "Decide whether freight needs more capacity.", why: "Use current delivery commitments and the next owner review before changing the freight plan." }, { title: "Hold lease exposure", direction: "Hold", area: "Equipment leases", summary: "Keep equipment lease growth paused.", why: "Do not expand lease commitments without a human decision on the next project phase." }];
+  if (company.key === "northstar") return [{ title: utilization < .75 ? "Hold company trips envelope" : "Review company trips envelope", direction: utilization < .75 ? "Hold" : "Review", area: "Travel", summary: "Keep field visits at the current planning level.", why: "Northstar expanded the Beacon pilot from three to six field sites. Keep travel at the approved commissioning plan until site leads confirm which visits are essential." }, { title: utilization < .75 ? "Hold cloud tooling envelope" : "Review cloud tooling envelope", direction: utilization < .75 ? "Hold" : "Review", area: "Cloud services", summary: "Keep cloud services aligned with the current operating plan.", why: "The Beacon telemetry rollout now has one shared data environment. Hold the tooling envelope until the field expansion proves that a second production cluster is required." }, { title: "Increase field equipment envelope", direction: "Increase", area: "Field equipment", summary: "Add capacity for the next Beacon pilot deployment milestone.", why: "Northstar expanded Beacon from three to six field sites. The next deployment batch needs three additional instrument kits before the October commissioning window; review the controlled increase with Field Engineering." }];
+  if (company.key === "juniper") return [{ title: "Lower food cost target", direction: "Reduce", area: "Food cost", summary: "Protect margin through tighter purchasing.", why: "Juniper added two delivery kitchens, shifting volume to a smaller vendor set. Reset the food target around the new purchasing mix before the next menu cycle." }, { title: "Hold labor plan", direction: "Hold", area: "Labor", summary: "Keep staffing stable until the next forecast refresh.", why: "The new delivery kitchens are still in their first staffing cycle. Hold the labor plan until shift coverage and order volume stabilize." }, { title: "Review utilities allocation", direction: "Review", area: "Rent & utilities", summary: "Confirm the next facilities commitment.", why: "Two kitchen openings moved utility usage into a new operating pattern. Review the first full billing cycle before changing the facilities envelope." }];
+  return [{ title: "Increase material buffer", direction: "Increase", area: "Raw materials", summary: "Protect planned line work from supply gaps.", why: "Forge & Loom moved the line retrofit into a second production shift. Add a controlled materials buffer so the launch schedule is not exposed to supplier lead times." }, { title: "Review freight budget", direction: "Review", area: "Freight", summary: "Decide whether freight needs more capacity.", why: "The retrofit now brings in larger component batches. Review carrier commitments against the revised installation sequence before increasing freight capacity." }, { title: "Hold lease exposure", direction: "Hold", area: "Equipment leases", summary: "Keep equipment lease growth paused.", why: "The line retrofit is still validating throughput on the first shift. Hold new lease exposure until the operating plan confirms the second-shift equipment need." }];
 }
 
 function ExecutivePriorities({ company, data, onOpenRequests, onOpenForecast }: { company: CompanyConfig; data: WorkspaceData; onOpenRequests: () => void; onOpenForecast: () => void }) {
@@ -398,16 +398,27 @@ function SpendLimitChart({ data, area, onOpenHistory }: { data: WorkspaceData; a
   const coordinate = (spend: number) => 262 - Math.min(spend / (limit / zoom), 1) * 182;
   const path = points.map((point) => `${point.x},${coordinate(point.spend)}`).join(" ");
   const largest = points.reduce<typeof points[number] | null>((current, point) => !current || point.amount > current.amount ? point : current, null);
-  const vendor = largest?.item.summary.split(" · ").at(-1) ?? "a linked counterparty";
+  const organizationalChange: Record<string, string> = {
+    "Field equipment": "Beacon expansion: 3 to 6 sites",
+    Travel: "New-site commissioning plan",
+    "Cloud services": "Shared telemetry environment",
+    "Food cost": "Two delivery kitchens opened",
+    Labor: "New kitchen staffing cycle",
+    "Rent & utilities": "New-site billing cycle",
+    "Raw materials": "Second-shift retrofit launch",
+    Freight: "Larger retrofit component batches",
+    "Equipment leases": "Throughput validation in progress",
+  };
+  const changeLabel = organizationalChange[area] ?? `${area} operating plan`;
   const activePoint = hoveredPoint === null ? null : points[hoveredPoint];
   const tooltipX = activePoint && activePoint.x > 440 ? activePoint.x - 176 : (activePoint?.x ?? 0) + 12;
   const tooltipY = activePoint ? Math.max(143, coordinate(activePoint.spend) - 52) : 0;
-  const calloutX = (largest?.x ?? 0) > 400 ? 92 : 432;
-  const calloutEdge = calloutX === 92 ? calloutX + 238 : calloutX;
+  const calloutX = (largest?.x ?? 0) > 400 ? 54 : 378;
+  const calloutEdge = calloutX === 54 ? calloutX + 278 : calloutX;
   return <section className="spend-limit-chart" aria-labelledby="spend-limit-title">
     <div className="register-heading"><div><h3 id="spend-limit-title">Spend against limit</h3><small>Fixed synthetic spend history with refunds and timing variation.</small></div><div className="chart-actions"><div className="chart-zoom" aria-label="Chart zoom"><button type="button" aria-label="Zoom out" disabled={zoom <= .75} onClick={() => setZoom((value) => Math.max(.75, value - .25))}><ZoomOut size={14} /></button><span>{Math.round(zoom * 100)}%</span><button type="button" aria-label="Zoom in" disabled={zoom >= 1.25} onClick={() => setZoom((value) => Math.min(1.25, value + .25))}><ZoomIn size={14} /></button></div><button type="button" onClick={onOpenHistory}>Open {area} history <ArrowRight size={14} /></button></div></div>
     <div className="chart-key"><span><i className="spend-key" />{isIncrease ? "Equipment spend" : "Recorded spend"} <strong>{money({ amountMinor: currentSpend, currency: snapshot.budget.authorized.currency })}</strong></span><span><i className="limit-key" />{isIncrease ? "Equipment envelope" : "Company limit"} <strong>{money({ amountMinor: limit, currency: snapshot.budget.authorized.currency })}</strong></span></div>
-    {history.length ? <svg viewBox="0 0 728 320" role="img" aria-label={`${isIncrease ? "Equipment spend" : "Recorded spend"} of ${money({ amountMinor: currentSpend, currency: snapshot.budget.authorized.currency })} against a limit of ${money({ amountMinor: limit, currency: snapshot.budget.authorized.currency })}`}><line x1="64" x2="680" y1="80" y2="80" className="chart-grid" /><line x1="64" x2="680" y1="171" y2="171" className="chart-grid" /><line x1="64" x2="680" y1="262" y2="262" className="chart-grid" /><line x1="64" x2="680" y1="80" y2="80" className="limit-line" /><text x="680" y="72" textAnchor="end" className="limit-label">{isIncrease ? "Equipment envelope" : "Company limit"}</text><polyline points={path} className="spend-line" />{points.map((point, index) => <circle key={point.item.id} tabIndex={0} role="button" aria-label={`${time(point.item.occurredAt)} recorded spend ${money({ amountMinor: point.spend, currency: snapshot.budget.authorized.currency })}`} cx={point.x} cy={coordinate(point.spend)} r={point === largest ? 9 : 7} className={point === largest ? "spend-point highlighted interactive" : "spend-point interactive"} onMouseEnter={() => setHoveredPoint(index)} onMouseLeave={() => setHoveredPoint(null)} onFocus={() => setHoveredPoint(index)} onBlur={() => setHoveredPoint(null)} />)}{activePoint && <g className="point-tooltip"><rect x={tooltipX} y={tooltipY} width="164" height="43" rx="4" /><text x={tooltipX + 9} y={tooltipY + 17}>{time(activePoint.item.occurredAt)}</text><text x={tooltipX + 9} y={tooltipY + 34}>{money({ amountMinor: activePoint.spend, currency: snapshot.budget.authorized.currency })}</text></g>}{largest && <g className="chart-callout"><path d={`M ${calloutEdge} 132 L ${largest.x} ${coordinate(largest.spend) - 12}`} /><path d={`M ${largest.x} ${coordinate(largest.spend) - 12} L ${largest.x - 6} ${coordinate(largest.spend) - 20} M ${largest.x} ${coordinate(largest.spend) - 12} L ${largest.x + 4} ${coordinate(largest.spend) - 22}`} /><rect x={calloutX} y="42" width="270" height="90" rx="4" /><text x={calloutX + 13} y="68">Why this changed</text><text x={calloutX + 13} y="91" className="callout-detail">Largest movement: {money({ amountMinor: largest.amount, currency: snapshot.budget.authorized.currency })}</text><text x={calloutX + 13} y="112" className="callout-detail">{area} activity · {vendor}</text></g>}<text x="64" y="294">Start</text><text x="680" y="294" textAnchor="end">Current</text></svg> : <p className="history-empty">No area-tagged entries are available yet. The next recorded posting will appear here.</p>}
+    {history.length ? <svg viewBox="0 0 728 320" role="img" aria-label={`${isIncrease ? "Equipment spend" : "Recorded spend"} of ${money({ amountMinor: currentSpend, currency: snapshot.budget.authorized.currency })} against a limit of ${money({ amountMinor: limit, currency: snapshot.budget.authorized.currency })}`}><line x1="64" x2="680" y1="80" y2="80" className="chart-grid" /><line x1="64" x2="680" y1="171" y2="171" className="chart-grid" /><line x1="64" x2="680" y1="262" y2="262" className="chart-grid" /><line x1="64" x2="680" y1="80" y2="80" className="limit-line" /><text x="680" y="72" textAnchor="end" className="limit-label">{isIncrease ? "Equipment envelope" : "Company limit"}</text><polyline points={path} className="spend-line" />{points.map((point, index) => <circle key={point.item.id} tabIndex={0} role="button" aria-label={`${time(point.item.occurredAt)} recorded spend ${money({ amountMinor: point.spend, currency: snapshot.budget.authorized.currency })}`} cx={point.x} cy={coordinate(point.spend)} r={point === largest ? 9 : 7} className={point === largest ? "spend-point highlighted interactive" : "spend-point interactive"} onMouseEnter={() => setHoveredPoint(index)} onMouseLeave={() => setHoveredPoint(null)} onFocus={() => setHoveredPoint(index)} onBlur={() => setHoveredPoint(null)} />)}{activePoint && <g className="point-tooltip"><rect x={tooltipX} y={tooltipY} width="164" height="43" rx="4" /><text x={tooltipX + 9} y={tooltipY + 17}>{time(activePoint.item.occurredAt)}</text><text x={tooltipX + 9} y={tooltipY + 34}>{money({ amountMinor: activePoint.spend, currency: snapshot.budget.authorized.currency })}</text></g>}{largest && <g className="chart-callout"><path d={`M ${calloutEdge} 146 L ${largest.x} ${coordinate(largest.spend) - 12}`} /><rect x={calloutX} y="34" width="296" height="112" rx="4" /><text x={calloutX + 14} y="60" className="callout-title">Why this changed</text><text x={calloutX + 14} y="88" className="callout-detail">Largest movement: {money({ amountMinor: largest.amount, currency: snapshot.budget.authorized.currency })}</text><text x={calloutX + 14} y="116" className="callout-detail">{changeLabel}</text></g>}<text x="64" y="294">Start</text><text x="680" y="294" textAnchor="end">Current</text></svg> : <p className="history-empty">No area-tagged entries are available yet. The next recorded posting will appear here.</p>}
   </section>;
 }
 
@@ -428,34 +439,43 @@ function ForecastStrip({ data }: { data: WorkspaceData }) {
   );
 }
 
-function RequestsView({ company, data, onApprove, onInvestigate, onOpenForecast, onDeny, denyNotice, approving }: { company: CompanyConfig; data: WorkspaceData; onApprove: () => void; onInvestigate: () => void; onOpenForecast: () => void; onDeny: () => void; denyNotice: string | null; approving: boolean }) {
+function projectLimitProposal(company: CompanyConfig, data: WorkspaceData) {
+  const initiative = initiativesFor(company, data).find((item) => item.direction === "Increase") ?? initiativesFor(company, data)[0];
+  const currentLimit = Math.round(data.budget.authorized.amountMinor * .22);
+  const proposedLimit = Math.round(currentLimit * 1.45);
+  const currency = data.budget.authorized.currency;
+  return { initiative, currentLimit: { amountMinor: currentLimit, currency }, proposedLimit: { amountMinor: proposedLimit, currency }, change: { amountMinor: proposedLimit - currentLimit, currency } };
+}
+
+function RequestsView({ company, data, onInvestigate, onOpenForecast, onDeny, onReviewLimit, notice }: { company: CompanyConfig; data: WorkspaceData; onInvestigate: () => void; onOpenForecast: () => void; onDeny: () => void; onReviewLimit: () => void; notice: string | null }) {
+  const proposal = projectLimitProposal(company, data);
   return (
     <div className="split-page">
       <section className="request-index" aria-labelledby="requests-heading">
         <div className="register-heading"><h2 id="requests-heading">Request register</h2><span>1 current</span></div>
         <article className="request-row active" aria-current="true">
-          <span className={`request-state ${data.request.state}`}>{data.request.state.replaceAll("_", " ")}</span>
-          <strong>{data.request.purpose}</strong>
-          <span>{company.requester} · revision {data.request.revision}</span>
-          <b>{money(data.request.fullAmount)}</b>
+          <span className="request-state review_required">project limit change</span>
+          <strong>{proposal.initiative.title}</strong>
+          <span>{company.projectName ?? company.departmentName} · linked to {proposal.initiative.area}</span>
+          <b>+{money(proposal.change)}</b>
           </article>
-          <RequestImpact data={data} />
-          <section className="request-actions" aria-labelledby="request-actions-title"><div><h3 id="request-actions-title">Decide this request</h3><p>Investigate before approving or denying. The final decision remains human-owned.</p></div><div><button type="button" onClick={onInvestigate}>Investigate</button><button type="button" onClick={onOpenForecast}>View initiative</button><button type="button" className="deny-action" onClick={onDeny}>Deny request</button><button type="button" className="primary-action" onClick={onApprove} disabled={approving}>Approve request</button></div>{denyNotice && <p className="request-notice" role="status">{denyNotice}</p>}</section>
+          <ProjectLimitImpact proposal={proposal} projectName={company.projectName ?? company.departmentName} />
+          <section className="request-actions" aria-labelledby="request-actions-title"><div><h3 id="request-actions-title">Decide this project limit</h3><p>WHY: {proposal.initiative.why} This proposal changes a project envelope, not an individual purchase.</p></div><div><button type="button" onClick={onInvestigate}>Investigate evidence</button><button type="button" onClick={onOpenForecast}>Open linked initiative</button><button type="button" className="deny-action" onClick={onDeny}>Decline limit change</button><button type="button" className="primary-action" onClick={onReviewLimit}>Stage human review</button></div>{notice && <p className="request-notice" role="status">{notice}</p>}</section>
           <div className="empty-ledger"><FileCheck2 size={22} /><p>No more requests in this synthetic scenario.</p></div>
       </section>
-      <ReviewSlip company={company} data={data} onApprove={onApprove} busy={approving} />
+      <aside className="project-limit-card"><span>Linked initiative</span><h2>{proposal.initiative.title}</h2><p>{proposal.initiative.summary}</p><dl><div><dt>Current project limit</dt><dd>{money(proposal.currentLimit)}</dd></div><div><dt>Proposed project limit</dt><dd>{money(proposal.proposedLimit)}</dd></div><div><dt>Change requested</dt><dd>+{money(proposal.change)}</dd></div><div><dt>Decision owner</dt><dd>{company.approver}</dd></div></dl><small>Proposal only · requires an explicit human decision</small></aside>
     </div>
   );
 }
 
-function RequestImpact({ data }: { data: WorkspaceData }) {
-  const cap = Math.max(data.budget.authorized.amountMinor, 1);
+function ProjectLimitImpact({ proposal, projectName }: { proposal: ReturnType<typeof projectLimitProposal>; projectName: string }) {
+  const cap = Math.max(proposal.proposedLimit.amountMinor, 1);
   const lanes = [
-    { label: "Request", amount: data.request.fullAmount, tone: "request" },
-    { label: "Committed", amount: data.budget.committed, tone: "committed" },
-    { label: "Headroom", amount: data.budget.available, tone: "available" },
+    { label: "Current project limit", amount: proposal.currentLimit, tone: "committed" },
+    { label: "Limit increase", amount: proposal.change, tone: "request" },
+    { label: "Proposed project limit", amount: proposal.proposedLimit, tone: "available" },
   ];
-  return <section className="request-impact" aria-labelledby="request-impact-title"><div><h3 id="request-impact-title">Exposure impact</h3><span>Against canonical cap</span></div>{lanes.map((lane) => <div className="impact-lane" key={lane.label}><span>{lane.label}</span><i><b className={lane.tone} style={{ width: `${Math.min(100, lane.amount.amountMinor / cap * 100)}%` }} /></i><strong>{money(lane.amount)}</strong></div>)}</section>;
+  return <section className="request-impact" aria-labelledby="request-impact-title"><div><h3 id="request-impact-title">Project limit change</h3><span>{projectName}</span></div>{lanes.map((lane) => <div className="impact-lane" key={lane.label}><span>{lane.label}</span><i><b className={lane.tone} style={{ width: `${Math.min(100, lane.amount.amountMinor / cap * 100)}%` }} /></i><strong>{money(lane.amount)}</strong></div>)}</section>;
 }
 
 function MemoryView({ company, data, focusArea, focusEvidence }: { company: CompanyConfig; data: WorkspaceData; focusArea?: string | null; focusEvidence?: string | null }) {
@@ -586,6 +606,7 @@ export default function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [streamEnabled, setStreamEnabled] = useState(true);
   const [denyNotice, setDenyNotice] = useState<string | null>(null);
+  const [projectLimitNotice, setProjectLimitNotice] = useState<string | null>(null);
   const [memoryFocus, setMemoryFocus] = useState<{ area?: string; evidence?: string } | null>(null);
   const [historyFocus, setHistoryFocus] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -693,7 +714,7 @@ export default function App() {
           <main className="main-canvas" id="main-content">
             <TitleBlock company={company} data={data} view={view} />
             {view === "overview" && <Overview company={company} data={data} onApprove={() => setConfirmOpen(true)} onOpenRequests={() => setView("requests")} onOpenForecast={() => setView("forecast")} approving={approving} streaming={streamEnabled} />}
-            {view === "requests" && <RequestsView company={company} data={data} onApprove={() => setConfirmOpen(true)} onInvestigate={() => setView("memory")} onOpenForecast={() => setView("forecast")} onDeny={() => setDenyNotice("Denial is staged for an explicit human confirmation. This simulation keeps the request pending because no denial command is connected.")} denyNotice={denyNotice} approving={approving} />}
+            {view === "requests" && <RequestsView company={company} data={data} onInvestigate={() => setView("memory")} onOpenForecast={() => setView("forecast")} onDeny={() => setProjectLimitNotice("Decline is staged for human confirmation. This project envelope remains unchanged until a typed decision command is connected.")} onReviewLimit={() => setProjectLimitNotice(`Human review is staged for ${company.approver}. No project limit changes until an authorized decision is recorded.`)} notice={projectLimitNotice ?? denyNotice} />}
             {view === "memory" && <MemoryView company={company} data={data} focusArea={memoryFocus?.area} focusEvidence={memoryFocus?.evidence} />}
             {view === "forecast" && <ForecastView company={company} data={data} onOpenRequests={() => setView("requests")} onOpenMemory={(area, evidence) => { setMemoryFocus({ area, evidence }); setView("memory"); }} onOpenActivity={(focus) => { setHistoryFocus(focus ?? null); setView("activity"); }} />}
             {view === "activity" && <ActivityRegister company={company} data={data} streaming={streamEnabled} historyFocus={historyFocus} />}

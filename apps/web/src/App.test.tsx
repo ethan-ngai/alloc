@@ -83,7 +83,7 @@ describe("Alloc workspace", () => {
     expect(screen.getByRole("heading", { name: "Initiatives" })).toBeInTheDocument();
     expect(screen.getAllByText("Hold company trips envelope").length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole("button", { name: /hold cloud tooling envelope/i }));
-    expect(screen.getByText(/confirm a provider commitment/i)).toBeInTheDocument();
+    expect(screen.getByText(/shared data environment/i)).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Connected data" })).toBeInTheDocument();
     expect(screen.getByRole("group", { name: /linked data for hold cloud tooling envelope/i })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /financial history/i }));
@@ -98,9 +98,11 @@ describe("Alloc workspace", () => {
     expect(screen.getByText("Trailhead Air")).toBeInTheDocument();
     expect(screen.getByText("PO-NF-2408")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Requests" }));
-    expect(screen.getByRole("heading", { name: "Exposure impact" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Investigate" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Deny request" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Project limit change" })).toBeInTheDocument();
+    expect(screen.getAllByText("Increase field equipment envelope").length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: "Investigate evidence" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Decline limit change" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Stage human review" })).toBeInTheDocument();
   });
 
   it("records a human review through the action without hiding its simulation status", async () => {
