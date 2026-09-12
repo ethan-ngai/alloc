@@ -21,7 +21,7 @@ export interface ImportRepository {
   ingest(delivery: SourceDelivery): Promise<IngestResult>;
   listPostings(organizationId: string): Promise<Posting[]>;
   seedEntities(entities: readonly CompanyEntity[]): Promise<void>;
-  seedMappings(mappings: readonly { sourceInstanceId: string; sourceObjectId: string; entityId: string; organizationId: string }[]): Promise<void>;
+  seedMappings(mappings: readonly { sourceInstanceId: string; sourceObjectId: string; entityId: string; organizationId?: string }[]): Promise<void>;
 }
 
 /** Creates the small, append-only import ledger. Financial projections are deliberately not updated here: 3B owns them. */
@@ -52,25 +52,27 @@ export class MongoImportRepository implements ImportRepository {
       const deliveries = this.db.collection(SOURCE_DELIVERIES_COLLECTION);
       const existingDelivery = await deliveries.findOne({ organizationId: delivery.organizationId, sourceInstanceId: delivery.sourceInstanceId, deliveryId: delivery.deliveryId }, { session });
       if (existingDelivery) {
-        if (existingDelivery.payloadHash !== hash(delivery)) throw new SourceConflictError("deliveryId was reused with a different payload");
+        if (existingDelivery.transportHash !== hash(delivery)) throw new SourceConflictError("deliveryId was reused with a different payload");
         return { ...(existingDelivery.result as IngestResult), disposition: "duplicate" };
       }
       const existingRevision = await deliveries.findOne({ organizationId: delivery.organizationId, sourceInstanceId: delivery.sourceInstanceId, sourceObjectId: delivery.sourceObjectId, sourceRevision: delivery.sourceRevision }, { session });
       if (existingRevision) {
-        if (existingRevision.payloadHash !== hash(delivery)) throw new SourceConflictError("source revision was reused with a different payload");
+        if (existingRevision.sourceHash !== sourceHash(delivery)) throw new SourceConflictError("source revision was reused with different content");
         return { ...existingRevision.result, disposition: "duplicate" } as IngestResult;
       }
 
       const deliveryRef = { type: "source_delivery", id: `delivery_${hash([delivery.organizationId, delivery.sourceInstanceId, delivery.deliveryId]).slice(0, 20)}`, revision: 1 };
       const stale = await this.isStale(delivery, session);
       const posting = delivery.eventType === "fixture.expense" ? PostingSchema.safeParse(delivery.payload.posting) : null;
-      const accepted = !stale && posting?.success && await this.postingScopesExist(delivery.organizationId, posting.data, session);
-      const result: IngestResult = accepted
+      const mapped = await this.mappedEntity(delivery, session);
+      const accepted = !stale && (posting?.success ? await this.postingScopesExist(delivery.organizationId, posting.data, session) : mapped !== null);
+      const result: IngestResult = posting?.success && accepted
         ? { deliveryRef, disposition: "accepted", normalizedRefs: [{ type: "posting", id: posting.data.postingId, revision: posting.data.revision }] }
+        : mapped && accepted ? { deliveryRef, disposition: "accepted", normalizedRefs: [{ type: "entity", id: mapped.entityId, revision: mapped.revision }] }
         : { deliveryRef, disposition: "quarantined", normalizedRefs: [] };
 
-      await deliveries.insertOne({ ...delivery, deliveryRef, payloadHash: hash(delivery), result }, { session });
-      if (accepted) await this.db.collection(NORMALIZED_POSTINGS_COLLECTION).insertOne({ ...posting.data, deliveryRef }, { session });
+      await deliveries.insertOne({ ...delivery, deliveryRef, transportHash: hash(delivery), sourceHash: sourceHash(delivery), result }, { session });
+      if (posting?.success && accepted) await this.db.collection(NORMALIZED_POSTINGS_COLLECTION).insertOne({ ...posting.data, deliveryRef }, { session });
       return result;
     });
   }
@@ -87,9 +89,14 @@ export class MongoImportRepository implements ImportRepository {
     }));
   }
 
-  async seedMappings(mappings: readonly { sourceInstanceId: string; sourceObjectId: string; entityId: string; organizationId: string }[]): Promise<void> {
+  async seedMappings(mappings: readonly { sourceInstanceId: string; sourceObjectId: string; entityId: string; organizationId?: string }[]): Promise<void> {
     if (!mappings.length) return;
-    await this.db.collection(ENTITY_MAPPINGS_COLLECTION).bulkWrite(mappings.map((mapping) => ({ replaceOne: { filter: mapping, replacement: mapping, upsert: true } })));
+    const resolved = await Promise.all(mappings.map(async (mapping) => {
+      const entity = mapping.organizationId ? null : await this.db.collection(IMPORT_ENTITIES_COLLECTION).findOne({ entityId: mapping.entityId }, { projection: { _id: 0, organizationId: 1 } });
+      if (!mapping.organizationId && !entity) throw new Error(`mapping target does not exist: ${mapping.entityId}`);
+      return { ...mapping, organizationId: mapping.organizationId ?? entity!.organizationId };
+    }));
+    await this.db.collection(ENTITY_MAPPINGS_COLLECTION).bulkWrite(resolved.map((mapping) => ({ replaceOne: { filter: mapping, replacement: mapping, upsert: true } })));
   }
 
   private async isStale(delivery: SourceDelivery, session: ClientSession): Promise<boolean> {
@@ -103,8 +110,21 @@ export class MongoImportRepository implements ImportRepository {
     const entities = await this.db.collection(IMPORT_ENTITIES_COLLECTION).find({ organizationId, entityId: { $in: ids } }, { session, projection: { _id: 0, entityId: 1, kind: 1 } }).toArray();
     return entities.length === ids.length && posting.scopes.every((scope) => entities.some((entity) => entity.entityId === scope.id && entity.kind === (scope.type === "account" ? "financial_account" : scope.type)));
   }
+
+  private async mappedEntity(delivery: SourceDelivery, session: ClientSession): Promise<{ entityId: string; revision: number } | null> {
+    const sourceObjectId = typeof delivery.payload.repository === "string" ? `repo/${delivery.payload.repository}` : delivery.sourceObjectId;
+    const mapping = await this.db.collection(ENTITY_MAPPINGS_COLLECTION).findOne({ organizationId: delivery.organizationId, sourceInstanceId: delivery.sourceInstanceId, sourceObjectId }, { session });
+    if (!mapping) return null;
+    return this.db.collection(IMPORT_ENTITIES_COLLECTION).findOne({ organizationId: delivery.organizationId, entityId: mapping.entityId }, { session, projection: { _id: 0, entityId: 1, revision: 1 } }) as Promise<{ entityId: string; revision: number } | null>;
+  }
 }
 
 function hash(value: unknown): string {
   return createHash("sha256").update(JSON.stringify(value)).digest("hex");
+}
+
+function sourceHash(delivery: SourceDelivery): string {
+  const { deliveryId: _deliveryId, observedAt: _observedAt, provenance, ...source } = delivery;
+  const { observedAt: _provenanceObservedAt, ...sourceProvenance } = provenance;
+  return hash({ ...source, provenance: sourceProvenance });
 }

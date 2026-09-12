@@ -26,7 +26,7 @@ describe("import HTTP transport", () => {
   it("accepts the equivalent single-delivery CSV transport", async () => {
     const seen: SourceDelivery[] = [];
     const app = testApp(seen);
-    const response = await app.inject({ method: "POST", url: `${url}/csv`, headers: { authorization: `Bearer ${await signTestToken()}`, "content-type": "text/csv" }, payload: `delivery\n${JSON.stringify(delivery)}` });
+    const response = await app.inject({ method: "POST", url: `${url}/csv`, headers: { authorization: `Bearer ${await signTestToken()}`, "content-type": "text/csv" }, payload: `delivery\n"${JSON.stringify(delivery).replaceAll('"', '""')}"` });
     expect(response.statusCode).toBe(200);
     expect(seen).toEqual([delivery]);
   });

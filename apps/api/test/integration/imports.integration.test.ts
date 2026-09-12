@@ -37,6 +37,14 @@ describe("financial imports against a real replica set", () => {
     expect(await runtime.imports.listPostings("org_northstar")).toHaveLength(1);
   });
 
+  it("uses the fixture entity mapping to normalize repository evidence", async () => {
+    ({ cluster, runtime } = await open());
+    await runtime.imports.seedEntities(fixture.entities);
+    await runtime.imports.seedMappings(fixture.manifest.mappings);
+    const delivery = fixture.deliveries.find((value) => (value.payload as { repository?: string }).repository === "defect-models")!;
+    await expect(runtime.imports.ingest(delivery as never)).resolves.toMatchObject({ disposition: "accepted", normalizedRefs: [{ type: "entity", id: "project_atlas" }] });
+  });
+
   it("rolls back a delivery when normalized posting insertion conflicts", async () => {
     ({ cluster, runtime } = await open());
     await runtime.imports.seedEntities(fixture.entities);
