@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "code": {
+      "type": "string",
+      "enum": [
+        "VALIDATION_FAILED",
+        "NOT_FOUND",
+        "ACCESS_DENIED",
+        "AUTHORITY_DENIED",
+        "STALE_VERSION",
+        "IDEMPOTENCY_CONFLICT",
+        "POLICY_DENIED",
+        "REVIEW_REQUIRED",
+        "CAPACITY_EXCEEDED",
+        "OUTCOME_UNKNOWN",
+        "SOURCE_DUPLICATE",
+        "SOURCE_CONFLICT",
+        "DEPENDENCY_UNAVAILABLE",
+        "INTERNAL_ERROR"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "minLength": 1
+    },
+    "retryable": {
+      "type": "boolean"
+    },
+    "correlationId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$"
+    },
+    "details": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string"
+      },
+      "additionalProperties": {}
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "code",
+    "message",
+    "retryable",
+    "correlationId"
+  ],
+  "additionalProperties": false,
+  "$id": "https://alloc.local/contracts/1.0.0/ContractErrorSchema.schema.json",
+  "title": "ContractErrorSchema",
+  "x-alloc-contract-version": "1.0.0"
+}

@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "nextCursor": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "truncated": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "nextCursor",
+    "truncated"
+  ],
+  "additionalProperties": false,
+  "$id": "https://alloc.local/contracts/1.0.0/PageInfoSchema.schema.json",
+  "title": "PageInfoSchema",
+  "x-alloc-contract-version": "1.0.0"
+}

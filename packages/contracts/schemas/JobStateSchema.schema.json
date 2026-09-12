@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "string",
+  "enum": [
+    "pending",
+    "running",
+    "completed",
+    "waiting_for_approval",
+    "waiting_for_retry",
+    "failed",
+    "canceled"
+  ],
+  "$id": "https://alloc.local/contracts/1.0.0/JobStateSchema.schema.json",
+  "title": "JobStateSchema",
+  "x-alloc-contract-version": "1.0.0"
+}

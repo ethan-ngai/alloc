@@ -1,0 +1,195 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "organizationId": {
+      "type": "string",
+      "pattern": "^org_[a-z0-9]+(?:_[a-z0-9]+)*$"
+    },
+    "policyId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$"
+    },
+    "revision": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    },
+    "authorizationEpoch": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scope": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "organization",
+            "department",
+            "project",
+            "category",
+            "location",
+            "vendor",
+            "employee",
+            "customer",
+            "asset",
+            "contract",
+            "legal_entity",
+            "account"
+          ]
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$"
+        }
+      },
+      "required": [
+        "type",
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "effectiveFrom": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+    },
+    "effectiveTo": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "rules": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ruleId": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$"
+          },
+          "effect": {
+            "type": "string",
+            "enum": [
+              "permit",
+              "deny",
+              "require_review"
+            ]
+          },
+          "categoryIds": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$"
+            }
+          },
+          "requesterRoles": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "maximumFullAmount": {
+            "type": "object",
+            "properties": {
+              "amountMinor": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "currency": {
+                "type": "string",
+                "const": "USD"
+              }
+            },
+            "required": [
+              "amountMinor",
+              "currency"
+            ],
+            "additionalProperties": false
+          },
+          "maximumCumulativeIncrease": {
+            "type": "object",
+            "properties": {
+              "amountMinor": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "currency": {
+                "type": "string",
+                "const": "USD"
+              }
+            },
+            "required": [
+              "amountMinor",
+              "currency"
+            ],
+            "additionalProperties": false
+          },
+          "requireActivePurpose": {
+            "type": "boolean"
+          },
+          "requiredEvidenceKinds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "required": [
+          "ruleId",
+          "effect",
+          "categoryIds",
+          "requesterRoles",
+          "requireActivePurpose",
+          "requiredEvidenceKinds"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "publishedBy": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "organizationId",
+    "policyId",
+    "revision",
+    "authorizationEpoch",
+    "name",
+    "scope",
+    "effectiveFrom",
+    "effectiveTo",
+    "rules",
+    "publishedBy"
+  ],
+  "additionalProperties": false,
+  "$id": "https://alloc.local/contracts/1.0.0/PolicySchema.schema.json",
+  "title": "PolicySchema",
+  "x-alloc-contract-version": "1.0.0"
+}

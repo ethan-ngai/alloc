@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "string",
+  "enum": [
+    "organization",
+    "department",
+    "project",
+    "category",
+    "location",
+    "vendor",
+    "employee",
+    "customer",
+    "asset",
+    "contract",
+    "legal_entity",
+    "financial_account",
+    "inventory_item",
+    "receivable",
+    "payable",
+    "liability",
+    "tax_obligation",
+    "insurance_policy"
+  ],
+  "$id": "https://alloc.local/contracts/1.0.0/EntityKindSchema.schema.json",
+  "title": "EntityKindSchema",
+  "x-alloc-contract-version": "1.0.0"
+}

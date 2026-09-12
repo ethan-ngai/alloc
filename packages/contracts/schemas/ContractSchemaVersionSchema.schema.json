@@ -1,0 +1,8 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "string",
+  "const": "1.0.0",
+  "$id": "https://alloc.local/contracts/1.0.0/ContractSchemaVersionSchema.schema.json",
+  "title": "ContractSchemaVersionSchema",
+  "x-alloc-contract-version": "1.0.0"
+}
