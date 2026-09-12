@@ -4,9 +4,12 @@ import { createTokenVerifier, type TokenVerifier } from "./auth/verifier.js";
 import { configSecrets, type AppConfig } from "./config.js";
 import { CORRELATION_ID_HEADER, correlationIdOf, resolveCorrelationId } from "./correlation.js";
 import { apiErrors, describeError, errorEnvelope, toApiError } from "./errors.js";
+import type { FinancialRepository } from "./finance/repository.js";
 import type { OrganizationRepository } from "./mongo/organizations.js";
 import type { ImportRepository } from "./imports/repository.js";
 import { registerImportRoutes } from "./routes/imports.js";
+import { registerPostingRoutes } from "./routes/postings.js";
+import { registerRequestRoutes } from "./routes/requests.js";
 import type { ContextRepository } from "./context/repository.js";
 import { registerContextRoutes } from "./routes/context.js";
 import type { GraphRepository } from "./context/graph.js";
@@ -24,6 +27,7 @@ export interface AppDependencies {
   readonly readiness: Readiness;
   readonly organizations: OrganizationRepository;
   readonly imports: ImportRepository;
+  readonly finance: FinancialRepository;
   readonly context: ContextRepository;
   readonly graph: GraphRepository;
   readonly forecasts: ForecastRepository;
@@ -60,6 +64,8 @@ export function buildApp(deps: AppDependencies): FastifyInstance {
   registerHealthRoutes(app, deps.readiness);
   registerOrganizationRoutes(app, deps.organizations);
   registerImportRoutes(app, deps.imports);
+  registerRequestRoutes(app, deps.finance);
+  registerPostingRoutes(app, deps.finance);
   registerContextRoutes(app, deps.context, deps.graph);
   registerForecastRoutes(app, deps.forecasts);
 
