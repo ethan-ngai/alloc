@@ -65,8 +65,7 @@ export function seedSyntheticHistory(source: WorkspaceData, company: CompanyConf
  * from the contract mock: these observations never create an authorization,
  * mutate its API state, or claim to be financial source-of-record data.
  */
-export function advanceSyntheticStream(current: WorkspaceData, company: CompanyConfig, tick: number): WorkspaceData {
-  const now = new Date().toISOString();
+export function advanceSyntheticStream(current: WorkspaceData, company: CompanyConfig, tick: number, now = new Date().toISOString()): WorkspaceData {
   const event = eventFor(company, tick + 1_000, now, current.budget.authorized.currency);
   const amountMinor = event.amountMinor;
   const currency = current.budget.authorized.currency;
@@ -110,4 +109,26 @@ export function advanceSyntheticStream(current: WorkspaceData, company: CompanyC
     asOf: now,
     scenarioId: `faker-stream-${company.key}-v1`,
   };
+}
+
+const BACKEND_URL = import.meta.env.VITE_ALLOC_API_URL as string | undefined;
+const DEV_TOKENS = parseDevTokens(import.meta.env.VITE_ALLOC_DEV_TOKENS as string | undefined);
+const BACKEND_ORGANIZATIONS: Record<CompanyConfig["key"], string> = { northstar: "org_northstar", juniper: "org_juniper", forge: "org_forge" };
+
+/** Mirrors eligible synthetic postings into the local API without coupling the demo UI to it. */
+export async function ingestSyntheticTick(company: CompanyConfig, tick: number, currency: string, occurredAt: string): Promise<void> {
+  const organizationId = BACKEND_ORGANIZATIONS[company.key];
+  const token = DEV_TOKENS[organizationId];
+  if (!BACKEND_URL || !token) return;
+  const event = eventFor(company, tick + 1_000, occurredAt, currency);
+  if (event.mode !== "posting" || tick % 4 !== 0) return;
+  const identity = `${event.id}_${Date.parse(occurredAt)}`;
+  const provenance = { kind: "synthetic", trust: "authoritative", sourceInstanceId: `source_${company.key}_faker_stream`, sourceObjectId: identity, sourceRevision: "1", occurredAt, observedAt: occurredAt };
+  const response = await fetch(`${BACKEND_URL}/v1/organizations/${organizationId}/imports`, { method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify({ meta: { schemaVersion: "1.0.0", organizationId, commandId: `command_${identity}`, correlationId: `correlation_${identity}`, expectedVersions: [] }, payload: { sourceInstanceId: provenance.sourceInstanceId, deliveryId: identity, sourceObjectId: identity, sourceRevision: "1", eventType: "fixture.expense", occurredAt, observedAt: occurredAt, isSynthetic: true, provenance, payload: { posting: { schemaVersion: "1.0.0", organizationId, postingId: identity, revision: 1, amount: { amountMinor: event.amountMinor, currency }, occurredAt, status: "posted", sourceRef: { type: "source_record", id: identity, revision: 1 }, scopes: [{ type: "organization", id: organizationId }], provenance } } } }) });
+  if (!response.ok) throw new Error(`Local API rejected Faker delivery (${response.status}): ${await response.text()}`);
+}
+
+function parseDevTokens(value: string | undefined): Record<string, string> {
+  if (!value) return {};
+  try { const parsed = JSON.parse(value) as unknown; return parsed && typeof parsed === "object" ? parsed as Record<string, string> : {}; } catch { return {}; }
 }

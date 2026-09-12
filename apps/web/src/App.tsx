@@ -35,7 +35,7 @@ import {
   type MoneyValue,
   type WorkspaceData,
 } from "./data";
-import { advanceSyntheticStream, seedSyntheticHistory } from "./demo-stream";
+import { advanceSyntheticStream, ingestSyntheticTick, seedSyntheticHistory } from "./demo-stream";
 import "./styles.css";
 
 type View = "overview" | "requests" | "memory" | "forecast" | "activity";
@@ -611,7 +611,12 @@ export default function App() {
     let tick = 0;
     const interval = window.setInterval(() => {
       tick += 1;
-      setData((current) => current ? advanceSyntheticStream(current, company, tick) : current);
+      const occurredAt = new Date().toISOString();
+      setData((current) => {
+        if (!current) return current;
+        void ingestSyntheticTick(company, tick, current.budget.authorized.currency, occurredAt).catch((reason) => console.warn("Synthetic delivery was not mirrored to the local API", reason));
+        return advanceSyntheticStream(current, company, tick, occurredAt);
+      });
     }, 1_200);
     return () => window.clearInterval(interval);
   }, [company, demoState, reloadKey, streamEnabled]);
