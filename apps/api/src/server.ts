@@ -28,6 +28,7 @@ async function main(): Promise<void> {
       readiness: runtime.readiness,
       organizations: runtime.organizations,
       imports: runtime.imports,
+      finance: runtime.finance,
     });
 
     let shuttingDown = false;

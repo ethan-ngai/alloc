@@ -1,5 +1,6 @@
 import { CompanyEntitySchema, type CompanyEntity } from "@alloc/contracts";
 import type { Db } from "mongodb";
+import { CLASSIFICATIONS, ID_PATTERN, ORGANIZATION_ID_PATTERN, SCOPE_TYPES, TIMESTAMP_PATTERN } from "./patterns.js";
 
 export const ORGANIZATIONS_COLLECTION = "organizations";
 export const ORGANIZATION_ID_INDEX = "organizations_by_organization_id";
@@ -8,28 +9,6 @@ export const ORGANIZATION_ID_INDEX = "organizations_by_organization_id";
 export interface OrganizationRepository {
   findById(organizationId: string): Promise<CompanyEntity | null>;
 }
-
-const ID_PATTERN = "^[a-z][a-z0-9]*(_[a-z0-9]+)+$";
-const ORGANIZATION_ID_PATTERN = "^org_[a-z0-9]+(_[a-z0-9]+)*$";
-const TIMESTAMP_PATTERN =
-  "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9](\\.[0-9]+)?)?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])$";
-
-const SCOPE_TYPES = [
-  "organization",
-  "department",
-  "project",
-  "category",
-  "location",
-  "vendor",
-  "employee",
-  "customer",
-  "asset",
-  "contract",
-  "legal_entity",
-  "account",
-];
-
-const CLASSIFICATIONS = ["public", "internal", "confidential", "restricted"];
 
 /**
  * MongoDB's own `$jsonSchema` dialect mirrors `CompanyEntitySchema` for

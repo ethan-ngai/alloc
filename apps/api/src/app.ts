@@ -4,9 +4,12 @@ import { createTokenVerifier, type TokenVerifier } from "./auth/verifier.js";
 import { configSecrets, type AppConfig } from "./config.js";
 import { CORRELATION_ID_HEADER, correlationIdOf, resolveCorrelationId } from "./correlation.js";
 import { apiErrors, describeError, errorEnvelope, toApiError } from "./errors.js";
+import type { FinancialRepository } from "./finance/repository.js";
 import type { OrganizationRepository } from "./mongo/organizations.js";
 import type { ImportRepository } from "./imports/repository.js";
 import { registerImportRoutes } from "./routes/imports.js";
+import { registerPostingRoutes } from "./routes/postings.js";
+import { registerRequestRoutes } from "./routes/requests.js";
 import { redactText } from "./redact.js";
 import type { Readiness } from "./readiness.js";
 import { registerHealthRoutes } from "./routes/health.js";
@@ -19,6 +22,7 @@ export interface AppDependencies {
   readonly readiness: Readiness;
   readonly organizations: OrganizationRepository;
   readonly imports: ImportRepository;
+  readonly finance: FinancialRepository;
   /** Overridden in tests; defaults to the configured HS256 verifier. */
   readonly verifier?: TokenVerifier;
   /** Fastify logger options; pass `false` to silence logs in tests. */
@@ -52,6 +56,8 @@ export function buildApp(deps: AppDependencies): FastifyInstance {
   registerHealthRoutes(app, deps.readiness);
   registerOrganizationRoutes(app, deps.organizations);
   registerImportRoutes(app, deps.imports);
+  registerRequestRoutes(app, deps.finance);
+  registerPostingRoutes(app, deps.finance);
 
   app.setNotFoundHandler((request, reply) => {
     reply.code(404);

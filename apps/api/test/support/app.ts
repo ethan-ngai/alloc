@@ -5,6 +5,7 @@ import { buildApp } from "../../src/app.js";
 import { loadConfig, type AppConfig } from "../../src/config.js";
 import type { OrganizationRepository } from "../../src/mongo/organizations.js";
 import type { ImportRepository } from "../../src/imports/repository.js";
+import type { FinancialRepository } from "../../src/finance/repository.js";
 import { createReadiness, type Readiness } from "../../src/readiness.js";
 import { northstarOrganization } from "./organizations.js";
 
@@ -99,17 +100,24 @@ const noImports: ImportRepository = {
   async seedEntities() {},
   async seedMappings() {},
 };
+/** Routes exist but any use of unimplemented finance behavior fails loudly. */
+const noFinance = new Proxy({}, {
+  get() {
+    return () => { throw new Error("finance is not configured for this test"); };
+  },
+}) as FinancialRepository;
 
 export function buildTestApp(options: {
   config?: AppConfig;
   readiness?: Readiness;
   organizations?: OrganizationRepository;
   imports?: ImportRepository;
+  finance?: FinancialRepository;
 } = {}): TestApp {
   const config = options.config ?? testConfig();
   const readiness = options.readiness ?? readyReadiness();
   const organizations = options.organizations ?? recordingRepository([northstarOrganization]);
   // Logging is disabled: tests assert on responses, not stdout.
-  const app = buildApp({ config, readiness, organizations, imports: options.imports ?? noImports, logger: false });
+  const app = buildApp({ config, readiness, organizations, imports: options.imports ?? noImports, finance: options.finance ?? noFinance, logger: false });
   return { app, config, readiness, organizations };
 }

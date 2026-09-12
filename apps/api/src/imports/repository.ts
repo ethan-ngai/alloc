@@ -1,6 +1,10 @@
 import { createHash } from "node:crypto";
 import { CompanyEntitySchema, PostingSchema, SourceDeliverySchema, type CompanyEntity, type Posting, type SourceDelivery } from "@alloc/contracts";
 import type { ClientSession, Db } from "mongodb";
+/** The financial core's canonical posting mutation; imports never build a second ledger. */
+export interface CanonicalPostingSink {
+  applyPosting(posting: Posting, session: ClientSession): Promise<Posting>;
+}
 
 export const SOURCE_DELIVERIES_COLLECTION = "source_deliveries";
 export const NORMALIZED_POSTINGS_COLLECTION = "normalized_postings";
@@ -44,7 +48,11 @@ export async function ensureImportCollections(db: Db): Promise<void> {
 }
 
 export class MongoImportRepository implements ImportRepository {
-  constructor(private readonly db: Db, private readonly withTransaction: <T>(work: (session: ClientSession) => Promise<T>) => Promise<T>) {}
+  constructor(
+    private readonly db: Db,
+    private readonly withTransaction: <T>(work: (session: ClientSession) => Promise<T>) => Promise<T>,
+    private readonly postings?: CanonicalPostingSink,
+  ) {}
 
   async ingest(candidate: SourceDelivery): Promise<IngestResult> {
     const delivery = SourceDeliverySchema.parse(candidate);
@@ -79,6 +87,9 @@ export class MongoImportRepository implements ImportRepository {
           { session },
         );
         await this.db.collection(NORMALIZED_POSTINGS_COLLECTION).insertOne({ ...posting.data, deliveryRef, sourceInstanceId: delivery.sourceInstanceId, sourceObjectId: delivery.sourceObjectId, sourceRevision: delivery.sourceRevision, current: true }, { session });
+        if (this.postings) {
+          await this.postings.applyPosting(posting.data, session);
+        }
       }
       return result;
     });
