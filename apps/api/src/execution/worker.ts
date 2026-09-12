@@ -1,24 +1,29 @@
 /**
- * Executor worker process.
+ * Durable executor worker.
  *
- * It connects to the same MongoDB replica set as the API, installs the executor
- * collections, and repeatedly runs one bounded dispatch/reconcile pass. The
- * loop is an interim single-flight poller: task 5A's scheduler owns leases and
- * retry budgets and will drive `MongoActionExecutor` per leased job. The pass
- * itself is already duplicate-safe, because claiming is a compare-and-swap and
- * the provider is idempotent per delivery key.
+ * Each pass produces action jobs from the organization's actionable intents and
+ * then claims one leased step at a time through `@alloc/scheduler`, so delivery
+ * inherits priority admission, lease fencing, checkpointing, and capped retry
+ * instead of the bounded poll this process used before task 5A landed. A step
+ * that cannot resolve an outcome releases the job as `waiting_for_retry` with
+ * backoff and keeps the reservation; a displaced worker is fenced rather than
+ * overwriting recovered work.
  *
  * `EXECUTOR_FAULT=crash_after_provider_apply` kills the process between the
- * provider side effect and the receipt write. It exists so the restart and
- * reconciliation path can be exercised deterministically end to end.
+ * provider side effect and the receipt write for one named intent, which is how
+ * the lease-expiry recovery path is exercised deterministically.
  */
+import { hostname } from "node:os";
 import { setTimeout as delay } from "node:timers/promises";
+import { MongoSchedulerRepository, SchedulerWorker, type JobHandlers } from "@alloc/scheduler";
 import { type LogLevel } from "../config.js";
 import { describeError } from "../errors.js";
+import { recordId } from "../finance/ids.js";
 import { connectMongoRuntime, type MongoRuntime } from "../mongo/runtime.js";
 import { redactText } from "../redact.js";
 import { loadExecutorConfig, type ExecutorFault } from "./config.js";
-import { MongoActionExecutor, type ExecutionSweep, type ExecutorHooks } from "./executor.js";
+import { MongoActionExecutor, type ExecutorHooks } from "./executor.js";
+import { ACTION_JOB_TYPE, createActionJobHandler, enqueueActionableIntents } from "./job-handler.js";
 import { SimulatedSpendProvider } from "./provider.js";
 
 const SHUTDOWN_SIGNALS = ["SIGINT", "SIGTERM"] as const;
@@ -41,6 +46,7 @@ async function main(): Promise<void> {
       serverSelectionTimeoutMs: config.mongo.serverSelectionTimeoutMs,
       heartbeatFrequencyMs: config.mongo.heartbeatFrequencyMs,
     });
+    const jobs = new MongoSchedulerRepository(runtime.db);
     const executor = new MongoActionExecutor(
       runtime.db,
       runtime.withTransaction,
@@ -48,6 +54,13 @@ async function main(): Promise<void> {
       () => new Date(),
       faultHook(config.fault, config.faultTarget, logger),
     );
+    const handlers: JobHandlers = {
+      [ACTION_JOB_TYPE]: createActionJobHandler(executor, { batchSize: config.batchSize }),
+    };
+    const worker = new SchedulerWorker(jobs, handlers, {
+      workerId: recordId("worker", hostname(), process.pid, Date.now()),
+      leaseDurationMs: config.leaseDurationMs,
+    });
 
     const shutdown = async (reason: string): Promise<void> => {
       if (stopping) {
@@ -91,6 +104,7 @@ async function main(): Promise<void> {
       topology: runtime.topology,
       pollIntervalMs: config.pollIntervalMs,
       batchSize: config.batchSize,
+      leaseDurationMs: config.leaseDurationMs,
       fault: config.fault,
       faultTarget: config.faultTarget,
       providerFailureMode: config.providerFailureMode,
@@ -98,17 +112,24 @@ async function main(): Promise<void> {
 
     while (!stopping) {
       try {
-        const sweep = await executor.runOnce({ limit: config.batchSize });
-        if (!sweep.idle) {
-          logger.info("executor.sweep", { results: summarize(sweep) });
+        const scan = await enqueueActionableIntents(runtime.db, jobs, { limit: config.batchSize });
+        if (scan.enqueued.length > 0) {
+          logger.info("executor.enqueued", { jobIds: scan.enqueued });
         }
-        for (const result of sweep.results) {
-          if (result.status === "error") {
-            logger.error("executor.attempt_failed", { actionIntentId: result.intent.actionIntentId, reason: redact(result.reason) });
-          }
+        const result = await worker.runOnce();
+        if (result.status === "released") {
+          logger.info("executor.step", {
+            jobId: result.job.jobId,
+            state: result.job.state,
+            currentStep: result.job.currentStep,
+            attempts: result.job.attempts,
+          });
+        }
+        if (result.status === "fenced") {
+          logger.warn("executor.fenced", { jobId: result.jobId, reason: result.reason });
         }
       } catch (error) {
-        logger.error("executor.sweep_failed", { error: describeError(error, redact) });
+        logger.error("executor.pass_failed", { error: describeError(error, redact) });
       }
       try {
         await delay(config.pollIntervalMs, undefined, { signal: stopSleep.signal });
@@ -135,18 +156,11 @@ function faultHook(fault: ExecutorFault, target: string | null, logger: Logger):
       }
       logger.warn("executor.crash_injected", { actionIntentId: intent.actionIntentId, state: intent.state });
       // Abrupt, uncatchable termination: the transaction that would persist the
-      // receipt never runs.
+      // receipt never runs, leaving the lease to expire.
       process.kill(process.pid, "SIGKILL");
       await new Promise(() => undefined);
     },
   };
-}
-
-function summarize(sweep: ExecutionSweep): Array<{ actionIntentId: string; status: string }> {
-  return sweep.results.map((result) => ({
-    actionIntentId: result.status === "missing" ? "unknown" : result.intent.actionIntentId,
-    status: result.status,
-  }));
 }
 
 interface Logger {

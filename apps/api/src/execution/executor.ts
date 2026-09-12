@@ -71,6 +71,17 @@ export class MongoActionExecutor {
     private readonly hooks: ExecutorHooks = {},
   ) {}
 
+  /** Dispatches or reconciles one intent, following its stored state. */
+  async runIntent(organizationId: string, actionIntentId: string): Promise<IntentOutcome> {
+    const intent = await this.loadIntent(organizationId, actionIntentId);
+    if (intent === null) {
+      return { status: "missing" };
+    }
+    return intent.state === "outcome_unknown"
+      ? this.reconcileIntent(organizationId, actionIntentId)
+      : this.dispatchIntent(organizationId, actionIntentId);
+  }
+
   /** Delivers one intent, or reports why it was not delivered. */
   async dispatchIntent(organizationId: string, actionIntentId: string): Promise<IntentOutcome> {
     const intent = await this.loadIntent(organizationId, actionIntentId);
@@ -199,9 +210,7 @@ export class MongoActionExecutor {
       // One failing attempt must not stop the pass: the intent keeps its state
       // and the remaining work still runs.
       try {
-        results.push(intent.state === "outcome_unknown"
-          ? await this.reconcileIntent(intent.organizationId, intent.actionIntentId)
-          : await this.dispatchIntent(intent.organizationId, intent.actionIntentId));
+        results.push(await this.runIntent(intent.organizationId, intent.actionIntentId));
       } catch (error) {
         results.push({ status: "error", intent, reason: error instanceof Error ? error.message : String(error) });
       }
