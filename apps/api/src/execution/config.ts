@@ -15,6 +15,11 @@ import { SIMULATED_FAILURE_MODES, type SimulatedFailureMode } from "./provider.j
 
 export const DEFAULT_EXECUTOR_POLL_INTERVAL_MS = 1_000;
 export const DEFAULT_EXECUTOR_BATCH_SIZE = 10;
+/**
+ * A step that outlives its lease is fenced, not overwritten, so this is the
+ * bound on one delivery attempt rather than a promise about the provider.
+ */
+export const DEFAULT_EXECUTOR_LEASE_MS = 30_000;
 
 /**
  * `crash_after_provider_apply` kills the process after the provider applied the
@@ -31,6 +36,7 @@ export interface ExecutorConfig {
   readonly shutdownTimeoutMs: number;
   readonly pollIntervalMs: number;
   readonly batchSize: number;
+  readonly leaseDurationMs: number;
   readonly fault: ExecutorFault;
   /** Intent the fault applies to; required whenever `fault` is not `none`. */
   readonly faultTarget: string | null;
@@ -46,6 +52,7 @@ const RawExecutorConfigSchema = z.object({
   shutdownTimeoutMs: DURATION_SCHEMA.describe("SHUTDOWN_TIMEOUT_MS"),
   pollIntervalMs: z.coerce.number().int().min(100).max(60_000).describe("EXECUTOR_POLL_INTERVAL_MS"),
   batchSize: z.coerce.number().int().min(1).max(100).describe("EXECUTOR_BATCH_SIZE"),
+  leaseDurationMs: z.coerce.number().int().min(1_000).max(600_000).describe("EXECUTOR_LEASE_MS"),
   fault: z.enum(EXECUTOR_FAULTS).describe("EXECUTOR_FAULT"),
   faultTarget: IdSchema.nullable().describe("EXECUTOR_FAULT_TARGET"),
   providerFailureMode: z.enum(SIMULATED_FAILURE_MODES).describe("SIMULATED_PROVIDER_FAILURE_MODE"),
@@ -70,6 +77,7 @@ const ENV_NAMES: Record<RawExecutorConfigKey, string> = {
   shutdownTimeoutMs: "SHUTDOWN_TIMEOUT_MS",
   pollIntervalMs: "EXECUTOR_POLL_INTERVAL_MS",
   batchSize: "EXECUTOR_BATCH_SIZE",
+  leaseDurationMs: "EXECUTOR_LEASE_MS",
   fault: "EXECUTOR_FAULT",
   faultTarget: "EXECUTOR_FAULT_TARGET",
   providerFailureMode: "SIMULATED_PROVIDER_FAILURE_MODE",
@@ -85,6 +93,7 @@ export function loadExecutorConfig(env: Record<string, string | undefined> = pro
     shutdownTimeoutMs: readEnv(env, "SHUTDOWN_TIMEOUT_MS") ?? "10000",
     pollIntervalMs: readEnv(env, "EXECUTOR_POLL_INTERVAL_MS") ?? String(DEFAULT_EXECUTOR_POLL_INTERVAL_MS),
     batchSize: readEnv(env, "EXECUTOR_BATCH_SIZE") ?? String(DEFAULT_EXECUTOR_BATCH_SIZE),
+    leaseDurationMs: readEnv(env, "EXECUTOR_LEASE_MS") ?? String(DEFAULT_EXECUTOR_LEASE_MS),
     fault: readEnv(env, "EXECUTOR_FAULT") ?? "none",
     faultTarget: readEnv(env, "EXECUTOR_FAULT_TARGET") ?? null,
     providerFailureMode: readEnv(env, "SIMULATED_PROVIDER_FAILURE_MODE") ?? "none",
@@ -106,6 +115,7 @@ export function loadExecutorConfig(env: Record<string, string | undefined> = pro
     shutdownTimeoutMs: config.shutdownTimeoutMs,
     pollIntervalMs: config.pollIntervalMs,
     batchSize: config.batchSize,
+    leaseDurationMs: config.leaseDurationMs,
     fault: config.fault,
     faultTarget: config.faultTarget,
     providerFailureMode: config.providerFailureMode,

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ConfigError } from "../../src/config.js";
 import {
-  DEFAULT_EXECUTOR_BATCH_SIZE, DEFAULT_EXECUTOR_POLL_INTERVAL_MS, loadExecutorConfig,
+  DEFAULT_EXECUTOR_BATCH_SIZE, DEFAULT_EXECUTOR_LEASE_MS, DEFAULT_EXECUTOR_POLL_INTERVAL_MS, loadExecutorConfig,
 } from "../../src/execution/config.js";
 
 const REQUIRED_ENV = {
@@ -15,6 +15,7 @@ describe("loadExecutorConfig", () => {
 
     expect(config.pollIntervalMs).toBe(DEFAULT_EXECUTOR_POLL_INTERVAL_MS);
     expect(config.batchSize).toBe(DEFAULT_EXECUTOR_BATCH_SIZE);
+    expect(config.leaseDurationMs).toBe(DEFAULT_EXECUTOR_LEASE_MS);
     expect(config.fault).toBe("none");
     expect(config.faultTarget).toBeNull();
     expect(config.providerFailureMode).toBe("none");
@@ -31,6 +32,7 @@ describe("loadExecutorConfig", () => {
       SHUTDOWN_TIMEOUT_MS: "2500",
       EXECUTOR_POLL_INTERVAL_MS: "250",
       EXECUTOR_BATCH_SIZE: "3",
+      EXECUTOR_LEASE_MS: "1500",
       EXECUTOR_FAULT: "crash_after_provider_apply",
       EXECUTOR_FAULT_TARGET: "action_0123456789abcdef01234567",
       SIMULATED_PROVIDER_FAILURE_MODE: "timeout_after_apply",
@@ -41,6 +43,7 @@ describe("loadExecutorConfig", () => {
       shutdownTimeoutMs: 2_500,
       pollIntervalMs: 250,
       batchSize: 3,
+      leaseDurationMs: 1_500,
       fault: "crash_after_provider_apply",
       faultTarget: "action_0123456789abcdef01234567",
       providerFailureMode: "timeout_after_apply",
