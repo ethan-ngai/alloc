@@ -128,6 +128,20 @@ describe("HTTP end to end", () => {
     expect(postings.body).toMatchObject({ ok: true, data: [{ postingId: (delivery.payload.posting as { postingId: string }).postingId }] });
     expect((postings.body.data as unknown[])).toHaveLength(1);
   });
+
+  it("retrieves food context over HTTP without a project", async () => {
+    const token = await signTestToken({ expiresInSeconds: 3_600 });
+    const delivery = fixture.deliveries.find((item) => (item.payload.posting as { scopes: Array<{ id: string }> } | undefined)?.scopes.some((scope) => scope.id === "category_food"))!;
+    await post("/v1/organizations/org_northstar/imports", command(delivery), token);
+    const response = await post("/v1/organizations/org_northstar/memory/query", memoryQuery("food", [{ type: "category", id: "category_food" }]), token);
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({ ok: true, data: { organizationId: "org_northstar", evidence: [expect.any(Object)] } });
+    expect((response.body.data as { facts: Array<{ ref: { type: string } }> }).facts.some((fact) => fact.ref.type === "posting")).toBe(true);
+
+    const denied = await post("/v1/organizations/org_juniper/memory/query", memoryQuery("food", [{ type: "category", id: "category_food" }]), token);
+    expect(denied.status).toBe(403);
+    expect(denied.body).toMatchObject({ ok: false, error: { code: "ACCESS_DENIED" } });
+  });
 });
 
 describe("startup refusals", () => {
@@ -237,6 +251,10 @@ async function post(pathname: string, payload: unknown, token: string): Promise<
 function command(delivery: SourceDelivery) {
   const { organizationId: _organizationId, schemaVersion: _schemaVersion, ...payload } = delivery;
   return { meta: { schemaVersion: "1.0.0", organizationId: "org_northstar", commandId: "command_import_e2e", correlationId: "correlation_import_e2e", expectedVersions: [] }, payload };
+}
+
+function memoryQuery(query: string, scopes: Array<{ type: string; id: string }>) {
+  return { meta: { schemaVersion: "1.0.0", organizationId: "org_northstar", correlationId: "correlation_memory_e2e" }, payload: { query, scopes, page: { limit: 25 } } };
 }
 
 async function waitForHttp(url: string, timeoutMs: number, running: RunningApi): Promise<void> {
