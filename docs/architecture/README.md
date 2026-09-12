@@ -42,7 +42,7 @@ Alloc is a local financial intelligence application whose persistent company mod
 - Synthetic company replay and working local file import as the complete offline demo. A live connector is optional and contingent on event rules and available access.
 - Purchase requests as the central demo workflow, with posted expenses and operational events supporting the broader company story.
 - Fictional company profiles: Northstar Fieldworks (industrial software), Juniper Table (restaurants), and Forge & Loom (manufacturing), sharing one financial schema with industry-specific sources.
-- User-selected model family: Qwen3.8 Flash. The local open-weight candidate is `Qwen/Qwen3.8-Flash-Next`; full checkpoint memory must be validated as described in the hardware document.
+- User-selected local model: Qwen3.8 27B, replacing the earlier Qwen3.8 Flash/125B-class candidate. The exact checkpoint and serving format must be pinned and validated as described in the hardware document.
 
 ## Runtime choices still requiring evidence
 

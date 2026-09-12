@@ -12,7 +12,7 @@ The planning baseline contains documentation and the standalone POC. Task 1A now
 | 3A–3B. Financial core | Planned | POC validates selected financial contracts; no application acceptance gates passed |
 | 4A–4B. Context | Planned | POC verified indexed category lookup only; no application graph/summary implementation shipped |
 | 5. Durable runtime | Planned | No worker execution yet |
-| 6. Local agent | Planned | Qwen Flash-Next and OpenClaw not configured locally |
+| 6. Local agent | Planned | Qwen3.8 27B and OpenClaw not configured locally; exact checkpoint remains to be pinned |
 | 7. Forecasts | Planned | No application forecasts yet |
 | 8. Dashboard | Planned | No UI yet |
 | 9. GB10 release | Pending target hardware | No GB10/model measurements yet |
