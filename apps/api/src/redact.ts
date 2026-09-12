@@ -1,8 +1,13 @@
-const MONGO_URI_CREDENTIALS = /(mongodb(?:\+srv)?:\/\/)[^@/\s]*@/gi;
+const MONGO_URI_USERINFO = /(mongodb(?:\+srv)?:\/\/)[^@/\s]*@/gi;
+const AWS_SESSION_TOKEN = /(AWS_SESSION_TOKEN(?:\:|%3A))([^,&\s]+)/gi;
+const SENSITIVE_QUERY_OPTION = /((?:tlsCertificateKeyFilePassword|proxyUsername|proxyPassword)=)([^&\s]+)/gi;
 
-/** Removes credentials embedded in a MongoDB connection string. */
+/** Removes every credential-bearing field supported by MongoDB connection strings. */
 export function redactMongoUri(uri: string): string {
-  return uri.replace(MONGO_URI_CREDENTIALS, "$1[redacted]@");
+  return uri
+    .replace(MONGO_URI_USERINFO, "$1[redacted]@")
+    .replace(AWS_SESSION_TOKEN, "$1[redacted]")
+    .replace(SENSITIVE_QUERY_OPTION, "$1[redacted]");
 }
 
 /**

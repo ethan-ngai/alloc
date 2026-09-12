@@ -67,6 +67,10 @@
                 "refunded"
               ]
             },
+            "obligationId": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$"
+            },
             "commitmentRef": {
               "type": "object",
               "properties": {

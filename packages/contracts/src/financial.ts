@@ -143,6 +143,7 @@ export const PostingSchema = z.strictObject({
   amount: PositiveMoneySchema,
   occurredAt: TimestampSchema,
   status: z.enum(["posted", "refunded"]),
+  obligationId: IdSchema.optional(),
   commitmentRef: RecordRefSchema.optional(),
   sourceRef: RecordRefSchema,
   scopes: z.array(ScopeRefSchema).min(1),

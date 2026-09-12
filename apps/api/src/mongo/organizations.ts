@@ -11,7 +11,8 @@ export interface OrganizationRepository {
 
 const ID_PATTERN = "^[a-z][a-z0-9]*(_[a-z0-9]+)+$";
 const ORGANIZATION_ID_PATTERN = "^org_[a-z0-9]+(_[a-z0-9]+)*$";
-const TIMESTAMP_PATTERN = "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}";
+const TIMESTAMP_PATTERN =
+  "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9](\\.[0-9]+)?)?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])$";
 
 const SCOPE_TYPES = [
   "organization",
@@ -36,83 +37,119 @@ const CLASSIFICATIONS = ["public", "internal", "confidential", "restricted"];
  * document that would fail contract validation cannot be stored either.
  */
 export const ORGANIZATION_VALIDATOR = {
-  $jsonSchema: {
-    bsonType: "object",
-    additionalProperties: false,
-    required: [
-      "_id",
-      "schemaVersion",
-      "organizationId",
-      "entityId",
-      "revision",
-      "kind",
-      "displayName",
-      "access",
-      "provenance",
-      "attributes",
-    ],
-    properties: {
-      _id: { bsonType: "objectId" },
-      schemaVersion: { enum: ["1.0.0"] },
-      organizationId: { bsonType: "string", pattern: ORGANIZATION_ID_PATTERN },
-      entityId: { bsonType: "string", pattern: ID_PATTERN },
-      revision: { bsonType: ["int", "long"], minimum: 1 },
-      kind: { enum: ["organization"] },
-      displayName: { bsonType: "string", minLength: 1 },
-      projectId: { bsonType: "string", pattern: ID_PATTERN },
-      access: {
-        bsonType: "object",
+  $and: [
+    {
+      $jsonSchema: {
         additionalProperties: false,
-        required: ["classification", "scopeRefs"],
+        bsonType: "object",
+        required: [
+          "_id",
+          "schemaVersion",
+          "organizationId",
+          "entityId",
+          "revision",
+          "kind",
+          "displayName",
+          "access",
+          "provenance",
+          "attributes",
+        ],
         properties: {
-          classification: { enum: CLASSIFICATIONS },
-          scopeRefs: {
-            bsonType: "array",
-            minItems: 1,
-            items: {
-              bsonType: "object",
-              additionalProperties: false,
-              required: ["type", "id"],
-              properties: {
-                type: { enum: SCOPE_TYPES },
-                id: { bsonType: "string", pattern: ID_PATTERN },
+          _id: { bsonType: "objectId" },
+          schemaVersion: { enum: ["1.0.0"] },
+          organizationId: { bsonType: "string", pattern: ORGANIZATION_ID_PATTERN },
+          entityId: { bsonType: "string", pattern: ID_PATTERN },
+          revision: {
+            bsonType: ["int", "long", "double"],
+            minimum: 1,
+            maximum: Number.MAX_SAFE_INTEGER,
+            multipleOf: 1,
+          },
+          kind: { enum: ["organization"] },
+          displayName: { bsonType: "string", minLength: 1 },
+          projectId: { bsonType: "string", pattern: ID_PATTERN },
+          access: {
+            bsonType: "object",
+            additionalProperties: false,
+            required: ["classification", "scopeRefs"],
+            properties: {
+              classification: { enum: CLASSIFICATIONS },
+              scopeRefs: {
+                bsonType: "array",
+                minItems: 1,
+                items: {
+                  bsonType: "object",
+                  additionalProperties: false,
+                  required: ["type", "id"],
+                  properties: {
+                    type: { enum: SCOPE_TYPES },
+                    id: { bsonType: "string", pattern: ID_PATTERN },
+                  },
+                },
+              },
+              allowedPrincipalIds: {
+                bsonType: "array",
+                items: { bsonType: "string", pattern: ID_PATTERN },
               },
             },
           },
-          allowedPrincipalIds: {
-            bsonType: "array",
-            items: { bsonType: "string", pattern: ID_PATTERN },
+          provenance: {
+            bsonType: "object",
+            additionalProperties: false,
+            required: [
+              "kind",
+              "trust",
+              "sourceInstanceId",
+              "sourceObjectId",
+              "sourceRevision",
+              "occurredAt",
+              "observedAt",
+            ],
+            properties: {
+              kind: { enum: ["synthetic", "imported", "live"] },
+              trust: { enum: ["authoritative", "evidence", "candidate"] },
+              sourceInstanceId: { bsonType: "string", pattern: ID_PATTERN },
+              sourceObjectId: { bsonType: "string", minLength: 1 },
+              sourceRevision: { bsonType: "string", minLength: 1 },
+              occurredAt: { bsonType: "string", pattern: TIMESTAMP_PATTERN },
+              observedAt: { bsonType: "string", pattern: TIMESTAMP_PATTERN },
+            },
+          },
+          attributes: {
+            bsonType: "object",
+            additionalProperties: {
+              anyOf: [
+                { bsonType: "string" },
+                { bsonType: "int" },
+                { bsonType: "long", minimum: Number.MIN_SAFE_INTEGER, maximum: Number.MAX_SAFE_INTEGER },
+                { bsonType: "double", minimum: -Number.MAX_VALUE, maximum: Number.MAX_VALUE },
+                { bsonType: "bool" },
+                { bsonType: "null" },
+              ],
+            },
           },
         },
       },
-      provenance: {
-        bsonType: "object",
-        additionalProperties: false,
-        required: [
-          "kind",
-          "trust",
-          "sourceInstanceId",
-          "sourceObjectId",
-          "sourceRevision",
-          "occurredAt",
-          "observedAt",
+    },
+    {
+      $expr: {
+        $and: [
+          {
+            $ne: [
+              { $dateFromString: { dateString: "$provenance.occurredAt", onError: null, onNull: null } },
+              null,
+            ],
+          },
+          {
+            $ne: [
+              { $dateFromString: { dateString: "$provenance.observedAt", onError: null, onNull: null } },
+              null,
+            ],
+          },
         ],
-        properties: {
-          kind: { enum: ["synthetic", "imported", "live"] },
-          trust: { enum: ["authoritative", "evidence", "candidate"] },
-          sourceInstanceId: { bsonType: "string", pattern: ID_PATTERN },
-          sourceObjectId: { bsonType: "string", minLength: 1 },
-          sourceRevision: { bsonType: "string", minLength: 1 },
-          occurredAt: { bsonType: "string", pattern: TIMESTAMP_PATTERN },
-          observedAt: { bsonType: "string", pattern: TIMESTAMP_PATTERN },
-        },
-      },
-      attributes: {
-        bsonType: "object",
-        additionalProperties: { bsonType: ["string", "int", "long", "double", "decimal", "bool", "null"] },
       },
     },
-  },
+  ],
 } as const;
 
 /**

@@ -1,5 +1,6 @@
 import { MONGO_TEST_IMAGE, MONGO_TEST_REPLICA_SET, startMongoReplicaSet, startMongoStandalone, type MongoTestCluster } from "@alloc/test-support";
 import { probeCollection } from "../support/mongo.js";
+import { Decimal128, Long } from "mongodb";
 import { describe, expect, it } from "vitest";
 import {
   MongoOrganizationRepository,
@@ -61,10 +62,60 @@ describe("mongo runtime against a real replica set", () => {
       await expect(
         organizations.insertOne({ ...northstarOrganization, unexpectedField: true }),
       ).rejects.toMatchObject({ code: 121 });
+      await expect(
+        organizations.insertOne({
+          ...northstarOrganization,
+          organizationId: "org_invalid_timestamp",
+          provenance: { ...northstarOrganization.provenance, occurredAt: "2026-99-99T99:99:99garbage" },
+        }),
+      ).rejects.toMatchObject({ code: 121 });
+      await expect(
+        organizations.insertOne({
+          ...northstarOrganization,
+          organizationId: "org_invalid_calendar_date",
+          provenance: { ...northstarOrganization.provenance, occurredAt: "2026-02-29T14:00:00Z" },
+        }),
+      ).rejects.toMatchObject({ code: 121 });
+      await expect(
+        organizations.insertOne({
+          ...northstarOrganization,
+          organizationId: "org_unsafe_revision",
+          revision: Long.fromString("9007199254740992"),
+        }),
+      ).rejects.toMatchObject({ code: 121 });
+      await expect(
+        organizations.insertOne({
+          ...northstarOrganization,
+          organizationId: "org_decimal_attribute",
+          attributes: { exactButNotContractNumber: Decimal128.fromString("1.25") },
+        }),
+      ).rejects.toMatchObject({ code: 121 });
+      await expect(
+        organizations.insertOne({
+          ...northstarOrganization,
+          organizationId: "org_infinite_attribute",
+          attributes: { nonFiniteNumber: Number.POSITIVE_INFINITY },
+        }),
+      ).rejects.toMatchObject({ code: 121 });
+      await expect(
+        organizations.insertOne({
+          ...northstarOrganization,
+          organizationId: "org_nan_attribute",
+          attributes: { nonFiniteNumber: Number.NaN },
+        }),
+      ).rejects.toMatchObject({ code: 121 });
+
+      await organizations.insertOne({
+        ...northstarOrganization,
+        organizationId: "org_offset_timestamp",
+        entityId: "organization_offset_timestamp",
+        revision: 3_000_000_000,
+        provenance: { ...northstarOrganization.provenance, occurredAt: "2026-09-12T14:00:00+05:30" },
+      });
 
       await organizations.insertOne({ ...northstarOrganization });
       await expect(organizations.insertOne({ ...northstarOrganization })).rejects.toMatchObject({ code: 11000 });
-      expect(await organizations.countDocuments()).toBe(1);
+      expect(await organizations.countDocuments()).toBe(2);
     });
   });
 
