@@ -24,14 +24,9 @@
           "revision": 1
         },
         {
-          "type": "posting",
-          "id": "posting_fixture_trip_lodging",
-          "revision": 1
-        },
-        {
           "type": "commitment",
           "id": "commitment_buffalo_trip",
-          "revision": 4
+          "revision": 1
         }
       ],
       "deduplicationKey": "forecast:department:department_field_engineering:2026-09-12T14:00:00Z",

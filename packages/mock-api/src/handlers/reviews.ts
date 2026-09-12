@@ -46,6 +46,18 @@ export const decideReview: Handler<"reviews.decide"> = (ctx, payload) => {
       { reasonCode: "REQUEST_NOT_AWAITING_REVIEW" },
     );
   }
+  const terminalDecision = ctx.company.decisions.find((decision) => (
+    decision.requestRef.id === request.requestId
+    && decision.requestRef.revision === request.revision
+    && decision.reasonCodes.some((code) => code === HUMAN_REVIEW_APPROVED_REASON || code === HUMAN_REVIEW_DENIED_REASON)
+  ));
+  if (terminalDecision) {
+    throw new MockContractError(
+      "POLICY_DENIED",
+      `request ${request.requestId} revision ${request.revision} already has a human decision`,
+      { reasonCode: "REQUEST_ALREADY_DECIDED", decisionId: terminalDecision.decisionId, outcome: terminalDecision.outcome },
+    );
+  }
 
   const budget = budgetOf(ctx);
   const existing = commitmentFor(ctx, request.requestId);

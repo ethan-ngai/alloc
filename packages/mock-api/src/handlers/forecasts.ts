@@ -6,7 +6,7 @@ import { forecastIdForScope } from "../ids.js";
 import { usd } from "../money.js";
 import { MOCK_CALCULATION_VERSION } from "../packs.js";
 import {
-  appendActivity, assertRegisteredScopes, commitmentFor, currentRequestOf, forecastSummary, jobSummary,
+  appendActivity, assertRegisteredScopes, commitmentFor, forecastSummary, jobSummary,
   scopesIntersect,
 } from "./context.js";
 import type { Handler } from "./context.js";
@@ -25,18 +25,47 @@ export const runForecast: Handler<"forecasts.run"> = (ctx, payload) => {
   const history = ctx.company.forecasts.get(forecastId) ?? [];
   const revision = (history.at(-1)?.revision ?? 0) + 1;
 
-  const postings = ctx.company.postings.filter((posting) => scopesIntersect(posting.scopes, [payload.scope]));
+  const cutoffMs = Date.parse(payload.asOfCutoff);
+  const postings = ctx.company.postings.filter((posting) => (
+    scopesIntersect(posting.scopes, [payload.scope]) && Date.parse(posting.occurredAt) <= cutoffMs
+  ));
   const postingRefs: RecordRef[] = postings.map((posting) => ({ type: "posting", id: posting.postingId, revision: posting.revision }));
-  const actualSpendMinor = postings.reduce((total, posting) => total + posting.amount.amountMinor, 0);
+  const corrections = ctx.company.corrections.filter((correction) => {
+    if (Date.parse(correction.occurredAt) > cutoffMs) return false;
+    return postings.some((posting) => posting.postingId === correction.originalPostingRef.id);
+  });
+  const correctionRefs: RecordRef[] = corrections.map((correction) => ({
+    type: "posting_correction",
+    id: correction.correctionId,
+    revision: 1,
+  }));
+  const actualSpendMinor = postings.reduce((total, posting) => total + posting.amount.amountMinor, 0)
+    + corrections.reduce((total, correction) => total + correction.amount.amountMinor, 0);
 
   const commitmentRefs: RecordRef[] = [];
   let outstandingMinor = 0;
-  for (const requestId of ctx.company.requests.keys()) {
-    const request = currentRequestOf(ctx, requestId);
+  for (const [requestId, revisions] of ctx.company.requests) {
     const commitment = commitmentFor(ctx, requestId);
-    if (!request || !commitment || !scopesIntersect(request.scopes, [payload.scope])) continue;
-    outstandingMinor += commitment.outstandingAmount.amountMinor;
-    commitmentRefs.push({ type: "commitment", id: commitment.commitmentId, revision: commitment.revision });
+    if (!commitment || Date.parse(commitment.createdAt) > cutoffMs) continue;
+    const approvedDecisions = ctx.company.decisions.filter((decision) => (
+      decision.requestRef.id === requestId
+      && decision.outcome === "approved"
+      && Date.parse(decision.decidedAt) <= cutoffMs
+    ));
+    const approvedDecision = approvedDecisions.at(-1);
+    if (!approvedDecision) continue;
+    const approvedRequest = revisions.find((request) => request.revision === approvedDecision.requestRef.revision);
+    if (!approvedRequest || !scopesIntersect(approvedRequest.scopes, [payload.scope])) continue;
+    const matchedPostings = postings.filter((posting) => posting.commitmentRef?.id === commitment.commitmentId);
+    outstandingMinor += Math.max(
+      0,
+      approvedRequest.fullAmount.amountMinor - matchedPostings.reduce((total, posting) => total + posting.amount.amountMinor, 0),
+    );
+    commitmentRefs.push({
+      type: "commitment",
+      id: commitment.commitmentId,
+      revision: Math.max(1, approvedDecisions.length + matchedPostings.length),
+    });
   }
 
   const baselineMinor = 0;
@@ -72,7 +101,7 @@ export const runForecast: Handler<"forecasts.run"> = (ctx, payload) => {
     asOfCutoff: payload.asOfCutoff,
     horizonEnd: payload.horizonEnd,
     calculationVersion: MOCK_CALCULATION_VERSION,
-    inputVersions: [...postingRefs, ...commitmentRefs],
+    inputVersions: [...postingRefs, ...correctionRefs, ...commitmentRefs],
     sourceWatermarks: {
       mock_scenario: ctx.company.pack.identity.scenarioId,
       mock_clock: ctx.clock.now(),
@@ -80,7 +109,7 @@ export const runForecast: Handler<"forecasts.run"> = (ctx, payload) => {
     },
     assumptions: structuredClone(payload.assumptions),
     components: [
-      { kind: "actual_spend", amount: usd(actualSpendMinor), inputRefs: postingRefs },
+      { kind: "actual_spend", amount: usd(actualSpendMinor), inputRefs: [...postingRefs, ...correctionRefs] },
       { kind: "outstanding_commitment", amount: usd(outstandingMinor), inputRefs: commitmentRefs },
       { kind: "uncommitted_baseline", amount: usd(baselineMinor), inputRefs: [] },
       { kind: "scenario_adjustment", amount: usd(scenarioDeltaMinor), inputRefs: assumptionInputRefs },
@@ -113,7 +142,7 @@ export const runForecast: Handler<"forecasts.run"> = (ctx, payload) => {
     scope: structuredClone(payload.scope),
     priority: "P1",
     state: "completed",
-    inputVersions: [...postingRefs, ...commitmentRefs],
+    inputVersions: [...postingRefs, ...correctionRefs, ...commitmentRefs],
     deduplicationKey: `forecast:${payload.scope.type}:${payload.scope.id}:${payload.asOfCutoff}`,
     currentStep: "snapshot_persisted",
     checkpointRefs: [forecastRef],

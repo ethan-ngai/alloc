@@ -2,7 +2,7 @@ import { northstarScenario } from "@alloc/contracts/fixtures";
 import { describe, expect, it } from "vitest";
 import { ERROR_STATUS } from "../src/errors.js";
 import { HUMAN_REVIEW_APPROVED_REASON, HUMAN_REVIEW_DENIED_REASON } from "../src/policy.js";
-import { northstarPack } from "../src/packs.js";
+import { SEEDED_POSTING_ID, northstarPack } from "../src/packs.js";
 import {
   callError, callOk, commandMeta, companyFixture, moneyMinor, queryMeta, requestJson, startMock,
   versionExpectation,
@@ -200,6 +200,107 @@ describe("mock-client flows over HTTP", () => {
       expect(budget.recognized).toBe(SEEDED_RECOGNIZED_SPEND + northstarScenario.expectedTotals.recognizedSpend.amountMinor);
       expect(budget.outstanding).toBe(northstarScenario.expectedTotals.outstandingCommitments.amountMinor);
       expect(budget.available).toBe(14_000);
+    } finally {
+      await api.close();
+    }
+  });
+
+  it("allows only one terminal human decision per request revision", async () => {
+    const { api, url } = await startMock();
+    try {
+      await callOk(url, "requests.amend", amendInput("command_flow_terminal_1", "correlation_flow_terminal_1", company.requestId, 1, 21_000));
+      await callOk(url, "requests.amend", amendInput("command_flow_terminal_2", "correlation_flow_terminal_2", company.requestId, 2, 24_000));
+      await callOk(url, "reviews.decide", {
+        meta: commandMeta("command_flow_terminal_approve", "correlation_flow_terminal_approve", ORG),
+        payload: { requestId: company.requestId, requestRevision: 3, outcome: "approved", rationale: "Approved once" },
+      }, { principalId: company.approverId });
+      const approveThenDeny = await callError(url, "reviews.decide", {
+        meta: commandMeta("command_flow_terminal_deny_late", "correlation_flow_terminal_deny_late", ORG),
+        payload: { requestId: company.requestId, requestRevision: 3, outcome: "denied", rationale: "Contradictory retry" },
+      }, { principalId: company.approverId });
+      expect(approveThenDeny.error.code).toBe("POLICY_DENIED");
+      expect(approveThenDeny.error.details).toMatchObject({ reasonCode: "REQUEST_ALREADY_DECIDED", outcome: "approved" });
+
+      const second = await callOk(url, "requests.create", createInput("command_flow_terminal_create", "correlation_flow_terminal_create", 30_000));
+      await callOk(url, "reviews.decide", {
+        meta: commandMeta("command_flow_terminal_deny", "correlation_flow_terminal_deny", ORG),
+        payload: { requestId: second.data.requestId, requestRevision: 1, outcome: "denied", rationale: "Denied once" },
+      }, { principalId: company.approverId });
+      const denyThenApprove = await callError(url, "reviews.decide", {
+        meta: commandMeta("command_flow_terminal_approve_late", "correlation_flow_terminal_approve_late", ORG),
+        payload: { requestId: second.data.requestId, requestRevision: 1, outcome: "approved", rationale: "Contradictory retry" },
+      }, { principalId: company.approverId });
+      expect(denyThenApprove.error.code).toBe("POLICY_DENIED");
+      expect(denyThenApprove.error.details).toMatchObject({ reasonCode: "REQUEST_ALREADY_DECIDED", outcome: "denied" });
+    } finally {
+      await api.close();
+    }
+  });
+
+  it("rejects duplicate correction IDs without applying recognized spend twice", async () => {
+    const { api, url } = await startMock();
+    try {
+      const correction = {
+        originalPostingRef: { type: "posting" as const, id: SEEDED_POSTING_ID, revision: 1 },
+        correctionId: "correction_flow_duplicate",
+        amount: { amountMinor: 1_000, currency: "USD" as const },
+        reason: "Duplicate correction probe",
+        occurredAt: POSTING_OCCURRED_AT,
+        provenance: provenance("flow-duplicate-correction"),
+      };
+      await callOk(url, "postings.correct", {
+        meta: commandMeta("command_flow_correction_1", "correlation_flow_correction_1", ORG, [
+          versionExpectation({ type: "posting", id: SEEDED_POSTING_ID }, 1),
+        ]),
+        payload: correction,
+      });
+      const duplicate = await callError(url, "postings.correct", {
+        meta: commandMeta("command_flow_correction_2", "correlation_flow_correction_2", ORG, [
+          versionExpectation({ type: "posting", id: SEEDED_POSTING_ID }, 1),
+        ]),
+        payload: correction,
+      });
+      expect(duplicate.error.code).toBe("IDEMPOTENCY_CONFLICT");
+      expect(duplicate.error.details).toEqual({ correctionId: correction.correctionId });
+      expect((await budgetFacts(url)).recognized).toBe(SEEDED_RECOGNIZED_SPEND + 1_000);
+    } finally {
+      await api.close();
+    }
+  });
+
+  it("excludes postings after the forecast cutoff", async () => {
+    const { api, url } = await startMock();
+    try {
+      await callOk(url, "postings.record", {
+        meta: commandMeta("command_flow_future_posting", "correlation_flow_future_posting", ORG),
+        payload: {
+          postingId: "posting_flow_future",
+          revision: 1,
+          amount: { amountMinor: 5_000, currency: "USD" },
+          occurredAt: POSTING_OCCURRED_AT,
+          status: "posted",
+          sourceRef: { type: "source_delivery", id: "delivery_flow_future", revision: 1 },
+          scopes: company.requestScopes,
+          provenance: provenance("flow-future-posting"),
+        },
+      });
+      await callOk(url, "forecasts.run", {
+        meta: commandMeta("command_flow_cutoff_forecast", "correlation_flow_cutoff_forecast", ORG),
+        payload: {
+          scope: company.departmentScope,
+          asOfCutoff: "2026-09-12T14:00:00Z",
+          horizonEnd: "2026-09-30T23:59:59Z",
+          assumptions: [],
+        },
+      });
+      const forecast = await callOk(url, "forecasts.get", {
+        meta: queryMeta("correlation_flow_cutoff_get", ORG),
+        payload: { forecastId: "forecast_field_engineering" },
+      });
+      expect(forecast.data.total.amountMinor).toBe(30_000);
+      expect(forecast.data.components.find((component) => component.kind === "actual_spend")?.amount.amountMinor).toBe(12_000);
+      expect(forecast.data.components.find((component) => component.kind === "outstanding_commitment")?.amount.amountMinor).toBe(18_000);
+      expect(forecast.data.inputVersions).not.toContainEqual({ type: "posting", id: "posting_flow_future", revision: 1 });
     } finally {
       await api.close();
     }

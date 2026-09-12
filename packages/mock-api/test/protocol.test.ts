@@ -132,4 +132,22 @@ describe("mock HTTP protocol", () => {
       await api.close();
     }
   });
+
+  it("rejects malformed operation path encoding without taking down the server", async () => {
+    const { api, url } = await startMock();
+    try {
+      const malformed = await requestJson(url, "/operations/%", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: "{}",
+      });
+      expect(malformed.status).toBe(400);
+      expect(JSON.stringify(malformed.body)).toContain("malformedOperationPath");
+
+      const health = await requestJson(url, "/health", { method: "GET" });
+      expect(health.status).toBe(200);
+    } finally {
+      await api.close();
+    }
+  });
 });

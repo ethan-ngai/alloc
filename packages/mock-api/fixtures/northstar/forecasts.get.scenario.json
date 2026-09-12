@@ -22,14 +22,9 @@
         "revision": 1
       },
       {
-        "type": "posting",
-        "id": "posting_fixture_trip_lodging",
-        "revision": 1
-      },
-      {
         "type": "commitment",
         "id": "commitment_buffalo_trip",
-        "revision": 4
+        "revision": 1
       }
     ],
     "sourceWatermarks": {
@@ -65,16 +60,11 @@
             "type": "posting",
             "id": "posting_mock_seed_spend",
             "revision": 1
-          },
-          {
-            "type": "posting",
-            "id": "posting_fixture_trip_lodging",
-            "revision": 1
           }
         ],
         "kind": "actual_spend",
         "amount": {
-          "amountMinor": 36000,
+          "amountMinor": 12000,
           "currency": "USD"
         }
       },
@@ -83,12 +73,12 @@
           {
             "type": "commitment",
             "id": "commitment_buffalo_trip",
-            "revision": 4
+            "revision": 1
           }
         ],
         "kind": "outstanding_commitment",
         "amount": {
-          "amountMinor": 0,
+          "amountMinor": 18000,
           "currency": "USD"
         }
       },
@@ -110,26 +100,26 @@
         ],
         "kind": "scenario_adjustment",
         "amount": {
-          "amountMinor": -7200,
+          "amountMinor": -6000,
           "currency": "USD"
         }
       }
     ],
     "total": {
-      "amountMinor": 28800,
+      "amountMinor": 24000,
       "currency": "USD"
     },
     "sensitivity": {
       "low": {
-        "amountMinor": 25920,
+        "amountMinor": 21600,
         "currency": "USD"
       },
       "base": {
-        "amountMinor": 28800,
+        "amountMinor": 24000,
         "currency": "USD"
       },
       "high": {
-        "amountMinor": 31680,
+        "amountMinor": 26400,
         "currency": "USD"
       },
       "calibratedProbability": false

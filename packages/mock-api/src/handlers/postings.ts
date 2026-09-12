@@ -73,6 +73,11 @@ export const recordPosting: Handler<"postings.record"> = (ctx, payload) => {
  * commitment release, so outstanding commitments are untouched.
  */
 export const correctPosting: Handler<"postings.correct"> = (ctx, payload) => {
+  if (ctx.company.corrections.some((correction) => correction.correctionId === payload.correctionId)) {
+    throw new MockContractError("IDEMPOTENCY_CONFLICT", `correction ${payload.correctionId} already exists`, {
+      correctionId: payload.correctionId,
+    });
+  }
   const ref = { type: "posting", id: payload.originalPostingRef.id };
   const expectation = requireExpectation(ctx, ref);
   const original = ctx.company.postings.find((posting) => posting.postingId === payload.originalPostingRef.id);

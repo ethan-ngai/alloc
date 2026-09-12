@@ -104,7 +104,17 @@ export function createMockApi(options: MockApiOptions = {}): MockApi {
         return;
       }
       if (isOperationRoute) {
-        const operation = decodeURIComponent(path.slice("/operations/".length));
+        let operation: string;
+        try {
+          operation = decodeURIComponent(path.slice("/operations/".length));
+        } catch {
+          sendJson(
+            res,
+            errorStatus("VALIDATION_FAILED"),
+            faultEnvelope("VALIDATION_FAILED", "operation path is not valid percent encoding", { reasonCode: "malformedOperationPath" }),
+          );
+          return;
+        }
         const reply = dispatch(store, operation, body, {
           ...(req.headers[MOCK_PRINCIPAL_HEADER] === undefined ? {} : { principalId: String(req.headers[MOCK_PRINCIPAL_HEADER]) }),
           ...(req.headers[MOCK_FAULT_HEADER] === undefined ? {} : { fault: String(req.headers[MOCK_FAULT_HEADER]) }),
@@ -136,8 +146,23 @@ export function createMockApi(options: MockApiOptions = {}): MockApi {
     sendJson(res, errorStatus("NOT_FOUND"), faultEnvelope("NOT_FOUND", `no operation route for ${method} ${path}`, { method, path }));
   };
 
+  const safelyHandleRequest = (req: IncomingMessage, res: ServerResponse): void => {
+    void handleRequest(req, res).catch(() => {
+      try {
+        if (res.writableEnded) return;
+        if (!res.headersSent) {
+          sendJson(res, errorStatus("INTERNAL_ERROR"), faultEnvelope("INTERNAL_ERROR", "unexpected mock failure"));
+          return;
+        }
+        res.destroy();
+      } catch {
+        res.destroy();
+      }
+    });
+  };
+
   const server: Server = createServer((req, res) => {
-    void handleRequest(req, res);
+    safelyHandleRequest(req, res);
   });
   server.on("connection", (socket: Socket) => {
     sockets.add(socket);
@@ -149,7 +174,7 @@ export function createMockApi(options: MockApiOptions = {}): MockApi {
     packs,
     clock: store.clock,
     handle(req, res) {
-      void handleRequest(req, res);
+      safelyHandleRequest(req, res);
     },
     async listen(port = DEFAULT_MOCK_PORT, host = "127.0.0.1") {
       await new Promise<void>((resolve, reject) => {

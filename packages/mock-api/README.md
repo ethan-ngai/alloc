@@ -92,7 +92,7 @@ with `no operation route for <METHOD> <path>`.
 | `AUTHORITY_DENIED` | 403 | no | `reviews.decide` without `finance_manager` authority in scope |
 | `NOT_FOUND` | 404 | no | unknown operation, request, commitment, posting, or forecast |
 | `STALE_VERSION` | 409 | no | expectation or `requestRevision` mismatch |
-| `IDEMPOTENCY_CONFLICT` | 409 | no | same `commandId` with a different payload, or a duplicate `postingId` |
+| `IDEMPOTENCY_CONFLICT` | 409 | no | same `commandId` with a different payload, or a duplicate posting/correction ID |
 | `POLICY_DENIED` | 409 | no | amending a denied request, deciding a request that is not awaiting review |
 | `SOURCE_DUPLICATE` / `SOURCE_CONFLICT` | 409 | no | fault injection only |
 | `REVIEW_REQUIRED` | 422 | no | fault injection only |
@@ -115,13 +115,16 @@ Mutation semantics worth knowing when wiring screens:
   names a commitment), and `postings.correct` require exactly one entry for the ref being mutated.
 - Only an `approved` evaluation reserves budget and creates/updates the commitment. A
   `review_required` revision keeps its verdict after a human decision: the human outcome lives in
-  `decisions`, so a screen must read both.
+  `decisions`, so a screen must read both. Each request revision accepts at most one terminal human
+  decision.
 - Budget availability is derived (`authorized − recognizedSpend − outstandingCommitments`) and can be
   negative; the seeded hard-capped account starts at 50_000 / 12_000 / 18_000 → 20_000 available.
 - Decisions never carry `approvalGrantRef`: no catalogued operation can resolve a grant, so the mock
   does not emit a dangling ref. They do reference the pack's seeded `evidence_trip_active` record.
 - `postings.correct` moves only recognized spend; corrections emit no activity item (the activity
   templates cover request, decision, posting, source, job, and forecast).
+- Forecast runs include only postings, corrections, approved request revisions, and commitments that
+  were visible at `asOfCutoff`.
 
 ## Fixture catalog
 
