@@ -107,6 +107,14 @@ function result(task: ChildTask, overrides: Partial<ChildResult> = {}): ChildRes
   };
 }
 
+function completedRecord(task: ChildTask) {
+  return terminateChild(
+    startChild(createChildRuntimeRecord(task), NOW),
+    "completed",
+    new Date("2026-09-12T16:01:00.000Z"),
+  );
+}
+
 const allowedEvidence = new Set(["evidence\u0000evidence_atlas\u00002"]);
 
 describe("delegation admission", () => {
@@ -240,7 +248,7 @@ describe("result validation and merging", () => {
   it("accepts versioned in-scope evidence for the current parent lease", () => {
     const task = admit();
     const validated = validateChildResult({
-      task,
+      runtimeRecord: completedRecord(task),
       result: result(task),
       parent: { organizationId: task.organizationId, parentJobId: task.parentJobId, leaseGeneration: 3 },
       allowedEvidenceRefs: allowedEvidence,
@@ -251,7 +259,7 @@ describe("result validation and merging", () => {
   it("rejects stale parents, late output, and out-of-scope evidence", () => {
     const task = admit();
     const base = {
-      task,
+      runtimeRecord: completedRecord(task),
       result: result(task),
       parent: { organizationId: task.organizationId, parentJobId: task.parentJobId, leaseGeneration: 3 },
       allowedEvidenceRefs: allowedEvidence,
@@ -272,7 +280,7 @@ describe("result validation and merging", () => {
   it("rejects output timestamped before admission", () => {
     const task = admit();
     expect(() => validateChildResult({
-      task,
+      runtimeRecord: completedRecord(task),
       result: result(task, { completedAt: "2026-09-12T15:59:59.000Z" }),
       parent: { organizationId: task.organizationId, parentJobId: task.parentJobId, leaseGeneration: 3 },
       allowedEvidenceRefs: allowedEvidence,
@@ -285,7 +293,7 @@ describe("result validation and merging", () => {
       request: request({ requestedOutputBytes: 256 }),
     });
     expect(() => validateChildResult({
-      task,
+      runtimeRecord: completedRecord(task),
       result: result(task),
       parent: { organizationId: task.organizationId, parentJobId: task.parentJobId, leaseGeneration: 3 },
       allowedEvidenceRefs: allowedEvidence,
@@ -303,10 +311,10 @@ describe("result validation and merging", () => {
       leaseGeneration: 3,
     };
     const first = validateChildResult({
-      task: firstTask, result: result(firstTask), parent: currentParent, allowedEvidenceRefs: allowedEvidence,
+      runtimeRecord: completedRecord(firstTask), result: result(firstTask), parent: currentParent, allowedEvidenceRefs: allowedEvidence,
     });
     const second = validateChildResult({
-      task: secondTask,
+      runtimeRecord: completedRecord(secondTask),
       result: result(secondTask, {
         claims: [{
           claimKey: "atlas.milestone",
@@ -331,6 +339,23 @@ describe("result validation and merging", () => {
     }]);
     expect(merged.missingContext).toEqual(["deployment approval"]);
     expect(merged.coverage).toEqual({ inspectedRecords: 6, truncated: true });
+  });
+
+  it("rejects output from an unfinished or canceled child", () => {
+    const task = admit();
+    const running = startChild(createChildRuntimeRecord(task), NOW);
+    const validation = {
+      result: result(task),
+      parent: { organizationId: task.organizationId, parentJobId: task.parentJobId, leaseGeneration: 3 },
+      allowedEvidenceRefs: allowedEvidence,
+    };
+    expect(() => validateChildResult({ ...validation, runtimeRecord: running })).toThrowError(
+      expect.objectContaining({ code: "CHILD_NOT_TERMINAL" }),
+    );
+    const canceled = applyParentTermination(running, "cancel", NOW);
+    expect(() => validateChildResult({ ...validation, runtimeRecord: canceled })).toThrowError(
+      expect.objectContaining({ code: "RESULT_STATE_MISMATCH" }),
+    );
   });
 });
 
@@ -362,5 +387,60 @@ describe("global inference admission", () => {
     slot.release("inference_child");
     expect(slot.acquire(selectNextInference([urgent])!)).toBe(true);
     expect(slot.active?.requestId).toBe("inference_urgent");
+  });
+
+  it("runs an urgent request before two pending child generations and retains traceable results", () => {
+    const atlasTask = admit();
+    const spendingTask = admit({
+      identity: { childTaskId: "child_spending", childServiceIdentityId: "service_child_spending" },
+    });
+    const queue = [
+      { ...background, requestId: "inference_atlas", childTaskId: atlasTask.childTaskId },
+      { ...background, requestId: "inference_spending", childTaskId: spendingTask.childTaskId },
+      urgent,
+    ];
+    const slot = new SingleInferenceSlot();
+    const executionOrder: string[] = [];
+    while (queue.length > 0) {
+      const next = selectNextInference(queue)!;
+      expect(slot.acquire(next)).toBe(true);
+      executionOrder.push(next.requestId);
+      slot.release(next.requestId);
+      queue.splice(queue.findIndex(({ requestId }) => requestId === next.requestId), 1);
+    }
+    expect(executionOrder).toEqual(["inference_urgent", "inference_atlas", "inference_spending"]);
+
+    const currentParent = {
+      organizationId: atlasTask.organizationId,
+      parentJobId: atlasTask.parentJobId,
+      leaseGeneration: atlasTask.parentLeaseGeneration,
+    };
+    const merged = mergeChildResults([atlasTask, spendingTask], [
+      validateChildResult({
+        runtimeRecord: completedRecord(atlasTask),
+        result: result(atlasTask),
+        parent: currentParent,
+        allowedEvidenceRefs: allowedEvidence,
+      }),
+      validateChildResult({
+        runtimeRecord: completedRecord(spendingTask),
+        result: result(spendingTask, {
+          claims: [{
+            claimKey: "atlas.gpu_commitment",
+            value: "within-cap",
+            statement: "Atlas GPU usage remains within its commitment.",
+            evidenceRefs: [{ type: "evidence", id: "evidence_atlas", revision: 2 }],
+            calculatedResultRefs: [],
+          }],
+        }),
+        parent: currentParent,
+        allowedEvidenceRefs: allowedEvidence,
+      }),
+    ]);
+    expect(merged.receivedChildTaskIds).toEqual(["child_atlas", "child_spending"]);
+    expect(merged.claims.map(({ childTaskId, evidenceRefs }) => ({ childTaskId, evidenceRefs }))).toEqual([
+      { childTaskId: "child_spending", evidenceRefs: [{ type: "evidence", id: "evidence_atlas", revision: 2 }] },
+      { childTaskId: "child_atlas", evidenceRefs: [{ type: "evidence", id: "evidence_atlas", revision: 2 }] },
+    ]);
   });
 });

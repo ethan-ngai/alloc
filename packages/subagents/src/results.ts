@@ -1,9 +1,11 @@
 import {
   ChildResultSchema,
+  ChildRuntimeRecordSchema,
   ChildTaskSchema,
   type ChildClaim,
   type ChildResult,
   type ChildRole,
+  type ChildRuntimeRecord,
   type ChildTask,
 } from "./schemas.js";
 
@@ -13,6 +15,8 @@ export type ChildResultErrorCode =
   | "RESULT_EXPIRED"
   | "RESULT_TOO_LARGE"
   | "EVIDENCE_OUT_OF_SCOPE"
+  | "CHILD_NOT_TERMINAL"
+  | "RESULT_STATE_MISMATCH"
   | "DUPLICATE_CHILD_RESULT";
 
 export class ChildResultError extends Error {
@@ -39,13 +43,27 @@ function referenceKey(reference: { type: string; id: string; revision: number })
 }
 
 export function validateChildResult(input: {
-  task: ChildTask;
+  runtimeRecord: ChildRuntimeRecord;
   result: ChildResult;
   parent: CurrentParentState;
   allowedEvidenceRefs: ReadonlySet<string>;
 }): ValidatedChildResult {
-  const task = ChildTaskSchema.parse(input.task);
+  const runtimeRecord = ChildRuntimeRecordSchema.parse(input.runtimeRecord);
+  const task = runtimeRecord.task;
   const result = ChildResultSchema.parse(input.result);
+  if (
+    runtimeRecord.state !== "completed"
+    && runtimeRecord.state !== "failed"
+    && runtimeRecord.state !== "canceled"
+  ) {
+    throw new ChildResultError("CHILD_NOT_TERMINAL", "child must reach a terminal lifecycle state first");
+  }
+  const completionMatches = runtimeRecord.state === "completed"
+    ? result.completion === "completed" || result.completion === "partial"
+    : result.completion === runtimeRecord.state;
+  if (!completionMatches) {
+    throw new ChildResultError("RESULT_STATE_MISMATCH", "result completion does not match child lifecycle state");
+  }
   if (
     result.organizationId !== task.organizationId
     || result.childTaskId !== task.childTaskId

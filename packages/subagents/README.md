@@ -24,6 +24,9 @@ and reports conflicting values and missing coverage rather than selecting a fact
 Runtime lifecycle helpers count authorized tool calls, fail at the child deadline,
 and apply an explicit parent-termination disposition. Cancellation fences all later
 work; detachment preserves the child's original deadline and bounded read authority.
+The focused suite includes a deterministic `2026-09-12T16:00:00.000Z` scenario in
+which a P0 request takes the next global inference slot ahead of two P1 children,
+then both child results merge with their identities and versioned evidence intact.
 
 `SingleInferenceSlot` is a synthetic reference for the initial one-generation
 global limit. It demonstrates next-slot P0 priority and explicitly does not claim
