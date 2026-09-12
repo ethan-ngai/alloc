@@ -1,5 +1,3 @@
-import { spawn, type ChildProcess } from "node:child_process";
-import { createServer } from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { startMongoReplicaSet, type MongoTestCluster } from "@alloc/test-support";
@@ -10,6 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { connectMongoRuntime, type MongoRuntime } from "../../src/mongo/runtime.js";
 import { signTestToken, TEST_JWT_AUDIENCE, TEST_JWT_ISSUER, TEST_JWT_SECRET } from "../support/app.js";
 import { loadNorthstarFixture, northstarSeed } from "../support/finance.js";
+import { baseEnvironment, freePort, spawnProcess, stopProcess, waitForHttp, type RunningProcess } from "../support/process.js";
 
 const API_ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const SERVER_ENTRY = path.join(API_ROOT, "dist", "server.js");
@@ -17,14 +16,9 @@ const ORGANIZATION_ID = "org_northstar";
 const EMPLOYEE = "employee_maya_chen";
 const FINANCE = "employee_avery_finance";
 
-interface RunningApi {
-  readonly child: ChildProcess;
-  output(): string;
-}
-
 let cluster: MongoTestCluster;
 let apiPort: number;
-let api: RunningApi;
+let api: RunningProcess;
 let inspector: MongoRuntime | undefined;
 
 beforeAll(async () => {
@@ -37,10 +31,7 @@ beforeAll(async () => {
 }, 240_000);
 
 afterAll(async () => {
-  if (api && api.child.exitCode === null) {
-    api.child.kill("SIGTERM");
-    await waitForExit(api.child, 10_000).catch(() => api.child.kill("SIGKILL"));
-  }
+  await stopProcess(api);
   await inspector?.close().catch(() => undefined);
   await cluster?.stop();
 });
@@ -186,8 +177,8 @@ async function post(pathname: string, payload: unknown, token: string): Promise<
   return { status: response.status, body: await response.json() as Record<string, unknown> };
 }
 
-function startApi(): RunningApi {
-  const child = spawn(process.execPath, [SERVER_ENTRY], {
+function startApi(): RunningProcess {
+  return spawnProcess(SERVER_ENTRY, {
     cwd: API_ROOT,
     env: {
       ...baseEnvironment(),
@@ -195,67 +186,5 @@ function startApi(): RunningApi {
       MONGO_URI: cluster.uri, MONGO_DATABASE: cluster.database,
       JWT_SECRET: TEST_JWT_SECRET, JWT_ISSUER: TEST_JWT_ISSUER, JWT_AUDIENCE: TEST_JWT_AUDIENCE,
     },
-    stdio: ["ignore", "pipe", "pipe"],
   });
-  let output = "";
-  child.stdout?.on("data", (chunk: Buffer) => { output += chunk.toString(); });
-  child.stderr?.on("data", (chunk: Buffer) => { output += chunk.toString(); });
-  return { child, output: () => output };
-}
-
-function baseEnvironment(): NodeJS.ProcessEnv {
-  const { CONDUCTOR_PORT: _conductorPort, PORT: _port, ...rest } = process.env;
-  return rest;
-}
-
-async function waitForHttp(url: string, timeoutMs: number, running: RunningApi): Promise<void> {
-  const deadline = Date.now() + timeoutMs;
-  for (;;) {
-    try {
-      const response = await fetch(url, { signal: AbortSignal.timeout(2_000) });
-      if (response.ok) return;
-    } catch {
-      // not listening yet
-    }
-    if (running.child.exitCode !== null) {
-      throw new Error(`api exited with code ${running.child.exitCode}\n${running.output()}`);
-    }
-    if (Date.now() >= deadline) {
-      throw new Error(`api did not answer ${url} within ${timeoutMs}ms\n${running.output()}`);
-    }
-    // A spawned process cannot be driven by fake timers; poll the real socket briefly.
-    await delay(200);
-  }
-}
-
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function waitForExit(child: ChildProcess, timeoutMs: number): Promise<number | null> {
-  if (child.exitCode !== null) {
-    return Promise.resolve(child.exitCode);
-  }
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => {
-      child.kill("SIGKILL");
-      reject(new Error(`process ${child.pid ?? "unknown"} did not exit within ${timeoutMs}ms`));
-    }, timeoutMs);
-    child.once("exit", (code) => {
-      clearTimeout(timer);
-      resolve(code);
-    });
-  });
-}
-
-async function freePort(): Promise<number> {
-  const server = createServer();
-  await new Promise<void>((resolve, reject) => {
-    server.once("error", reject);
-    server.listen(0, "127.0.0.1", resolve);
-  });
-  const address = server.address();
-  const port = typeof address === "object" && address !== null ? address.port : 0;
-  await new Promise<void>((resolve) => server.close(() => resolve()));
-  return port;
 }

@@ -41,6 +41,7 @@ try {
   watch("tsc --watch", ["run", "build", "--workspace", "@alloc/contracts", "--", "--watch"]);
   watch("tsc --watch", ["run", "build", "--workspace", "@alloc/api", "--", "--watch"]);
   watch("api", ["exec", "--", "node", "--watch", "apps/api/dist/server.js"], apiEnvironment());
+  watch("executor", ["exec", "--", "node", "--watch", "apps/api/dist/execution/worker.js"], apiEnvironment());
   await waitForApiReady();
   await printEndpoints();
   console.log("[dev] watching for changes; press Ctrl+C to stop and remove the container");
