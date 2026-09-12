@@ -4,6 +4,7 @@ import { type JWTPayload, SignJWT } from "jose";
 import { buildApp } from "../../src/app.js";
 import { loadConfig, type AppConfig } from "../../src/config.js";
 import type { OrganizationRepository } from "../../src/mongo/organizations.js";
+import type { ImportRepository } from "../../src/imports/repository.js";
 import { createReadiness, type Readiness } from "../../src/readiness.js";
 import { northstarOrganization } from "./organizations.js";
 
@@ -92,15 +93,23 @@ export interface TestApp {
   readonly organizations: OrganizationRepository;
 }
 
+const noImports: ImportRepository = {
+  async ingest() { throw new Error("imports are not configured for this test"); },
+  async listPostings() { return []; },
+  async seedEntities() {},
+  async seedMappings() {},
+};
+
 export function buildTestApp(options: {
   config?: AppConfig;
   readiness?: Readiness;
   organizations?: OrganizationRepository;
+  imports?: ImportRepository;
 } = {}): TestApp {
   const config = options.config ?? testConfig();
   const readiness = options.readiness ?? readyReadiness();
   const organizations = options.organizations ?? recordingRepository([northstarOrganization]);
   // Logging is disabled: tests assert on responses, not stdout.
-  const app = buildApp({ config, readiness, organizations, logger: false });
+  const app = buildApp({ config, readiness, organizations, imports: options.imports ?? noImports, logger: false });
   return { app, config, readiness, organizations };
 }

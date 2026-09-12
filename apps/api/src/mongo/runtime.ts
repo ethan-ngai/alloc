@@ -1,5 +1,6 @@
 import { MongoClient, type ClientSession, type Db } from "mongodb";
 import { createReadiness, type Readiness } from "../readiness.js";
+import { ensureImportCollections, MongoImportRepository, type ImportRepository } from "../imports/repository.js";
 import {
   ensureOrganizationCollection,
   MongoOrganizationRepository,
@@ -31,6 +32,7 @@ export interface MongoRuntime {
   /** Replica-set name, or `sharded-cluster` for a mongos deployment. */
   readonly topology: string;
   readonly organizations: OrganizationRepository;
+  readonly imports: ImportRepository;
   withTransaction<T>(work: (session: ClientSession) => Promise<T>): Promise<T>;
   close(): Promise<void>;
 }
@@ -54,6 +56,7 @@ export async function connectMongoRuntime(options: MongoRuntimeOptions): Promise
     const topology = await requireTransactionCapableDeployment(client);
     const db = client.db(options.database);
     await ensureOrganizationCollection(db);
+    await ensureImportCollections(db);
 
     let closed = false;
     client.on("serverHeartbeatFailed", () => {
@@ -68,33 +71,34 @@ export async function connectMongoRuntime(options: MongoRuntimeOptions): Promise
     });
     readiness.markReady();
 
+    const withTransaction = async <T>(work: (session: ClientSession) => Promise<T>): Promise<T> => {
+      const session = client.startSession();
+      try {
+        let outcome: { value: T } | undefined;
+        await session.withTransaction(async () => {
+          outcome = { value: await work(session) };
+        });
+        if (!outcome) throw new Error("transaction completed without running its work");
+        return outcome.value;
+      } finally {
+        await session.endSession();
+      }
+    };
+
     return {
       client,
       db,
       readiness,
       topology,
       organizations: new MongoOrganizationRepository(db),
+      imports: new MongoImportRepository(db, withTransaction),
 
       /**
        * Runs `work` inside a multi-document transaction. The driver retries on
        * transient transaction errors, so `work` must be idempotent and must use
        * the supplied session for every operation.
        */
-      async withTransaction<T>(work: (session: ClientSession) => Promise<T>): Promise<T> {
-        const session = client.startSession();
-        try {
-          let outcome: { value: T } | undefined;
-          await session.withTransaction(async () => {
-            outcome = { value: await work(session) };
-          });
-          if (!outcome) {
-            throw new Error("transaction completed without running its work");
-          }
-          return outcome.value;
-        } finally {
-          await session.endSession();
-        }
-      },
+      withTransaction,
 
       async close(): Promise<void> {
         if (closed) {
