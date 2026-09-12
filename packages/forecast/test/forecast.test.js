@@ -28,3 +28,11 @@ test("scenario, late data, and non-USD boundaries are deterministic", () => {
   assert(late.total.amountMinor > baseline.total.amountMinor, "a late historical posting revises the baseline");
   assert.throws(() => calculateForecast(input({ postings: [{ type: "posting", id: "posting_eur", revision: 1, organizationId: "org_northstar", occurredAt: "2026-09-01T00:00:00Z", amount: { amountMinor: 1, currency: "EUR" }, scopes: [scope] }] })), /USD only/);
 });
+
+test("timing shifts move a commitment across the horizon", () => {
+  const commitment = { type: "commitment", id: "commitment_shift", revision: 1, organizationId: "org_northstar", expectedAt: "2026-09-20T00:00:00Z", amount: usd(500), scopes: [scope] };
+  const baseline = calculateForecast(input({ commitments: [commitment] }));
+  const shifted = calculateForecast(input({ forecastId: "forecast_shifted", commitments: [commitment], assumptions: [{ kind: "timing_shift", assumptionId: "assumption_shift", name: "Defer commitment", scope, effectiveFrom: "2026-09-10T00:00:00Z", effectiveTo: "2026-10-31T00:00:00Z", evidenceRefs: [], targetRef: { type: "commitment", id: "commitment_shift", revision: 1 }, shiftDays: 20 }] }));
+  assert.equal(baseline.total.amountMinor, 500);
+  assert.equal(shifted.total.amountMinor, 0);
+});

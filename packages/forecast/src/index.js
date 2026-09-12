@@ -8,11 +8,11 @@ const scopeMatches = (record, scope) => scope.type === "organization" || record.
 const ref = record => ({ type: record.type ?? (record.postingId ? "posting" : record.commitmentId ? "commitment" : "schedule"), id: record.id ?? record.postingId ?? record.commitmentId ?? record.scheduleId, ...(record.revision && { revision: record.revision }) });
 
 function occurrences(schedule, cutoff, horizonEnd) {
-  const step = { weekly: 7, monthly: 30, quarterly: 91, annual: 365 }[schedule.cadence];
-  if (!step || schedule.status !== "active") return schedule.cadence === "once" && inRange(schedule.nextDueOn, cutoff, horizonEnd) ? [schedule.nextDueOn] : [];
+  const advance = { weekly: date => date.setUTCDate(date.getUTCDate() + 7), monthly: date => date.setUTCMonth(date.getUTCMonth() + 1), quarterly: date => date.setUTCMonth(date.getUTCMonth() + 3), annual: date => date.setUTCFullYear(date.getUTCFullYear() + 1) }[schedule.cadence];
+  if (!advance || schedule.status !== "active") return schedule.cadence === "once" && inRange(schedule.nextDueOn, cutoff, horizonEnd) ? [schedule.nextDueOn] : [];
   const dates = [];
-  for (let at = Date.parse(schedule.nextDueOn); at <= Date.parse(horizonEnd); at += step * DAY) {
-    const due = new Date(at).toISOString().slice(0, 10);
+  for (const at = new Date(`${schedule.nextDueOn}T00:00:00Z`); at <= new Date(horizonEnd); advance(at)) {
+    const due = at.toISOString().slice(0, 10);
     if (inRange(due, cutoff, horizonEnd) && (!schedule.endsOn || due <= schedule.endsOn)) dates.push(due);
   }
   return dates;
@@ -25,7 +25,8 @@ export function calculateForecast(input) {
   for (const record of [...postings, ...commitments, ...schedules]) if (record.amount.currency !== "USD") throw new Error("USD only");
   const selectedPostings = postings.filter(posting => posting.organizationId === organizationId && scopeMatches(posting, scope));
   const actual = selectedPostings.filter(posting => inRange(posting.occurredAt, periodStart, asOfCutoff));
-  const outstanding = commitments.filter(item => item.organizationId === organizationId && scopeMatches(item, scope) && item.amount.amountMinor > 0 && inRange(item.expectedAt, asOfCutoff, horizonEnd));
+  const scopedCommitments = commitments.filter(item => item.organizationId === organizationId && scopeMatches(item, scope) && item.amount.amountMinor > 0);
+  const outstanding = scopedCommitments.filter(item => inRange(item.expectedAt, asOfCutoff, horizonEnd));
   const committedPeriods = new Set(outstanding.filter(item => item.obligationId).map(item => `${item.obligationId}:${day(item.expectedAt).slice(0, 7)}`));
   const recurring = schedules.filter(schedule => schedule.organizationId === organizationId && scopeMatches({ scopes: schedule.scopeRefs }, scope)).flatMap(schedule => occurrences(schedule, asOfCutoff, horizonEnd)
     .filter(due => !committedPeriods.has(`${schedule.obligationId}:${due.slice(0, 7)}`)).map(due => ({ schedule, due })));
@@ -43,10 +44,17 @@ export function calculateForecast(input) {
   ];
   for (const assumption of assumptions) {
     if (!scopeMatches({ scopes: [assumption.scope] }, scope) || !inRange(assumption.effectiveFrom, periodStart, horizonEnd)) continue;
-    const amount = assumption.kind === "fixed_adjustment" ? assumption.amount.amountMinor
-      : assumption.kind === "percentage_change" ? Math.round(baselineAmount * assumption.valueBasisPoints / 10_000)
-      : 0;
-    if (amount) components.push({ kind: "scenario_adjustment", amount: money(amount), inputRefs: assumption.evidenceRefs });
+    let amount = assumption.kind === "fixed_adjustment" ? assumption.amount.amountMinor
+      : assumption.kind === "percentage_change" ? Math.round(baselineAmount * assumption.valueBasisPoints / 10_000) : 0;
+    let inputRefs = assumption.evidenceRefs;
+    if (assumption.kind === "timing_shift") {
+      const commitment = scopedCommitments.find(item => (item.type ?? "commitment") === assumption.targetRef.type && (item.id ?? item.commitmentId) === assumption.targetRef.id && item.revision === assumption.targetRef.revision);
+      if (!commitment) throw new Error("timing shift target not found");
+      const shiftedAt = new Date(Date.parse(commitment.expectedAt) + assumption.shiftDays * DAY).toISOString();
+      amount = (inRange(shiftedAt, asOfCutoff, horizonEnd) ? commitment.amount.amountMinor : 0) - (inRange(commitment.expectedAt, asOfCutoff, horizonEnd) ? commitment.amount.amountMinor : 0);
+      inputRefs = [...assumption.evidenceRefs, ref(commitment)];
+    }
+    if (amount) components.push({ kind: "scenario_adjustment", amount: money(amount), inputRefs });
   }
   const total = components.reduce((sum, component) => sum + component.amount.amountMinor, 0);
   if (total < 0) throw new Error("scenario cannot produce a negative forecast");
