@@ -32,8 +32,23 @@ the current job lease. Handlers must cooperate with cancellation and await clean
 the gateway cannot safely force-stop arbitrary side effects. Financial handlers must
 still recheck current policy, authority, revisions, and caps in their own transaction.
 
-This checkpoint is the issue-authorized contract server, not a live OpenClaw/model
-pass. OpenClaw's current Plugin SDK is experimental, so the adapter must pin and test
-the actual host version before using its documented `defineToolPlugin` registration.
-The plugin manifest, local Qwen route, runtime allowlist, real backend handlers, and
-offline/no-fallback evidence remain required for task 6A acceptance.
+`createAllocToolPlugin` registers those tools with OpenClaw through `defineToolPlugin`,
+pinned to `openclaw@2026.9.4`. Model-facing parameter schemas are generated from the
+same 1A contracts the gateway enforces, so the two cannot drift.
+
+Job identity never travels through model arguments. The Alloc worker attaches it to
+the run as a `toolBindings.alloc` entry, and each tool reads it from the trusted
+`toolContext`. A run without that binding is offered no tools at all rather than a
+default identity. The binding names only the job, so `resolveExecutionContext` fetches
+current authority per call and a renewed or revoked lease is observed immediately
+instead of being frozen into the run when it started.
+
+`openclaw` is an optional peer dependency; only a deployment that actually hosts the
+agent needs it installed. The repository sets `ignore-scripts=true` because OpenClaw's
+postinstall aborts on unsupported Node majors, which would otherwise fail the whole
+workspace install for contributors who never run the agent.
+
+Still required for task 6A acceptance: the local Qwen route, real backend handlers for
+`get_context` (4A), `run_forecast` and `propose_action` (3B), and offline/no-fallback
+evidence from the target machine. This checkpoint has not been run against a live
+model.
