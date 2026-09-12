@@ -4,8 +4,11 @@ import {
   SchedulerInvariantError,
   assertActiveLease,
   assertTransition,
+  claimJob,
   coalesceJobs,
   decideRetry,
+  releaseStep,
+  renewLease,
   selectNextJob,
 } from "../src/index.js";
 import type { ContractError, DurableJobMessage } from "@alloc/contracts";
@@ -117,6 +120,123 @@ describe("job lifecycle", () => {
       { ownerId: "worker_primary", generation: 4 },
       NOW,
     )).toThrowError(expect.objectContaining({ code: "LEASE_INACTIVE" }));
+  });
+
+  it("increments lease generations when reclaiming an expired worker", () => {
+    const expired = job({
+      state: "running",
+      revision: 4,
+      attempts: 1,
+      lease: {
+        ownerId: "worker_stale",
+        generation: 2,
+        expiresAt: "2026-09-12T15:59:00.000Z",
+      },
+    });
+    const reclaimed = claimJob(expired, "worker_recovery", 2, NOW, 30_000);
+    expect(reclaimed).toMatchObject({
+      state: "running",
+      revision: 5,
+      attempts: 2,
+      lease: {
+        ownerId: "worker_recovery",
+        generation: 3,
+        expiresAt: "2026-09-12T16:00:30.000Z",
+      },
+    });
+    expect(() => assertActiveLease(
+      reclaimed,
+      { ownerId: "worker_stale", generation: 2 },
+      NOW,
+    )).toThrowError(expect.objectContaining({ code: "LEASE_OWNER_MISMATCH" }));
+  });
+
+  it("renews only the current lease and releases a checkpoint atomically", () => {
+    const claimed = claimJob(job(), "worker_primary", 0, NOW, 30_000);
+    const renewed = renewLease(
+      claimed,
+      { ownerId: "worker_primary", generation: 1 },
+      new Date("2026-09-12T16:00:10.000Z"),
+      30_000,
+    );
+    expect(renewed.lease?.expiresAt).toBe("2026-09-12T16:00:40.000Z");
+    const paused = releaseStep(
+      renewed,
+      { ownerId: "worker_primary", generation: 1 },
+      new Date("2026-09-12T16:00:11.000Z"),
+      {
+        state: "waiting_for_retry",
+        currentStep: "resume_analysis",
+        checkpointRefs: [{ type: "job_artifact", id: "artifact_checkpoint", revision: 1 }],
+        eligibleAt: "2026-09-12T16:00:20.000Z",
+      },
+    );
+    expect(paused).toMatchObject({
+      state: "waiting_for_retry",
+      currentStep: "resume_analysis",
+      lease: null,
+      checkpointRefs: [{ type: "job_artifact", id: "artifact_checkpoint", revision: 1 }],
+    });
+  });
+
+  it("checkpoints P2, admits newly arrived P0, then resumes from the checkpoint", () => {
+    const background = job({ jobId: "job_background", priority: "P2" });
+    const claimedBackground = claimJob(background, "worker_primary", 0, NOW, 10_000);
+    const pausedBackground = releaseStep(
+      claimedBackground,
+      { ownerId: "worker_primary", generation: 1 },
+      new Date("2026-09-12T16:00:01.000Z"),
+      {
+        state: "waiting_for_retry",
+        currentStep: "read_remaining_evidence",
+        checkpointRefs: [{ type: "job_artifact", id: "artifact_partial", revision: 1 }],
+        eligibleAt: "2026-09-12T16:00:02.000Z",
+      },
+    );
+    const interactive = job({
+      jobId: "job_interactive",
+      priority: "P0",
+      jobType: "request_investigation",
+      deduplicationKey: "request-urgent",
+      originPrincipalId: "principal_other",
+    });
+    const admission = selectNextJob(
+      [pausedBackground, interactive],
+      new Date("2026-09-12T16:00:03.000Z"),
+    );
+    expect(admission.selected?.jobId).toBe("job_interactive");
+
+    const claimedInteractive = claimJob(
+      interactive,
+      "worker_primary",
+      0,
+      new Date("2026-09-12T16:00:03.000Z"),
+      10_000,
+    );
+    const completedInteractive = releaseStep(
+      claimedInteractive,
+      { ownerId: "worker_primary", generation: 1 },
+      new Date("2026-09-12T16:00:04.000Z"),
+      { state: "completed", currentStep: "done", checkpointRefs: [] },
+    );
+    expect(selectNextJob(
+      [pausedBackground, completedInteractive],
+      new Date("2026-09-12T16:00:05.000Z"),
+    ).selected?.jobId).toBe("job_background");
+
+    const resumed = claimJob(
+      pausedBackground,
+      "worker_primary",
+      1,
+      new Date("2026-09-12T16:00:05.000Z"),
+      10_000,
+    );
+    expect(resumed).toMatchObject({
+      state: "running",
+      currentStep: "read_remaining_evidence",
+      checkpointRefs: [{ id: "artifact_partial" }],
+      lease: { generation: 2 },
+    });
   });
 });
 

@@ -1,6 +1,7 @@
 import {
   ContractErrorSchema,
   DurableJobMessageSchema,
+  IdSchema,
   type ContractError,
   type DurableJobMessage,
 } from "@alloc/contracts";
@@ -51,6 +52,8 @@ export class SchedulerInvariantError extends Error {
       | "LEASE_OWNER_MISMATCH"
       | "LEASE_GENERATION_MISMATCH"
       | "LEASE_EXPIRED"
+      | "JOB_NOT_CLAIMABLE"
+      | "JOB_DEADLINE_EXPIRED"
       | "COALESCING_CONFLICT",
     message: string,
   ) {
@@ -222,6 +225,120 @@ export function assertActiveLease(job: DurableJobMessage, token: LeaseToken, now
   if (milliseconds(job.lease.expiresAt) <= now.getTime()) {
     throw new SchedulerInvariantError("LEASE_EXPIRED", "lease has expired");
   }
+}
+
+function positiveDuration(durationMs: number): void {
+  if (!Number.isSafeInteger(durationMs) || durationMs < 1) {
+    throw new RangeError("lease duration must be a positive safe integer");
+  }
+}
+
+export function claimJob(
+  jobInput: DurableJobMessage,
+  workerIdInput: string,
+  lastLeaseGeneration: number,
+  now: Date,
+  leaseDurationMs: number,
+): DurableJobMessage {
+  const job = parseDurableJob(jobInput);
+  const workerId = IdSchema.parse(workerIdInput);
+  positiveDuration(leaseDurationMs);
+  if (!Number.isSafeInteger(lastLeaseGeneration) || lastLeaseGeneration < 0) {
+    throw new RangeError("lastLeaseGeneration must be a non-negative safe integer");
+  }
+  if (job.deadlineAt !== null && milliseconds(job.deadlineAt) <= now.getTime()) {
+    throw new SchedulerInvariantError("JOB_DEADLINE_EXPIRED", "job deadline has expired");
+  }
+
+  const reclaiming = job.state === "running";
+  if (reclaiming) {
+    if (job.lease === null || milliseconds(job.lease.expiresAt) > now.getTime()) {
+      throw new SchedulerInvariantError("JOB_NOT_CLAIMABLE", "running job still has an active lease");
+    }
+    if (job.lease.generation !== lastLeaseGeneration) {
+      throw new SchedulerInvariantError(
+        "LEASE_GENERATION_MISMATCH",
+        "stored lease generation does not match the expired lease",
+      );
+    }
+  } else if (
+    (job.state !== "pending" && job.state !== "waiting_for_retry")
+    || job.lease !== null
+    || milliseconds(job.eligibleAt) > now.getTime()
+  ) {
+    throw new SchedulerInvariantError("JOB_NOT_CLAIMABLE", "job is not currently claimable");
+  }
+
+  return parseDurableJob({
+    ...job,
+    revision: job.revision + 1,
+    state: "running",
+    attempts: job.attempts + 1,
+    lease: {
+      ownerId: workerId,
+      generation: lastLeaseGeneration + 1,
+      expiresAt: new Date(now.getTime() + leaseDurationMs).toISOString(),
+    },
+  });
+}
+
+export function renewLease(
+  jobInput: DurableJobMessage,
+  token: LeaseToken,
+  now: Date,
+  leaseDurationMs: number,
+): DurableJobMessage {
+  const job = parseDurableJob(jobInput);
+  positiveDuration(leaseDurationMs);
+  assertActiveLease(job, token, now);
+  return parseDurableJob({
+    ...job,
+    revision: job.revision + 1,
+    lease: {
+      ...job.lease,
+      expiresAt: new Date(now.getTime() + leaseDurationMs).toISOString(),
+    },
+  });
+}
+
+export interface StepRelease {
+  state: Exclude<JobState, "pending" | "running">;
+  currentStep: string;
+  checkpointRefs: DurableJobMessage["checkpointRefs"];
+  eligibleAt?: string;
+}
+
+export function releaseStep(
+  jobInput: DurableJobMessage,
+  token: LeaseToken,
+  now: Date,
+  release: StepRelease,
+): DurableJobMessage {
+  const job = parseDurableJob(jobInput);
+  assertActiveLease(job, token, now);
+  assertTransition(job.state, release.state);
+  if (release.state === "waiting_for_retry" && release.eligibleAt === undefined) {
+    throw new SchedulerInvariantError(
+      "JOB_NOT_CLAIMABLE",
+      "waiting_for_retry requires a new eligibility timestamp",
+    );
+  }
+  const eligibleAt = release.eligibleAt ?? job.eligibleAt;
+  if (release.state === "waiting_for_retry" && milliseconds(eligibleAt) <= now.getTime()) {
+    throw new SchedulerInvariantError(
+      "JOB_NOT_CLAIMABLE",
+      "retry eligibility must be in the future",
+    );
+  }
+  return parseDurableJob({
+    ...job,
+    revision: job.revision + 1,
+    state: release.state,
+    currentStep: release.currentStep,
+    checkpointRefs: release.checkpointRefs,
+    eligibleAt,
+    lease: null,
+  });
 }
 
 export interface RetryPolicy {
