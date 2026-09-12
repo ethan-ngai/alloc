@@ -29,6 +29,7 @@ async function main(): Promise<void> {
       organizations: runtime.organizations,
       imports: runtime.imports,
       context: runtime.context,
+      graph: runtime.graph,
     });
 
     let shuttingDown = false;

@@ -71,6 +71,19 @@ export const RelationshipSchema = z.strictObject({
   access: AccessScopeSchema,
 });
 
+/** A bounded, access-filtered graph view. `evidenceRefs` are the drill-down path. */
+export const GraphContextSchema = z.strictObject({
+  schemaVersion: ContractSchemaVersionSchema,
+  organizationId: OrganizationIdSchema,
+  subjectRef: RecordRefSchema.omit({ revision: true }),
+  entities: z.array(CompanyEntitySchema),
+  relationships: z.array(RelationshipSchema),
+  evidenceRefs: z.array(RecordRefSchema),
+  summary: z.string().min(1),
+  sourceWatermark: z.string().min(1),
+  truncated: z.boolean(),
+});
+
 export const FinancialDomainSchema = z.enum([
   "food_expense", "facilities", "physical_assets", "software_cloud_ai", "labor",
   "procurement_inventory", "cash", "liabilities", "revenue_receivables", "taxes_insurance", "governance",
@@ -118,4 +131,5 @@ export type CompanyEntity = z.infer<typeof CompanyEntitySchema>;
 export type SourceDelivery = z.infer<typeof SourceDeliverySchema>;
 export type Evidence = z.infer<typeof EvidenceSchema>;
 export type Relationship = z.infer<typeof RelationshipSchema>;
+export type GraphContext = z.infer<typeof GraphContextSchema>;
 export type MemoryResponse = z.infer<typeof MemoryResponseSchema>;

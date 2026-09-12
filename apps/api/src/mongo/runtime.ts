@@ -2,6 +2,7 @@ import { MongoClient, type ClientSession, type Db } from "mongodb";
 import { createReadiness, type Readiness } from "../readiness.js";
 import { ensureImportCollections, MongoImportRepository, type ImportRepository } from "../imports/repository.js";
 import { ensureContextIndexes, MongoContextRepository, type ContextRepository } from "../context/repository.js";
+import { ensureGraphCollections, MongoGraphRepository, type GraphRepository } from "../context/graph.js";
 import {
   ensureOrganizationCollection,
   MongoOrganizationRepository,
@@ -35,6 +36,7 @@ export interface MongoRuntime {
   readonly organizations: OrganizationRepository;
   readonly imports: ImportRepository;
   readonly context: ContextRepository;
+  readonly graph: GraphRepository;
   withTransaction<T>(work: (session: ClientSession) => Promise<T>): Promise<T>;
   close(): Promise<void>;
 }
@@ -60,6 +62,7 @@ export async function connectMongoRuntime(options: MongoRuntimeOptions): Promise
     await ensureOrganizationCollection(db);
     await ensureImportCollections(db);
     await ensureContextIndexes(db);
+    await ensureGraphCollections(db);
 
     let closed = false;
     client.on("serverHeartbeatFailed", () => {
@@ -96,6 +99,7 @@ export async function connectMongoRuntime(options: MongoRuntimeOptions): Promise
       organizations: new MongoOrganizationRepository(db),
       imports: new MongoImportRepository(db, withTransaction),
       context: new MongoContextRepository(db),
+      graph: new MongoGraphRepository(db),
 
       /**
        * Runs `work` inside a multi-document transaction. The driver retries on

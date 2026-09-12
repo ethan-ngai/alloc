@@ -8,7 +8,7 @@ import {
   CommitmentSchema, DecisionSchema, PostingCorrectionSchema, PostingSchema,
   PurchaseRequestRevisionSchema,
 } from "./financial.js";
-import { MemoryResponseSchema, SourceDeliverySchema } from "./memory.js";
+import { GraphContextSchema, MemoryResponseSchema, SourceDeliverySchema } from "./memory.js";
 import { DurableJobMessageSchema, ForecastAssumptionSchema, ForecastSnapshotSchema } from "./runtime.js";
 
 export const QueryMetaSchema = z.strictObject({
@@ -71,6 +71,18 @@ export const QueryMemoryInputSchema = z.strictObject({
   payload: z.strictObject({ query: z.string().min(1), scopes: z.array(ScopeRefSchema).min(1), asOf: TimestampSchema.optional(), page: PageRequestSchema }),
 });
 export const QueryMemoryResultSchema = operationResult(MemoryResponseSchema);
+
+export const GetGraphContextInputSchema = z.strictObject({
+  meta: QueryMetaSchema,
+  payload: z.strictObject({
+    subjectRef: RecordRefSchema.omit({ revision: true }),
+    relationshipTypes: z.array(z.string().min(1)).max(10).default([]),
+    maxHops: z.number().int().min(0).max(2).default(2),
+    maxEntities: z.number().int().min(1).max(50).default(50),
+    asOf: TimestampSchema.optional(),
+  }),
+});
+export const GetGraphContextResultSchema = operationResult(GraphContextSchema);
 
 export const RunForecastInputSchema = z.strictObject({
   meta: CommandMetaSchema,

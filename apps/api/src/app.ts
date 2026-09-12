@@ -9,6 +9,7 @@ import type { ImportRepository } from "./imports/repository.js";
 import { registerImportRoutes } from "./routes/imports.js";
 import type { ContextRepository } from "./context/repository.js";
 import { registerContextRoutes } from "./routes/context.js";
+import type { GraphRepository } from "./context/graph.js";
 import { redactText } from "./redact.js";
 import type { Readiness } from "./readiness.js";
 import { registerHealthRoutes } from "./routes/health.js";
@@ -22,6 +23,7 @@ export interface AppDependencies {
   readonly organizations: OrganizationRepository;
   readonly imports: ImportRepository;
   readonly context: ContextRepository;
+  readonly graph: GraphRepository;
   /** Overridden in tests; defaults to the configured HS256 verifier. */
   readonly verifier?: TokenVerifier;
   /** Fastify logger options; pass `false` to silence logs in tests. */
@@ -55,7 +57,7 @@ export function buildApp(deps: AppDependencies): FastifyInstance {
   registerHealthRoutes(app, deps.readiness);
   registerOrganizationRoutes(app, deps.organizations);
   registerImportRoutes(app, deps.imports);
-  registerContextRoutes(app, deps.context);
+  registerContextRoutes(app, deps.context, deps.graph);
 
   app.setNotFoundHandler((request, reply) => {
     reply.code(404);
