@@ -1,6 +1,8 @@
 import { CONTRACT_SCHEMA_VERSION, ContractErrorSchema, operationResult } from "@alloc/contracts";
 import { MongoError } from "mongodb";
 import { SourceConflictError } from "./imports/repository.js";
+import { ContextQueryError } from "./context/repository.js";
+import { GraphAccessError } from "./context/graph.js";
 import { z } from "zod";
 
 export type ErrorCode = z.infer<typeof ContractErrorSchema>["code"];
@@ -81,6 +83,8 @@ export function toApiError(error: unknown): ApiError {
     return error;
   }
   if (error instanceof SourceConflictError) return apiErrors.sourceConflict();
+  if (error instanceof ContextQueryError) return apiErrors.validation("Invalid memory query");
+  if (error instanceof GraphAccessError) return apiErrors.forbidden();
   if (error instanceof MongoError) {
     return apiErrors.dependencyUnavailable("Database unavailable");
   }

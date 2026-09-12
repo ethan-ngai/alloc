@@ -3,6 +3,9 @@ import { ensureFinanceCollections } from "../finance/collections.js";
 import { MongoFinancialRepository, type FinancialRepository } from "../finance/repository.js";
 import { createReadiness, type Readiness } from "../readiness.js";
 import { ensureImportCollections, MongoImportRepository, type ImportRepository } from "../imports/repository.js";
+import { ensureContextIndexes, MongoContextRepository, type ContextRepository } from "../context/repository.js";
+import { ensureGraphCollections, MongoGraphRepository, type GraphRepository } from "../context/graph.js";
+import { ensureForecastCollections, MongoForecastRepository, type ForecastRepository } from "../forecasts/repository.js";
 import {
   ensureOrganizationCollection,
   MongoOrganizationRepository,
@@ -36,6 +39,9 @@ export interface MongoRuntime {
   readonly organizations: OrganizationRepository;
   readonly imports: ImportRepository;
   readonly finance: FinancialRepository;
+  readonly context: ContextRepository;
+  readonly graph: GraphRepository;
+  readonly forecasts: ForecastRepository;
   withTransaction<T>(work: (session: ClientSession) => Promise<T>): Promise<T>;
   close(): Promise<void>;
 }
@@ -61,6 +67,9 @@ export async function connectMongoRuntime(options: MongoRuntimeOptions): Promise
     await ensureOrganizationCollection(db);
     await ensureImportCollections(db);
     await ensureFinanceCollections(db);
+    await ensureContextIndexes(db);
+    await ensureGraphCollections(db);
+    await ensureForecastCollections(db);
 
     let closed = false;
     client.on("serverHeartbeatFailed", () => {
@@ -90,6 +99,7 @@ export async function connectMongoRuntime(options: MongoRuntimeOptions): Promise
     };
 
     const finance = new MongoFinancialRepository(db, withTransaction);
+    const forecasts = new MongoForecastRepository(db, withTransaction);
 
     return {
       client,
@@ -98,7 +108,17 @@ export async function connectMongoRuntime(options: MongoRuntimeOptions): Promise
       topology,
       organizations: new MongoOrganizationRepository(db),
       finance,
-      imports: new MongoImportRepository(db, withTransaction, finance),
+      imports: new MongoImportRepository(db, withTransaction, async (posting, delivery, session) => {
+        await finance.applyPosting(posting, session);
+        const scopes = [{ type: "organization", id: posting.organizationId }, ...posting.scopes];
+        await Promise.all(scopes.map((scope) => forecasts.schedule({
+          organizationId: posting.organizationId, scope,
+          sourceWatermark: { sourceInstanceId: delivery.sourceInstanceId, observedAt: delivery.observedAt },
+        }, session)));
+      }),
+      context: new MongoContextRepository(db),
+      graph: new MongoGraphRepository(db),
+      forecasts,
 
       /**
        * Runs `work` inside a multi-document transaction. The driver retries on
