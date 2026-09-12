@@ -8,9 +8,9 @@ Unified memory is shared by inference, MongoDB, search, the operating system, an
 
 ## Initial model and process shape
 
-The user selects Qwen3.8 Flash. The open-weight deployment candidate is `Qwen/Qwen3.8-Flash-Next`. Its official card lists 125B main-model parameters with 6B activated, plus 51B n-gram embeddings and 4B MTP; this differs from the initial 8B-active description. The low active count reduces per-token compute, but inactive experts and embedding tables still require storage and an explicit residency/offload strategy. [Official model card](https://huggingface.co/Qwen/Qwen3.8-Flash-Next)
+The user selects Qwen3.8 27B, replacing the earlier Qwen3.8 Flash/125B-class deployment candidate. Pin the exact repository, revision, quantization, and serving format before the capacity gate; “27B” alone does not identify a reproducible artifact or runnable memory footprint.
 
-Use one shared model server. Quantization, context limits, expert/embedding placement, and serving-kernel support are required deployment decisions. This model is not installed in the current workspace environment, and neither its latency nor fit on the assigned GB10 has been measured. A smaller model is a fallback experiment if necessary, not the selected baseline.
+Use one shared model server. Quantization, context limits, and serving-kernel support are required deployment decisions. This model is not installed in the current workspace environment, and neither its latency nor fit on the assigned GB10 has been measured. Another model is a fallback experiment if necessary, not the selected baseline.
 
 The following arithmetic illustrates raw 4-bit weight storage only, using decimal GB:
 
@@ -18,25 +18,22 @@ The following arithmetic illustrates raw 4-bit weight storage only, using decima
 | --- | --- |
 | 8 billion | 4 GB |
 | 14 billion | 7 GB |
+| 27 billion selected model | 13.5 GB |
 | 32 billion | 16 GB |
 | 70 billion | 35 GB |
-| 125 billion main-model parameters | 62.5 GB |
-| 180 billion including the stated embedding/MTP components | 90 GB |
 
-These are lower-bound arithmetic estimates, not runnable footprints. Quantization metadata, higher-precision tensors, KV cache, activations, context length, concurrent sequences, and serving buffers add memory. A 70B model may fit, but fit does not establish acceptable interactive latency. Sparse/MoE execution and different kernels change performance; do not derive token throughput from parameter count or advertised peak compute alone.
+These are lower-bound arithmetic estimates, not runnable footprints. Quantization metadata, higher-precision tensors, KV cache, activations, context length, concurrent sequences, and serving buffers add memory. Fit does not establish acceptable interactive latency, and architecture and serving kernels change performance; do not derive token throughput from parameter count or advertised peak compute alone.
 
-The earlier 32 GB weight envelope is withdrawn for the selected Flash model. Provisional acceptance budgets for the 128 GB pool are:
+The earlier Flash/125B-class weight envelope is withdrawn. Provisional acceptance budgets for the selected 27B model in the 128 GB pool are:
 
 | Consumer | Initial envelope |
 | --- | --- |
-| OS, application, bounded MongoDB caches | 16 GB |
-| Resident model weights, including required tables and quantization overhead | At most 90 GB |
-| Model runtime, working buffers, active KV caches | At most 10 GB |
-| Uncommitted headroom | At least 12 GB |
+| OS, application, bounded MongoDB caches | At most 24 GB |
+| Resident model weights and quantization metadata | At most 64 GB |
+| Model runtime, working buffers, active KV caches | At most 24 GB |
+| Uncommitted headroom | At least 16 GB |
 
-These envelopes are a fit test, not a promise that a checkpoint meets them: even ideal uniform 4-bit storage across 180B consumes the entire weight allowance before overhead. A larger mixed-precision artifact may fail this budget. Offloading embeddings to CPU RAM does not create another memory pool on unified-memory GB10; SSD-backed/offloaded approaches need separate latency measurements. Keep one active generation, modest initial context, and no separate GPU embedding model or dedicated search service until capacity is demonstrated. Monitor available memory and explicitly tune caches; avoid swap-dependent inference.
-
-NVIDIA's NVFP4 artifact uses mixed precision, retaining the n-gram table in FP8 and some layers in BF16; its documented test hardware is B200/B300, not GB10. Thus its name alone does not establish a 4-bit total footprint or single-GB10 compatibility. Inspect the exact checkpoint and serving path before downloading/committing to it. [NVIDIA checkpoint details](https://huggingface.co/nvidia/Qwen3.8-Flash-Next-NVFP4)
+These envelopes are a fit test, not a promise that a checkpoint meets them. Ideal uniform 4-bit storage for 27B parameters is 13.5 GB, but the actual artifact can include higher-precision tensors and quantization metadata, while the serving process also needs KV cache, activations, and working buffers. Offloading to CPU RAM does not create another memory pool on unified-memory GB10; SSD-backed/offloaded approaches need separate latency measurements. Keep one active generation, modest initial context, and no separate GPU embedding model or dedicated search service until capacity is demonstrated. Monitor available memory and explicitly tune caches; avoid swap-dependent inference.
 
 The baseline processes are MongoDB, the API, a worker/scheduler, OpenClaw, and one local model server. Add local search/embedding processes only when the measured budget allows. The fictional company itself is small; extensive model contexts and search/runtime caches are more likely to dominate memory than its 5,000 demo financial records.
 
