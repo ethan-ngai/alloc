@@ -46,11 +46,14 @@ vi.mock("./data", async () => {
 describe("Alloc workspace", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("renders exact financial state and the non-additive scope warning", async () => {
+  it("shows a marked synthetic stream and retains the exact source state when paused", async () => {
     render(<App />);
     expect(await screen.findByRole("heading", { name: "Overview" })).toBeInTheDocument();
-    expect(screen.getByText("$500.00 USD")).toBeInTheDocument();
-    expect(screen.getByText(/scope view · not additive/i)).toBeInTheDocument();
+    expect(await screen.findByLabelText("Synthetic finance simulation active")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /faker stream/i }));
+    await screen.findByText("Contract valid");
+    expect(screen.getAllByText("$500.00 USD").length).toBeGreaterThan(0);
+    expect(screen.getByRole("heading", { name: "Strategic proposals" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /review request/i })).toBeEnabled();
   });
 
@@ -65,13 +68,48 @@ describe("Alloc workspace", () => {
     expect(screen.getByText("Calculation record")).toBeInTheDocument();
   });
 
-  it("records a human review through the action without hiding its mocked status", async () => {
+  it("keeps planning scenarios separate from the recorded forecast", async () => {
+    render(<App />);
+    await screen.findByRole("heading", { name: "Overview" });
+    fireEvent.click(screen.getByRole("button", { name: /faker stream/i }));
+    await screen.findByText("Contract valid");
+    expect(screen.getByRole("heading", { name: "Executive monitor" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Decision path" })).toBeInTheDocument();
+    expect(screen.getByText("No cap")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Forecast" }));
+    fireEvent.click(screen.getByRole("radio", { name: /growth/i }));
+    expect(screen.getByText("$336.00 USD")).toBeInTheDocument();
+    expect(screen.getByText(/not a budget change/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Initiatives" })).toBeInTheDocument();
+    expect(screen.getAllByText("Hold company trips envelope").length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole("button", { name: /hold cloud tooling envelope/i }));
+    expect(screen.getByText(/confirm a provider commitment/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Connected data" })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: /linked data for hold cloud tooling envelope/i })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /financial history/i }));
+    expect(screen.getByRole("heading", { name: /cloud services financial history/i })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Activity" }));
+    expect(screen.getByLabelText("Activity by event type")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Memory" }));
+    expect(screen.getByRole("heading", { name: "Context coverage" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Financial memory graph" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /travel area/i }));
+    expect(screen.getByRole("heading", { name: "Travel" })).toBeInTheDocument();
+    expect(screen.getByText("Trailhead Air")).toBeInTheDocument();
+    expect(screen.getByText("PO-NF-2408")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Requests" }));
+    expect(screen.getByRole("heading", { name: "Exposure impact" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Investigate" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Deny request" })).toBeInTheDocument();
+  });
+
+  it("records a human review through the action without hiding its simulation status", async () => {
     const data = await import("./data");
     render(<App />);
     fireEvent.click(await screen.findByRole("button", { name: /review request/i }));
     expect(screen.getByRole("dialog", { name: /approve revision 3/i })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /approve revision 3/i }));
     await waitFor(() => expect(data.approveReview).toHaveBeenCalledWith(expect.objectContaining({ key: "northstar" }), 3));
-    expect(screen.getByText(/authenticated human decision · mocked/i)).toBeInTheDocument();
+    expect(screen.getByText(/authenticated human decision · simulation only/i)).toBeInTheDocument();
   });
 });

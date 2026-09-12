@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@alloc/mock-api": "file:../../packages/mock-api",
+    "@faker-js/faker": "^10.6.0",
     "@fontsource/dm-sans": "^5.2.6",
     "lucide-react": "^0.544.0",
     "react": "^19.1.1",

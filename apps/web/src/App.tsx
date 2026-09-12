@@ -6,16 +6,22 @@ import {
   Building2,
   Check,
   ChevronDown,
+  CircleAlert,
   CircleDollarSign,
+  DatabaseZap,
   FileCheck2,
   Gauge,
   LayoutDashboard,
   Menu,
   RefreshCw,
+  ScanSearch,
   Search,
   ShieldCheck,
+  SlidersHorizontal,
   TriangleAlert,
   X,
+  ZoomIn,
+  ZoomOut,
 } from "lucide-react";
 import {
   approveReview,
@@ -29,6 +35,7 @@ import {
   type MoneyValue,
   type WorkspaceData,
 } from "./data";
+import { advanceSyntheticStream, seedSyntheticHistory } from "./demo-stream";
 import "./styles.css";
 
 type View = "overview" | "requests" | "memory" | "forecast" | "activity";
@@ -70,17 +77,32 @@ function relativeTime(value: string, now: number) {
 }
 
 function activitySummary(value: string, data: WorkspaceData) {
-  const posting = value.match(/^Posting \S+ posted (\d+) ([A-Z]{3})$/);
-  if (posting) return `Posting recorded · ${money({ amountMinor: Number(posting[1]), currency: posting[2] })}`;
-  const request = value.match(/^Request \S+ revision (\d+) (.+)$/);
-  if (request) return `${data.request.purpose} · revision ${request[1]} · ${request[2].replaceAll("_", " ")}${Number(request[1]) === data.request.revision ? ` · ${money(data.request.fullAmount)}` : ""}`;
+  const posting = value.match(/^Posting \S+ posted (\d+) ([A-Z]{3})(?: · (.+))?$/);
+  if (posting) return `${posting[3] ?? "Posting"} · ${money({ amountMinor: Number(posting[1]), currency: posting[2] })}`;
+  const request = value.match(/^Request \S+ revision (\d+) (.+?)(?: · (.+))?$/);
+  if (request) return `${request[3] ?? data.request.purpose} · ${request[2].replaceAll("_", " ")}`;
   const decision = value.match(/^Decision \S+ (.+) for \S+ revision (\d+)$/);
   if (decision) return `${data.request.purpose} · ${decision[1].replaceAll("_", " ")} · revision ${decision[2]}`;
   return value.replaceAll("_", " ");
 }
 
+function sourceLabel(source: string) {
+  return source.replace("source_mock_simulator", "synthetic_finance_simulator").replaceAll("_", " ");
+}
+
+function syntheticRecordMetadata(company: CompanyConfig, area: string, index: number, asOf: string) {
+  const records = company.key === "northstar"
+    ? { "Travel": ["Trailhead Air", "PO-NF-2408", "FIELD-TRAVEL"], "Cloud services": ["Northern Arc Compute", "PO-NF-2414", "ENG-CLOUD"], "Field equipment": ["Ridgeway Field Supply", "PO-NF-2421", "FIELD-ASSETS"] }
+    : company.key === "juniper"
+      ? { "Food cost": ["Harvest Ledger Foods", "PO-JT-1806", "KITCHEN-FOOD"], Labor: ["Shiftwell Services", "PO-JT-1813", "KITCHEN-LABOR"], "Rent & utilities": ["Harborline Utilities", "PO-JT-1820", "FACILITIES"] }
+      : { "Raw materials": ["Millstone Alloy", "PO-FL-3104", "PROD-MATERIALS"], Freight: ["Northline Freight", "PO-FL-3111", "LOGISTICS"], "Equipment leases": ["Foundry Leaseworks", "PO-FL-3118", "PROD-ASSETS"] };
+  const [counterparty, purchaseOrder, costCenter] = records[area as keyof typeof records] ?? ["Atlas Operating Services", `PO-${company.shortName.slice(0, 2).toUpperCase()}-${2400 + index}`, company.departmentId.toUpperCase()];
+  return { counterparty, purchaseOrder, costCenter, receivedAt: `${date(asOf)} · ${time(asOf)} UTC` };
+}
+
 function TitleBlock({ company, data, view }: { company: CompanyConfig; data: WorkspaceData; view: View }) {
   const title = navItems.find((item) => item.id === view)?.label;
+  const simulationActive = data.scenarioId.startsWith("faker-stream");
   return (
     <header className="title-block">
       <div>
@@ -88,14 +110,14 @@ function TitleBlock({ company, data, view }: { company: CompanyConfig; data: Wor
         <div className="title-meta">
           <span>{company.name}</span>
           <span aria-hidden="true">·</span>
-          <span className="synthetic-mark"><span className="status-dot" />Synthetic mock data</span>
+          <span className="synthetic-mark"><span className="status-dot" />Synthetic data</span>
           <span aria-hidden="true">·</span>
-          <span>As of {date(data.asOf)}</span>
+          <span>As of {date(data.asOf)} · {time(data.asOf)} UTC</span>
         </div>
       </div>
-      <div className="api-seal" role="status" aria-label="Mock API connected">
+      <div className="api-seal" role="status" aria-label={simulationActive ? "Synthetic finance simulation active" : "Data service connected"}>
         <span className="seal-mark"><Check size={13} strokeWidth={3} /></span>
-        <span><strong>Contract valid</strong><small>Mock API · v1.0.0</small></span>
+        <span>{simulationActive ? <><strong>Simulation active</strong><small>Synthetic baseline + live stream</small></> : <><strong>Contract valid</strong><small>Data service · v1.0.0</small></>}</span>
       </div>
     </header>
   );
@@ -143,7 +165,7 @@ function ExposureLedger({ company, data }: { company: CompanyConfig; data: Works
         <summary><span><strong>{company.departmentName}</strong><small>Scope view · not additive</small></span><span>View details <ChevronDown size={15} /></span></summary>
         <div className="overlay-head">
           <div><span>{company.departmentName}</span><strong>Records included in this view</strong></div>
-          <small>Mock scenario v1 · source rev {data.request.sourceRevision}</small>
+          <small>Synthetic scenario · source rev {data.request.sourceRevision}</small>
         </div>
         <span className="scroll-hint">Scroll for more →</span>
         <div className="scope-table" role="table" tabIndex={0} aria-label={`${company.departmentName} scope view`}>
@@ -168,7 +190,7 @@ function ReviewSlip({ company, data, onApprove, busy }: { company: CompanyConfig
   return (
     <aside className={`review-slip ${needsReview ? "pending" : "clear"}`} aria-labelledby="review-title">
       <div className="review-head">
-        <span className="section-label" id="review-title">{needsReview ? "Needs a human" : "No review waiting"}</span>
+        <span className="section-label" id="review-title">{needsReview ? "One-off request" : "No request waiting"}</span>
         <span className={`state-stamp ${needsReview ? "is-pending" : "is-approved"}`}>{needsReview ? "PENDING" : "CLEAR"}</span>
       </div>
       {needsReview ? (
@@ -185,7 +207,7 @@ function ReviewSlip({ company, data, onApprove, busy }: { company: CompanyConfig
           <button className="primary-action review-trigger" type="button" onClick={onApprove} disabled={busy}>
             {busy ? <><RefreshCw className="spin" size={17} />Recording decision…</> : <>Review request <ArrowRight size={17} /></>}
           </button>
-          <small className="authority-note">Authenticated human decision · mocked for demonstration</small>
+          <small className="authority-note">Authenticated human decision · simulation only</small>
         </>
       ) : (
         <div className="review-empty">
@@ -198,25 +220,82 @@ function ReviewSlip({ company, data, onApprove, busy }: { company: CompanyConfig
   );
 }
 
-function Overview({ company, data, onApprove, approving }: { company: CompanyConfig; data: WorkspaceData; onApprove: () => void; approving: boolean }) {
+function FinancialPulse({ company, data }: { company: CompanyConfig; data: WorkspaceData }) {
+  const needsReview = data.request.state === "review_required";
+  const signals = [
+    { label: "Human review", metric: needsReview ? "1" : "0", state: needsReview ? "Needs decision" : "Clear", tone: needsReview ? "watch" : "healthy" },
+    { label: "Forecast", metric: data.forecast.warnings.length ? "Watch" : "Ready", state: data.forecast.warnings.length ? "Check inputs" : "No warnings", tone: data.forecast.warnings.length ? "watch" : "healthy" },
+    { label: "Focus", metric: company.projectName ?? company.departmentName, state: "Operating area", tone: "neutral" },
+  ];
+  return (
+    <section className="financial-pulse" aria-labelledby="pulse-title">
+      <div className="pulse-head">
+        <h2 id="pulse-title">Executive monitor</h2>
+        <span><DatabaseZap size={15} />Live signals</span>
+      </div>
+      <div className="pulse-signals">
+        {signals.map((signal) => <article key={signal.label} className={signal.tone}><span>{signal.label}</span><strong>{signal.metric}</strong><small>{signal.state}</small></article>)}
+      </div>
+    </section>
+  );
+}
+
+type Initiative = { title: string; direction: string; area: string; summary: string; why: string };
+
+function initiativesFor(company: CompanyConfig, data: WorkspaceData): Initiative[] {
+  const utilization = data.budget.authorized.amountMinor ? data.budget.recognized.amountMinor / data.budget.authorized.amountMinor : 0;
+  if (company.key === "northstar") return [{ title: utilization < .75 ? "Hold company trips envelope" : "Review company trips envelope", direction: utilization < .75 ? "Hold" : "Review", area: "Travel", summary: "Keep field visits at the current planning level.", why: `Recorded spend is ${Math.round(utilization * 100)}% of the company limit. Capacity alone is not evidence for more travel; review individual trips before expanding the envelope.` }, { title: utilization < .75 ? "Hold cloud tooling envelope" : "Review cloud tooling envelope", direction: utilization < .75 ? "Hold" : "Review", area: "Cloud services", summary: "Keep cloud services aligned with the current operating plan.", why: `Recorded spend is ${Math.round(utilization * 100)}% of the company limit. Confirm a provider commitment and delivery need before expanding the envelope.` }, { title: "Increase field equipment envelope", direction: "Increase", area: "Field equipment", summary: "Add capacity for the next Beacon pilot deployment milestone.", why: "Three high-value field equipment purchases are approaching the synthetic equipment envelope. Finance should review the deployment plan and decide whether to add a controlled allocation." }];
+  if (company.key === "juniper") return [{ title: "Lower food cost target", direction: "Reduce", area: "Food cost", summary: "Protect margin through tighter purchasing.", why: "Food cost is a core operating area. Ask the owner to validate the next purchasing plan before changing the target." }, { title: "Hold labor plan", direction: "Hold", area: "Labor", summary: "Keep staffing stable until the next forecast refresh.", why: "Labor changes should follow an owner review and an updated operating forecast." }, { title: "Review utilities allocation", direction: "Review", area: "Rent & utilities", summary: "Confirm the next facilities commitment.", why: "Use the next reviewed request to decide whether utilities need a new planning envelope." }];
+  return [{ title: "Increase material buffer", direction: "Increase", area: "Raw materials", summary: "Protect planned line work from supply gaps.", why: "Raw materials underpin the active production plan. Confirm the next supplier commitment with the owner." }, { title: "Review freight budget", direction: "Review", area: "Freight", summary: "Decide whether freight needs more capacity.", why: "Use current delivery commitments and the next owner review before changing the freight plan." }, { title: "Hold lease exposure", direction: "Hold", area: "Equipment leases", summary: "Keep equipment lease growth paused.", why: "Do not expand lease commitments without a human decision on the next project phase." }];
+}
+
+function ExecutivePriorities({ company, data, onOpenRequests, onOpenForecast }: { company: CompanyConfig; data: WorkspaceData; onOpenRequests: () => void; onOpenForecast: () => void }) {
+  const reviewRequired = data.request.state === "review_required";
+  const strategic = initiativesFor(company, data);
+  return <section className="executive-priorities" aria-labelledby="priorities-title"><div className="register-heading"><div><h2 id="priorities-title">Strategic proposals</h2><small>Big-picture changes for human review</small></div><span>Scenario guidance</span></div><div>{strategic.map((proposal) => <article key={proposal.title}><span className="proposal-direction">{proposal.direction}</span><div><strong>{proposal.title}</strong><p>WHY: {proposal.why}</p></div><button type="button" onClick={onOpenForecast}>Inspect why</button></article>)}</div><footer>{reviewRequired ? "A separate one-off request is waiting for a human decision." : "No one-off purchase decision is waiting."}<button type="button" onClick={onOpenRequests}>{reviewRequired ? "Open request" : "Requests"}</button></footer></section>;
+}
+
+function DecisionTrace({ company, data }: { company: CompanyConfig; data: WorkspaceData }) {
+  const hasReview = data.request.state === "review_required";
+  return (
+    <section className="decision-trace" aria-labelledby="decision-trace-title">
+      <div className="register-heading"><h2 id="decision-trace-title">Decision path</h2><span>Traceable</span></div>
+      <ol>
+        <li title={`${money(data.budget.available)} available under the canonical cap`}><span className="trace-step recorded"><Check size={14} /></span><strong>Cap</strong></li>
+        <li title={data.decisionReason.replaceAll("_", " ")}><span className="trace-step recorded"><Check size={14} /></span><strong>Policy</strong></li>
+        <li title={`${data.evidence.length} cited sources in Memory`}><span className="trace-step evidence"><ScanSearch size={14} /></span><strong>Evidence</strong></li>
+        <li title={hasReview ? `${company.approver} must decide` : "Human decision recorded"}><span className={`trace-step ${hasReview ? "pending" : "recorded"}`}>{hasReview ? <CircleAlert size={14} /> : <Check size={14} />}</span><strong>{hasReview ? "Review" : "Recorded"}</strong></li>
+      </ol>
+    </section>
+  );
+}
+
+function PortfolioScope({ company, data }: { company: CompanyConfig; data: WorkspaceData }) {
+  return <section className="portfolio-scope" aria-label="Executive budget scope"><span>Company cap <strong>{money(data.budget.authorized)}</strong></span><span>Department <strong>{company.departmentName}</strong></span><span>Project <strong>{company.projectName ?? "—"}</strong><em>{company.projectName ? "No cap" : "Not used"}</em></span></section>;
+}
+
+function Overview({ company, data, onApprove, onOpenRequests, onOpenForecast, approving, streaming }: { company: CompanyConfig; data: WorkspaceData; onApprove: () => void; onOpenRequests: () => void; onOpenForecast: () => void; approving: boolean; streaming: boolean }) {
   return (
     <>
-      <div className="overview-grid">
-        <ExposureLedger company={company} data={data} />
+      <FinancialPulse company={company} data={data} />
+      <div className="overview-grid executive-grid">
+        <ExecutivePriorities company={company} data={data} onOpenRequests={onOpenRequests} onOpenForecast={onOpenForecast} />
         <ReviewSlip company={company} data={data} onApprove={onApprove} busy={approving} />
       </div>
       <div className="lower-registers">
-        <ActivityRegister company={company} data={data} compact />
+          <ActivityRegister company={company} data={data} compact streaming={streaming} />
         <ForecastStrip data={data} />
       </div>
+      <DecisionTrace company={company} data={data} />
     </>
   );
 }
 
-function ActivityRegister({ company, data, compact = false }: { company: CompanyConfig; data: WorkspaceData; compact?: boolean }) {
+function ActivityRegister({ company, data, compact = false, streaming = false, historyFocus }: { company: CompanyConfig; data: WorkspaceData; compact?: boolean; streaming?: boolean; historyFocus?: string | null }) {
   const [activity, setActivity] = useState(data.activity);
   const [feedState, setFeedState] = useState<"live" | "degraded">("live");
-  const items = compact ? activity.slice(0, 5) : activity;
+  const focusedActivity = historyFocus ? activity.filter((item) => item.summary.toLowerCase().includes(historyFocus.toLowerCase())) : activity;
+  const items = compact ? focusedActivity.slice(0, 5) : focusedActivity;
   const [now, setNow] = useState(Date.now());
   const [expandedId, setExpandedId] = useState<string | null>(null);
   useEffect(() => {
@@ -225,6 +304,7 @@ function ActivityRegister({ company, data, compact = false }: { company: Company
   }, []);
   useEffect(() => setActivity(data.activity), [data.activity]);
   useEffect(() => {
+    if (streaming) return;
     let active = true;
     const interval = window.setInterval(() => {
       loadActivity(company).then((next) => {
@@ -232,23 +312,25 @@ function ActivityRegister({ company, data, compact = false }: { company: Company
       }).catch(() => { if (active) setFeedState("degraded"); });
     }, 5_000);
     return () => { active = false; window.clearInterval(interval); };
-  }, [company]);
+  }, [company, streaming]);
   if (compact) {
     const groups = ["decision", "request", "posting"].map((type) => ({ type, count: activity.filter((item) => item.type === type).length }));
     const maxCount = Math.max(...groups.map((group) => group.count), 1);
     return (
       <section className="register activity-overview" aria-labelledby="activity-title">
-        <div className="register-heading"><div><h2 id="activity-title">Activity</h2><small>{activity.length} contract events in this scenario</small></div><span className={`live-feed ${feedState === "degraded" ? "degraded" : ""}`} role="status"><i />{feedState === "live" ? "Live · 5s" : "Delayed"}</span></div>
+          <div className="register-heading"><div><h2 id="activity-title">Activity</h2><small>{activity.length} events</small></div><span className={`live-feed ${feedState === "degraded" ? "degraded" : ""}`} role="status"><i />{streaming ? "Faker · 1.2s" : feedState === "live" ? "Live · 5s" : "Delayed"}</span></div>
         <div className="event-chart" role="img" aria-label={`${groups.map((group) => `${group.count} ${group.type}`).join(", ")} events`}>
           {groups.map((group) => <div key={group.type}><span><i style={{ height: `${Math.max(8, group.count / maxCount * 100)}%` }} /></span><strong>{group.count}</strong><small>{group.type}</small></div>)}
         </div>
+        <PortfolioScope company={company} data={data} />
         <div className="recent-events">{activity.slice(0, 3).map((item) => <div key={item.id}><i /><span>{activitySummary(item.summary, data)}</span><strong>{relativeTime(item.occurredAt, now)}</strong></div>)}</div>
       </section>
     );
   }
   return (
     <section className="register" aria-labelledby="activity-title">
-      <div className="register-heading"><div><h2 id="activity-title">Activity stream</h2><small>Human-readable events with trace detail on demand</small></div><span className={`live-feed ${feedState === "degraded" ? "degraded" : ""}`} role="status"><i />{feedState === "live" ? "Live mock feed · 5s" : "Feed delayed · retrying"}</span></div>
+      <div className="register-heading"><div><h2 id="activity-title">{historyFocus ? `${historyFocus} financial history` : "Activity stream"}</h2><small>{items.length} {historyFocus ? "linked records" : "signals"}</small></div><span className={`live-feed ${feedState === "degraded" ? "degraded" : ""}`} role="status"><i />{streaming ? "Synthetic · 1.2s" : feedState === "live" ? "Live feed · 5s" : "Feed delayed · retrying"}</span></div>
+      <ActivityLens activity={activity} />
       <span className="scroll-hint">Scroll for more →</span>
       <div className="register-table" role="table" tabIndex={0} aria-label="Scrollable activity records">
         <div className="register-row register-labels" role="row"><span role="columnheader">When</span><span role="columnheader">Event</span><span role="columnheader">Summary</span><span role="columnheader">State</span></div>
@@ -260,12 +342,19 @@ function ActivityRegister({ company, data, compact = false }: { company: Company
               <span role="cell">{activitySummary(item.summary, data)}</span>
               <span role="cell" className="verified"><Check size={12} />Recorded<button type="button" aria-expanded={expandedId === item.id} aria-controls={`trace-${item.id}`} onClick={() => setExpandedId(expandedId === item.id ? null : item.id)}>{expandedId === item.id ? "Hide" : "Details"}</button></span>
             </div>
-            {expandedId === item.id && <div className="activity-detail" id={`trace-${item.id}`}><div><span>Trace ID</span><code>{item.id}</code></div><div><span>Exact timestamp</span><code>{item.occurredAt}</code></div><div><span>Raw contract event</span><code>{item.summary}</code></div><div><span>Source</span><code>Contract-valid mock stream</code></div></div>}
+            {expandedId === item.id && <div className="activity-detail" id={`trace-${item.id}`}><div><span>Trace ID</span><code>{item.id}</code></div><div><span>Exact timestamp</span><code>{item.occurredAt}</code></div><div><span>Raw contract event</span><code>{item.summary}</code></div><div><span>Source</span><code>Contract-valid synthetic stream</code></div></div>}
           </div>
         ))}
       </div>
     </section>
   );
+}
+
+function ActivityLens({ activity }: { activity: WorkspaceData["activity"] }) {
+  const types = ["decision", "request", "posting"];
+  const counts = types.map((type) => ({ type, count: activity.filter((item) => item.type === type).length }));
+  const max = Math.max(...counts.map((item) => item.count), 1);
+  return <div className="activity-lens" aria-label="Activity by event type">{counts.map((item) => <div key={item.type}><span>{item.type}</span><i><b style={{ width: `${item.count / max * 100}%` }} /></i><strong>{item.count}</strong></div>)}</div>;
 }
 
 function ForecastChart({ data, compact = false }: { data: WorkspaceData; compact?: boolean }) {
@@ -291,6 +380,37 @@ function ForecastChart({ data, compact = false }: { data: WorkspaceData; compact
   );
 }
 
+function SpendLimitChart({ data, area, onOpenHistory }: { data: WorkspaceData; area: string; onOpenHistory: () => void }) {
+  const [snapshot] = useState(data);
+  const [zoom, setZoom] = useState(1);
+  const [hoveredPoint, setHoveredPoint] = useState<number | null>(null);
+  const history = snapshot.activity.filter((item) => item.summary.toLowerCase().includes(area.toLowerCase())).slice(0, 8).reverse();
+  const isIncrease = area === "Field equipment";
+  const currentSpend = isIncrease ? Math.round(snapshot.budget.recognized.amountMinor * .42) : snapshot.budget.recognized.amountMinor;
+  const profile = isIncrease ? [.18, .34, .27, .54, .46, .76, .67, 1] : [.31, .42, .37, .55, .49, .70, .64, 1];
+  const points = history.map((item, index) => {
+    const profileIndex = Math.round(index * (profile.length - 1) / Math.max(history.length - 1, 1));
+    const spend = Math.round(currentSpend * profile[profileIndex]);
+    const prior = index ? Math.round(currentSpend * profile[Math.round((index - 1) * (profile.length - 1) / Math.max(history.length - 1, 1))]) : Math.round(currentSpend * .26);
+    return { item, amount: Math.abs(spend - prior), spend, x: 64 + index * (600 / Math.max(history.length - 1, 1)) };
+  });
+  const limit = Math.max(isIncrease ? Math.round(currentSpend * .88) : snapshot.budget.authorized.amountMinor, 1);
+  const coordinate = (spend: number) => 262 - Math.min(spend / (limit / zoom), 1) * 182;
+  const path = points.map((point) => `${point.x},${coordinate(point.spend)}`).join(" ");
+  const largest = points.reduce<typeof points[number] | null>((current, point) => !current || point.amount > current.amount ? point : current, null);
+  const vendor = largest?.item.summary.split(" · ").at(-1) ?? "a linked counterparty";
+  const activePoint = hoveredPoint === null ? null : points[hoveredPoint];
+  const tooltipX = activePoint && activePoint.x > 440 ? activePoint.x - 176 : (activePoint?.x ?? 0) + 12;
+  const tooltipY = activePoint ? Math.max(143, coordinate(activePoint.spend) - 52) : 0;
+  const calloutX = (largest?.x ?? 0) > 400 ? 92 : 432;
+  const calloutEdge = calloutX === 92 ? calloutX + 238 : calloutX;
+  return <section className="spend-limit-chart" aria-labelledby="spend-limit-title">
+    <div className="register-heading"><div><h3 id="spend-limit-title">Spend against limit</h3><small>Fixed synthetic spend history with refunds and timing variation.</small></div><div className="chart-actions"><div className="chart-zoom" aria-label="Chart zoom"><button type="button" aria-label="Zoom out" disabled={zoom <= .75} onClick={() => setZoom((value) => Math.max(.75, value - .25))}><ZoomOut size={14} /></button><span>{Math.round(zoom * 100)}%</span><button type="button" aria-label="Zoom in" disabled={zoom >= 1.25} onClick={() => setZoom((value) => Math.min(1.25, value + .25))}><ZoomIn size={14} /></button></div><button type="button" onClick={onOpenHistory}>Open {area} history <ArrowRight size={14} /></button></div></div>
+    <div className="chart-key"><span><i className="spend-key" />{isIncrease ? "Equipment spend" : "Recorded spend"} <strong>{money({ amountMinor: currentSpend, currency: snapshot.budget.authorized.currency })}</strong></span><span><i className="limit-key" />{isIncrease ? "Equipment envelope" : "Company limit"} <strong>{money({ amountMinor: limit, currency: snapshot.budget.authorized.currency })}</strong></span></div>
+    {history.length ? <svg viewBox="0 0 728 320" role="img" aria-label={`${isIncrease ? "Equipment spend" : "Recorded spend"} of ${money({ amountMinor: currentSpend, currency: snapshot.budget.authorized.currency })} against a limit of ${money({ amountMinor: limit, currency: snapshot.budget.authorized.currency })}`}><line x1="64" x2="680" y1="80" y2="80" className="chart-grid" /><line x1="64" x2="680" y1="171" y2="171" className="chart-grid" /><line x1="64" x2="680" y1="262" y2="262" className="chart-grid" /><line x1="64" x2="680" y1="80" y2="80" className="limit-line" /><text x="680" y="72" textAnchor="end" className="limit-label">{isIncrease ? "Equipment envelope" : "Company limit"}</text><polyline points={path} className="spend-line" />{points.map((point, index) => <circle key={point.item.id} tabIndex={0} role="button" aria-label={`${time(point.item.occurredAt)} recorded spend ${money({ amountMinor: point.spend, currency: snapshot.budget.authorized.currency })}`} cx={point.x} cy={coordinate(point.spend)} r={point === largest ? 9 : 7} className={point === largest ? "spend-point highlighted interactive" : "spend-point interactive"} onMouseEnter={() => setHoveredPoint(index)} onMouseLeave={() => setHoveredPoint(null)} onFocus={() => setHoveredPoint(index)} onBlur={() => setHoveredPoint(null)} />)}{activePoint && <g className="point-tooltip"><rect x={tooltipX} y={tooltipY} width="164" height="43" rx="4" /><text x={tooltipX + 9} y={tooltipY + 17}>{time(activePoint.item.occurredAt)}</text><text x={tooltipX + 9} y={tooltipY + 34}>{money({ amountMinor: activePoint.spend, currency: snapshot.budget.authorized.currency })}</text></g>}{largest && <g className="chart-callout"><path d={`M ${calloutEdge} 132 L ${largest.x} ${coordinate(largest.spend) - 12}`} /><path d={`M ${largest.x} ${coordinate(largest.spend) - 12} L ${largest.x - 6} ${coordinate(largest.spend) - 20} M ${largest.x} ${coordinate(largest.spend) - 12} L ${largest.x + 4} ${coordinate(largest.spend) - 22}`} /><rect x={calloutX} y="42" width="270" height="90" rx="4" /><text x={calloutX + 13} y="68">Why this changed</text><text x={calloutX + 13} y="91" className="callout-detail">Largest movement: {money({ amountMinor: largest.amount, currency: snapshot.budget.authorized.currency })}</text><text x={calloutX + 13} y="112" className="callout-detail">{area} activity · {vendor}</text></g>}<text x="64" y="294">Start</text><text x="680" y="294" textAnchor="end">Current</text></svg> : <p className="history-empty">No area-tagged entries are available yet. The next recorded posting will appear here.</p>}
+  </section>;
+}
+
 function ForecastStrip({ data }: { data: WorkspaceData }) {
   const max = Math.max(...data.forecast.components.map((component) => Math.abs(component.amount.amountMinor)), 1);
   return (
@@ -303,12 +423,12 @@ function ForecastStrip({ data }: { data: WorkspaceData }) {
           <div key={component.kind}><span>{component.kind.replaceAll("_", " ")}</span><i><b style={{ width: `${Math.abs(component.amount.amountMinor) / max * 100}%` }} /></i><em>{money(component.amount)}</em></div>
         ))}
       </div>
-      <p className="calculation-note"><CircleDollarSign size={15} /> Deterministic mock calculation · no model arithmetic</p>
+      <p className="calculation-note"><CircleDollarSign size={15} /> Deterministic calculation · no model arithmetic</p>
     </section>
   );
 }
 
-function RequestsView({ company, data, onApprove, approving }: { company: CompanyConfig; data: WorkspaceData; onApprove: () => void; approving: boolean }) {
+function RequestsView({ company, data, onApprove, onInvestigate, onOpenForecast, onDeny, denyNotice, approving }: { company: CompanyConfig; data: WorkspaceData; onApprove: () => void; onInvestigate: () => void; onOpenForecast: () => void; onDeny: () => void; denyNotice: string | null; approving: boolean }) {
   return (
     <div className="split-page">
       <section className="request-index" aria-labelledby="requests-heading">
@@ -318,58 +438,126 @@ function RequestsView({ company, data, onApprove, approving }: { company: Compan
           <strong>{data.request.purpose}</strong>
           <span>{company.requester} · revision {data.request.revision}</span>
           <b>{money(data.request.fullAmount)}</b>
-        </article>
-        <div className="empty-ledger"><FileCheck2 size={22} /><p>No more requests in this synthetic scenario.</p></div>
+          </article>
+          <RequestImpact data={data} />
+          <section className="request-actions" aria-labelledby="request-actions-title"><div><h3 id="request-actions-title">Decide this request</h3><p>Investigate before approving or denying. The final decision remains human-owned.</p></div><div><button type="button" onClick={onInvestigate}>Investigate</button><button type="button" onClick={onOpenForecast}>View initiative</button><button type="button" className="deny-action" onClick={onDeny}>Deny request</button><button type="button" className="primary-action" onClick={onApprove} disabled={approving}>Approve request</button></div>{denyNotice && <p className="request-notice" role="status">{denyNotice}</p>}</section>
+          <div className="empty-ledger"><FileCheck2 size={22} /><p>No more requests in this synthetic scenario.</p></div>
       </section>
       <ReviewSlip company={company} data={data} onApprove={onApprove} busy={approving} />
     </div>
   );
 }
 
-function MemoryView({ company, data }: { company: CompanyConfig; data: WorkspaceData }) {
+function RequestImpact({ data }: { data: WorkspaceData }) {
+  const cap = Math.max(data.budget.authorized.amountMinor, 1);
+  const lanes = [
+    { label: "Request", amount: data.request.fullAmount, tone: "request" },
+    { label: "Committed", amount: data.budget.committed, tone: "committed" },
+    { label: "Headroom", amount: data.budget.available, tone: "available" },
+  ];
+  return <section className="request-impact" aria-labelledby="request-impact-title"><div><h3 id="request-impact-title">Exposure impact</h3><span>Against canonical cap</span></div>{lanes.map((lane) => <div className="impact-lane" key={lane.label}><span>{lane.label}</span><i><b className={lane.tone} style={{ width: `${Math.min(100, lane.amount.amountMinor / cap * 100)}%` }} /></i><strong>{money(lane.amount)}</strong></div>)}</section>;
+}
+
+function MemoryView({ company, data, focusArea, focusEvidence }: { company: CompanyConfig; data: WorkspaceData; focusArea?: string | null; focusEvidence?: string | null }) {
   const [query, setQuery] = useState("Budget");
   const [submittedQuery, setSubmittedQuery] = useState("Budget");
+  const [selectedNode, setSelectedNode] = useState("company");
+  const [graphZoom, setGraphZoom] = useState(1);
+  const graphViewportRef = useRef<HTMLDivElement>(null);
+  const dragStartRef = useRef<{ x: number; y: number; left: number; top: number } | null>(null);
   const facts = data.facts.filter((fact) => fact.label.toLowerCase().includes(submittedQuery.trim().toLowerCase()));
+  const graphNodes = [
+    { id: "company", label: company.shortName, kind: "Company", x: 50, y: 50, size: "root" },
+    { id: "department", label: company.departmentName, kind: "Department", x: 25, y: 24, size: "large" },
+    ...(company.projectName ? [{ id: "project", label: company.projectName, kind: "Project", x: 25, y: 76, size: "large" }] : []),
+    ...company.categories.slice(0, 3).map((label, index) => ({ id: `area-${index}`, label, kind: "Area", x: 76, y: [22, 50, 78][index] ?? 50, size: "area" })),
+  ];
+  const selected = graphNodes.find((node) => node.id === selectedNode) ?? graphNodes[0];
+  const selectedArea = Number(selectedNode.replace("area-", ""));
+  const selectedFacts = selectedNode === "company" || Number.isNaN(selectedArea) ? facts : facts.filter((_, index) => index % Math.max(company.categories.length, 1) === selectedArea);
+  const relatedTrace = data.activity.filter((item, index) => selectedNode === "company" || index % Math.max(company.categories.length, 1) === selectedArea).slice(0, 3);
+  useEffect(() => {
+    const viewport = graphViewportRef.current;
+    if (!viewport) return;
+    viewport.scrollLeft = Math.max(0, (viewport.scrollWidth - viewport.clientWidth) / 2);
+    viewport.scrollTop = Math.max(0, (viewport.scrollHeight - viewport.clientHeight) / 2);
+  }, [company.key, graphZoom]);
+  useEffect(() => {
+    if (!focusArea) return;
+    const categoryIndex = company.categories.findIndex((category) => category.toLowerCase() === focusArea.toLowerCase());
+    if (categoryIndex >= 0) setSelectedNode(`area-${categoryIndex}`);
+    setQuery(focusArea);
+    setSubmittedQuery(focusArea);
+  }, [company.categories, focusArea]);
   return (
     <div className="memory-page">
       <form className="memory-query" onSubmit={(event) => { event.preventDefault(); setSubmittedQuery(query); }}>
         <label htmlFor="memory-search">Search company memory</label>
         <div><Search size={18} /><input id="memory-search" value={query} onChange={(event) => setQuery(event.target.value)} /><button type="submit">Search</button></div>
         <p>Bounded to {company.name}. Sources and trust are shown on every result.</p>
-      </form>
-      <section className="fact-ledger" aria-labelledby="facts-title">
-        <div className="register-heading"><h2 id="facts-title">Verified facts</h2><span>{facts.length} records</span></div>
-        {facts.map((fact, index) => (
-          <article key={`${fact.label}-${index}`}>
+        </form>
+        <section className="memory-graph" aria-labelledby="memory-graph-title"><div className="register-heading"><div><h2 id="memory-graph-title">Financial memory graph</h2><small>Drag the canvas or use controls to explore connected context</small></div><div className="graph-tools" aria-label="Graph view controls"><button type="button" aria-label="Zoom out" onClick={() => setGraphZoom((value) => Math.max(.75, value - .15))}><ZoomOut size={15} /></button><span>{Math.round(graphZoom * 100)}%</span><button type="button" aria-label="Zoom in" onClick={() => setGraphZoom((value) => Math.min(1.4, value + .15))}><ZoomIn size={15} /></button><button type="button" onClick={() => { setGraphZoom(1); requestAnimationFrame(() => { const viewport = graphViewportRef.current; if (viewport) { viewport.scrollLeft = 230; viewport.scrollTop = 140; } }); }}>Center</button></div></div><div ref={graphViewportRef} className="graph-viewport" role="group" aria-label="Scrollable company financial memory" onPointerDown={(event) => { if ((event.target as Element).closest("button")) return; const viewport = graphViewportRef.current; if (!viewport) return; dragStartRef.current = { x: event.clientX, y: event.clientY, left: viewport.scrollLeft, top: viewport.scrollTop }; viewport.setPointerCapture(event.pointerId); }} onPointerMove={(event) => { const viewport = graphViewportRef.current; const drag = dragStartRef.current; if (!viewport || !drag) return; viewport.scrollLeft = drag.left - (event.clientX - drag.x); viewport.scrollTop = drag.top - (event.clientY - drag.y); }} onPointerUp={() => { dragStartRef.current = null; }}><div className="graph-canvas" style={{ width: `${1100 * graphZoom}px`, height: `${640 * graphZoom}px` }}><svg className="graph-links" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">{graphNodes.filter((node) => node.id !== "company").map((node) => <line key={`edge-${node.id}`} x1="50" y1="50" x2={node.x} y2={node.y} />)}</svg>{graphNodes.map((node) => <button type="button" key={node.id} className={`graph-node ${node.size} ${selectedNode === node.id ? "selected" : ""}`} style={{ left: `${node.x}%`, top: `${node.y}%` }} aria-pressed={selectedNode === node.id} onClick={() => setSelectedNode(node.id)}><strong>{node.label}</strong><small>{node.kind}</small></button>)}</div></div></section>
+        <MemoryCoverage data={data} />
+        <section className="fact-ledger" aria-labelledby="facts-title">
+        <div className="register-heading"><div><h2 id="facts-title">{selected.label}</h2><small>Verified context connected to this node</small></div><span>{selectedFacts.length} records</span></div>
+        {selectedFacts.map((fact, index) => {
+          const metadata = syntheticRecordMetadata(company, selected.label, index, data.asOf);
+          return <article key={`${fact.label}-${index}`}>
             <div><strong>{fact.label}</strong><span>{typeof fact.value === "object" ? money(fact.value as MoneyValue) : String(fact.value)}</span></div>
-            <small><ShieldCheck size={13} />{fact.trust} · {fact.source} · synthetic</small>
-          </article>
-        ))}
-        {!facts.length && <div className="empty-ledger"><Search size={20} /><p>No verified facts match “{submittedQuery}”.</p></div>}
+            <small><ShieldCheck size={13} />{fact.trust} · {sourceLabel(fact.source)} · synthetic</small>
+            <dl className="fact-metadata"><div><dt>Counterparty</dt><dd>{metadata.counterparty}</dd></div><div><dt>Purchase order</dt><dd>{metadata.purchaseOrder}</dd></div><div><dt>Cost center</dt><dd>{metadata.costCenter}</dd></div><div><dt>Observed</dt><dd>{metadata.receivedAt}</dd></div></dl>
+          </article>;
+        })}
+        <section className="memory-trace" aria-labelledby="memory-trace-title"><div><h3 id="memory-trace-title">Related trace</h3><span>{relatedTrace.length} events</span></div>{relatedTrace.map((item) => <button type="button" key={item.id} onClick={() => setSelectedNode("company")}><time>{time(item.occurredAt)}</time><span>{activitySummary(item.summary, data)}</span><code>{item.id}</code></button>)}</section>
+        {!selectedFacts.length && <div className="empty-ledger"><Search size={20} /><p>No verified facts match this node and search.</p></div>}
       </section>
       <aside className="evidence-leaf">
         <span className="section-label">Cited evidence</span>
-        {data.evidence.map((item) => <article key={item.title}><h2>{item.title}</h2><p>{item.content}</p><small>{item.trust} · {item.source}</small></article>)}
+        {data.evidence.map((item) => <article key={item.title} className={focusEvidence === item.source ? "focused-evidence" : ""}><h2>{item.title}</h2><p>{item.content}</p><small>{item.trust} · {sourceLabel(item.source)}</small></article>)}
         <p className="evidence-warning">Evidence informs context. It does not grant spending authority.</p>
       </aside>
     </div>
   );
 }
 
-function ForecastView({ data }: { data: WorkspaceData }) {
+function MemoryCoverage({ data }: { data: WorkspaceData }) {
+  const trusted = data.facts.filter((fact) => fact.trust === "authoritative").length;
+  const total = Math.max(data.facts.length + data.evidence.length, 1);
+  const sources = [...new Set([...data.facts.map((fact) => fact.source), ...data.evidence.map((item) => item.source)])];
+  return <section className="memory-coverage" aria-labelledby="memory-coverage-title"><div><h2 id="memory-coverage-title">Context coverage</h2><span>{sources.length} connected source{sources.length === 1 ? "" : "s"}</span></div><div className="coverage-meter" aria-label={`${trusted} authoritative facts and ${data.evidence.length} cited evidence items`}><i style={{ width: `${trusted / total * 100}%` }} /><b style={{ width: `${data.evidence.length / total * 100}%` }} /></div><dl><div><dt>Verified facts</dt><dd>{data.facts.length}</dd></div><div><dt>Cited evidence</dt><dd>{data.evidence.length}</dd></div><div><dt>Scope</dt><dd>Company</dd></div></dl></section>;
+}
+
+function InitiativeBoard({ company, data, onOpenRequests, onOpenMemory, onOpenActivity }: { company: CompanyConfig; data: WorkspaceData; onOpenRequests: () => void; onOpenMemory: (area?: string, evidence?: string) => void; onOpenActivity: (focus?: string) => void }) {
+  const [selected, setSelected] = useState(0);
+  const [rationaleOpen, setRationaleOpen] = useState(false);
+  const initiatives = initiativesFor(company, data);
+  const initiative = initiatives[selected];
+  const evidence = data.evidence[0];
+  const linkedHistory = data.activity.filter((item) => item.summary.toLowerCase().includes(initiative.area.toLowerCase())).slice(0, 6);
+  if (rationaleOpen) return <section className="initiative-rationale" aria-labelledby="rationale-title"><header><button type="button" onClick={() => setRationaleOpen(false)}>← Initiatives</button><span>{initiative.direction} proposal</span></header><div className="rationale-intro"><h2 id="rationale-title">{initiative.title}</h2><p>{initiative.summary}</p></div><dl><div><dt>Why now</dt><dd>{initiative.why}</dd></div><div><dt>Decision owner</dt><dd>Finance lead with area owner</dd></div><div><dt>Next step</dt><dd>Review linked requests before changing a budget.</dd></div></dl><section className="rationale-evidence" aria-labelledby="connected-data-title"><div className="register-heading"><div><h3 id="connected-data-title">Connected data</h3><small>Open the underlying context before deciding.</small></div><span>{linkedHistory.length} linked events</span></div><div className="rationale-links"><button type="button" onClick={() => onOpenMemory(initiative.area)}><span>Area context</span><strong>{initiative.area}</strong><small>Open the selected area records</small><ArrowRight size={15} /></button><button type="button" onClick={() => onOpenActivity(initiative.area)}><span>Financial history</span><strong>{linkedHistory.length} linked events</strong><small>Open timestamped entries for this area</small><ArrowRight size={15} /></button><button type="button" onClick={onOpenRequests}><span>Related request</span><strong>{data.request.state}</strong><small>{money(data.request.fullAmount)} · {data.request.revision}</small><ArrowRight size={15} /></button><button type="button" onClick={() => onOpenMemory(undefined, evidence?.source)}><span>Evidence source</span><strong>{sourceLabel(evidence?.source ?? "Connected source")}</strong><small>{evidence?.title ?? "Open cited evidence"}</small><ArrowRight size={15} /></button></div></section><SpendLimitChart data={data} area={initiative.area} onOpenHistory={() => onOpenActivity(initiative.area)} /><section className="rationale-map" aria-labelledby="rationale-map-title"><div className="register-heading"><div><h3 id="rationale-map-title">Decision path</h3><small>Each node opens its supporting financial record.</small></div><span>Revision {data.forecast.revision}</span></div><div className="rationale-graph" role="group" aria-label={`Linked data for ${initiative.title}`}><svg viewBox="0 0 1000 300" preserveAspectRatio="none"><path d="M500 150 L195 70 M500 150 L195 235 M500 150 L805 70 M500 150 L805 235" /></svg><button type="button" className="rationale-node area-node" onClick={() => onOpenMemory(initiative.area)}><small>Area records</small><strong>{initiative.area}</strong></button><button type="button" className="rationale-node evidence-node" onClick={() => onOpenMemory(undefined, evidence?.source)}><small>Evidence source</small><strong>{sourceLabel(evidence?.source ?? "Source")}</strong></button><span className="rationale-node initiative-node"><small>Initiative</small><strong>{initiative.title}</strong></span><button type="button" className="rationale-node forecast-node" onClick={() => onOpenActivity(initiative.area)}><small>History records</small><strong>{linkedHistory.length} events</strong></button><button type="button" className="rationale-node request-node" onClick={onOpenRequests}><small>Request record</small><strong>{data.request.revision}</strong></button></div></section><footer><span>Proposal only · no budget is changed here</span><button type="button" onClick={onOpenRequests}>Open related requests</button></footer></section>;
+  return <section className="initiative-board" aria-labelledby="initiatives-title"><div className="register-heading"><div><h2 id="initiatives-title">Initiatives</h2><small>Strategic budget proposals; not automatic changes.</small></div><span>Human decision required</span></div><div className="initiative-list">{initiatives.map((item, index) => <button type="button" key={item.title} className={selected === index ? "selected" : ""} aria-pressed={selected === index} onClick={() => { setSelected(index); setRationaleOpen(true); }}><span>{item.direction}</span><div><strong>{item.title}</strong><small>{item.summary}</small></div><ArrowRight size={16} /></button>)}</div></section>;
+}
+
+function ForecastView({ company, data, onOpenRequests, onOpenMemory, onOpenActivity }: { company: CompanyConfig; data: WorkspaceData; onOpenRequests: () => void; onOpenMemory: (area?: string, evidence?: string) => void; onOpenActivity: (focus?: string) => void }) {
+  const [scenario, setScenario] = useState<"baseline" | "controlled" | "growth">("baseline");
+  const adjustment = scenario === "controlled" ? -0.08 : scenario === "growth" ? 0.12 : 0;
+  const scenarioTotal = { ...data.forecast.total, amountMinor: Math.round(data.forecast.total.amountMinor * (1 + adjustment)) };
   return (
     <div className="forecast-page">
-      <section className="forecast-ledger">
-        <ForecastChart data={data} />
-        <div className="forecast-components">
-          {data.forecast.components.map((component) => <div key={component.kind}><span>{component.kind.replaceAll("_", " ")}</span><strong>{money(component.amount)}</strong><small>{component.amount.amountMinor === 0 ? "No adjustment applied" : "Contract-linked input"}</small></div>)}
-          <div><span>Available headroom</span><strong>{money(data.budget.available)}</strong><small>Current canonical budget state</small></div>
-        </div>
-      </section>
-      <aside className="calculation-sheet">
-        <span className="section-label">Calculation record</span>
-        <dl><div><dt>Revision</dt><dd>{data.forecast.revision}</dd></div><div><dt>As-of cutoff</dt><dd>{date(data.forecast.asOf)}</dd></div><div><dt>Confidence</dt><dd>Uncalibrated</dd></div><div><dt>Coverage</dt><dd>{data.forecast.warnings.length ? "Warnings present" : "No mock warnings"}</dd></div></dl>
-        <p>The forecast snapshot is immutable mock output. Intermediate chart points are labeled interpolation; the Activity surface independently polls the mock event contract.</p>
+      <InitiativeBoard company={company} data={data} onOpenRequests={onOpenRequests} onOpenMemory={onOpenMemory} onOpenActivity={onOpenActivity} />
+        <aside className="calculation-sheet scenario-sheet">
+          <h2>Planning lens</h2>
+          <p>Compare one assumption. This never changes the recorded forecast or a budget.</p>
+          <div className="scenario-options" role="radiogroup" aria-label="Planning scenario">
+            <button type="button" role="radio" aria-checked={scenario === "baseline"} className={scenario === "baseline" ? "selected" : ""} onClick={() => setScenario("baseline")}><span>Baseline</span><small>Recorded snapshot</small></button>
+            <button type="button" role="radio" aria-checked={scenario === "controlled"} className={scenario === "controlled" ? "selected" : ""} onClick={() => setScenario("controlled")}><span>Conserve</span><small>8% lower exposure</small></button>
+            <button type="button" role="radio" aria-checked={scenario === "growth"} className={scenario === "growth" ? "selected" : ""} onClick={() => setScenario("growth")}><span>Growth</span><small>12% higher exposure</small></button>
+          </div>
+          <div className="scenario-result"><span><SlidersHorizontal size={14} />Illustrative planning total</span><strong>{money(scenarioTotal)}</strong><small>{adjustment === 0 ? "Matches the current recorded forecast." : `${adjustment > 0 ? "+" : ""}${Math.round(adjustment * 100)}% from the recorded forecast; not a budget change.`}</small></div>
+          <div className="calculation-divider" />
+          <h2 className="record-heading">Calculation record</h2>
+          <dl><div><dt>Revision</dt><dd>{data.forecast.revision}</dd></div><div><dt>As-of cutoff</dt><dd>{date(data.forecast.asOf)}</dd></div><div><dt>Confidence</dt><dd>Uncalibrated</dd></div><div><dt>Coverage</dt><dd>{data.forecast.warnings.length ? "Warnings present" : "No warnings"}</dd></div></dl>
+          <p>Immutable synthetic snapshot. Recommendations inform a human decision; they do not approve or change spend.</p>
       </aside>
     </div>
   );
@@ -379,7 +567,7 @@ function ErrorState({ error, retry }: { error: ReturnType<typeof describeError>;
   const unavailable = error.code === "DEPENDENCY_UNAVAILABLE";
   return (
     <main className="error-state" id="main-content">
-      <div className="errata-slip"><span>ERRATA · {error.code}</span><TriangleAlert size={34} /><h1>{unavailable ? "The mock service is unavailable." : "Workspace data could not be validated."}</h1><p>{unavailable ? "No financial state is shown from cache. Start or reconnect the mock API, then try again." : error.message}</p><dl><div><dt>Retryable</dt><dd>{error.retryable ? "Yes" : "No"}</dd></div><div><dt>Correlation</dt><dd>{error.correlationId}</dd></div></dl><button className="primary-action" onClick={retry}><RefreshCw size={17} />Try again</button></div>
+      <div className="errata-slip"><span>ERRATA · {error.code}</span><TriangleAlert size={34} /><h1>{unavailable ? "The data service is unavailable." : "Workspace data could not be validated."}</h1><p>{unavailable ? "No financial state is shown from cache. Start or reconnect the data service, then try again." : error.message}</p><dl><div><dt>Retryable</dt><dd>{error.retryable ? "Yes" : "No"}</dd></div><div><dt>Correlation</dt><dd>{error.correlationId}</dd></div></dl><button className="primary-action" onClick={retry}><RefreshCw size={17} />Try again</button></div>
     </main>
   );
 }
@@ -396,6 +584,10 @@ export default function App() {
   const [approving, setApproving] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [streamEnabled, setStreamEnabled] = useState(true);
+  const [denyNotice, setDenyNotice] = useState<string | null>(null);
+  const [memoryFocus, setMemoryFocus] = useState<{ area?: string; evidence?: string } | null>(null);
+  const [historyFocus, setHistoryFocus] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const dialogRef = useRef<HTMLElement>(null);
   const company = useMemo(() => companies.find((item) => item.key === companyKey) ?? companies[0], [companyKey]);
@@ -404,15 +596,25 @@ export default function App() {
     let active = true;
     setLoading(true);
     setError(null);
-    loadWorkspace(company, demoState).then((next) => {
-      if (active) setData(next);
+      loadWorkspace(company, demoState).then((next) => {
+        if (active) setData(streamEnabled ? seedSyntheticHistory(next, company) : next);
     }).catch((reason) => {
       if (active) setError(describeError(reason));
     }).finally(() => {
       if (active) setLoading(false);
     });
     return () => { active = false; };
-  }, [company, demoState, reloadKey]);
+  }, [company, demoState, reloadKey, streamEnabled]);
+
+  useEffect(() => {
+    if (!streamEnabled || demoState === "unavailable") return;
+    let tick = 0;
+    const interval = window.setInterval(() => {
+      tick += 1;
+      setData((current) => current ? advanceSyntheticStream(current, company, tick) : current);
+    }, 1_200);
+    return () => window.clearInterval(interval);
+  }, [company, demoState, reloadKey, streamEnabled]);
 
   useEffect(() => {
     function onShortcut(event: KeyboardEvent) {
@@ -472,25 +674,25 @@ export default function App() {
         <div className="brand"><span className="brand-mark" aria-hidden="true">A</span><strong>Alloc</strong><button className="mobile-close" aria-label="Close navigation" onClick={() => setMenuOpen(false)}><X /></button></div>
         <nav>{navItems.map((item) => { const Icon = item.icon; return <button key={item.id} type="button" className={view === item.id ? "active" : ""} onClick={() => { setView(item.id); setMenuOpen(false); }}><Icon size={19} /><span>{item.label}</span></button>; })}</nav>
         <div className="rail-companies"><span>Companies</span>{companies.map((item) => <button type="button" key={item.key} className={companyKey === item.key ? "active" : ""} onClick={() => { setCompanyKey(item.key); setMenuOpen(false); }}><i />{item.shortName}</button>)}</div>
-        <div className="rail-footer"><span className="avatar">{company.approverInitials}</span><span><strong>{company.approver}</strong><small>Mock approver</small></span></div>
+        <div className="rail-footer"><span className="avatar">{company.approverInitials}</span><span><strong>{company.approver}</strong><small>Finance approver</small></span></div>
       </aside>
       <div className="workspace" inert={confirmOpen ? true : undefined}>
         <div className="utility-bar">
           <button className="menu-button" aria-label="Open navigation" aria-controls="primary-navigation" aria-expanded={menuOpen} onClick={() => setMenuOpen(true)}><Menu /></button>
           <div className="company-control"><Building2 size={15} /><label htmlFor={companySelectId}>Company</label><select id={companySelectId} value={companyKey} onChange={(event) => setCompanyKey(event.target.value as CompanyKey)}>{companies.map((item) => <option value={item.key} key={item.key}>{item.shortName}</option>)}</select><ChevronDown size={14} aria-hidden="true" /></div>
           <button className="command-search" type="button" aria-label="Search memory or jump" onClick={() => { setView("memory"); requestAnimationFrame(() => document.getElementById("memory-search")?.focus()); }}><Search size={14} /><span>Search memory or jump to…</span><kbd>⌘ K</kbd></button>
-          <div className="demo-control"><label htmlFor={stateSelectId}>Demo state</label><select id={stateSelectId} value={demoState} onChange={(event) => setDemoState(event.target.value as DemoState)}><option value="review">Needs review</option><option value="baseline">Baseline</option><option value="unavailable">API unavailable</option></select><ChevronDown size={14} aria-hidden="true" /></div>
-          <span className="local-model"><span className="status-dot" />Local mode · mock data</span>
+            <div className="demo-control"><label htmlFor={stateSelectId}>Demo state</label><select id={stateSelectId} value={demoState} onChange={(event) => setDemoState(event.target.value as DemoState)}><option value="review">Needs review</option><option value="baseline">Baseline</option><option value="unavailable">API unavailable</option></select><ChevronDown size={14} aria-hidden="true" /></div>
+            <button className={`stream-control ${streamEnabled ? "on" : ""}`} type="button" aria-pressed={streamEnabled} onClick={() => setStreamEnabled((enabled) => !enabled)}><span className="status-dot" />{streamEnabled ? "Faker stream" : "Stream paused"}</button>
         </div>
-        {loading ? <main className="loading-sheet" id="main-content" aria-live="polite"><span className="loading-rule" /><h1>Opening the {company.shortName} workspace…</h1><p>Validating mock responses against contract v1.0.0</p></main> : error ? <ErrorState error={error} retry={() => setReloadKey((value) => value + 1)} /> : data ? (
+        {loading ? <main className="loading-sheet" id="main-content" aria-live="polite"><span className="loading-rule" /><h1>Opening the {company.shortName} workspace…</h1><p>Validating responses against contract v1.0.0</p></main> : error ? <ErrorState error={error} retry={() => setReloadKey((value) => value + 1)} /> : data ? (
           <main className="main-canvas" id="main-content">
             <TitleBlock company={company} data={data} view={view} />
-            {view === "overview" && <Overview company={company} data={data} onApprove={() => setConfirmOpen(true)} approving={approving} />}
-            {view === "requests" && <RequestsView company={company} data={data} onApprove={() => setConfirmOpen(true)} approving={approving} />}
-            {view === "memory" && <MemoryView company={company} data={data} />}
-            {view === "forecast" && <ForecastView data={data} />}
-            {view === "activity" && <ActivityRegister company={company} data={data} />}
-            <footer className="page-footer"><span>ALLOC · local financial intelligence</span><span>This is synthetic, mock-backed data. Not real financial data.</span><span>{data.scenarioId}</span></footer>
+            {view === "overview" && <Overview company={company} data={data} onApprove={() => setConfirmOpen(true)} onOpenRequests={() => setView("requests")} onOpenForecast={() => setView("forecast")} approving={approving} streaming={streamEnabled} />}
+            {view === "requests" && <RequestsView company={company} data={data} onApprove={() => setConfirmOpen(true)} onInvestigate={() => setView("memory")} onOpenForecast={() => setView("forecast")} onDeny={() => setDenyNotice("Denial is staged for an explicit human confirmation. This simulation keeps the request pending because no denial command is connected.")} denyNotice={denyNotice} approving={approving} />}
+            {view === "memory" && <MemoryView company={company} data={data} focusArea={memoryFocus?.area} focusEvidence={memoryFocus?.evidence} />}
+            {view === "forecast" && <ForecastView company={company} data={data} onOpenRequests={() => setView("requests")} onOpenMemory={(area, evidence) => { setMemoryFocus({ area, evidence }); setView("memory"); }} onOpenActivity={(focus) => { setHistoryFocus(focus ?? null); setView("activity"); }} />}
+            {view === "activity" && <ActivityRegister company={company} data={data} streaming={streamEnabled} historyFocus={historyFocus} />}
+            <footer className="page-footer"><span>ALLOC · synthetic finance simulation</span><span>{data.scenarioId}</span></footer>
           </main>
         ) : null}
       </div>
@@ -498,9 +700,9 @@ export default function App() {
         <div className="dialog-backdrop" role="presentation" onMouseDown={closeConfirmation}>
           <section ref={dialogRef} tabIndex={-1} className="decision-dialog" role="dialog" aria-modal="true" aria-labelledby="decision-title" onKeyDown={handleDialogKeyDown} onMouseDown={(event) => event.stopPropagation()}>
             <div className="dialog-head"><div><span>Human decision</span><h2 id="decision-title">Approve revision {data.request.revision}?</h2></div><button type="button" aria-label="Close decision" onClick={closeConfirmation}><X size={18} /></button></div>
-            <div className="dialog-warning"><TriangleAlert size={18} /><p><strong>Cumulative amendment limit exceeded.</strong> Confirm the revised full amount and acting authority before recording this mock decision.</p></div>
+            <div className="dialog-warning"><TriangleAlert size={18} /><p><strong>Cumulative amendment limit exceeded.</strong> Confirm the revised full amount and acting authority before recording this decision.</p></div>
             <dl className="review-details dialog-details"><div><dt>Request</dt><dd>{data.request.purpose}</dd></div><div><dt>Revised total</dt><dd>{money(data.request.fullAmount)}</dd></div><div><dt>Cumulative change</dt><dd className="danger-ink">+{money(data.request.cumulativeIncrease)}</dd></div><div><dt>Acting approver</dt><dd>{company.approver}</dd></div></dl>
-            <p className="dialog-authority"><ShieldCheck size={15} />This records an authenticated human decision in the mock scenario. No model has execution authority.</p>
+            <p className="dialog-authority"><ShieldCheck size={15} />This records an authenticated human decision in the synthetic scenario. No model has execution authority.</p>
             <div className="dialog-actions"><button type="button" className="secondary-action" onClick={closeConfirmation}>Cancel</button><button type="button" className="primary-action" disabled={approving} onClick={handleApprove}>{approving ? <><RefreshCw className="spin" size={17} />Recording…</> : <>Approve revision {data.request.revision}<ArrowRight size={16} /></>}</button></div>
           </section>
         </div>
