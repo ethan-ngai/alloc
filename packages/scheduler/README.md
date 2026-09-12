@@ -7,6 +7,12 @@ MongoDB implementation will satisfy and provides a single-process in-memory
 reference store for synthetic contract tests. Model or source text cannot choose its own priority;
 the authenticated producer supplies a validated `DurableJobMessage`.
 
+`SchedulerWorker` claims one bounded step at a time, dispatches only a registered
+job-type handler, supports explicit lease renewal, maps allowlisted transient
+failures to capped retry, and treats lease loss as fencing rather than allowing a
+stale result to overwrite recovered work. It does not claim token-level model
+preemption.
+
 Run from this directory:
 
 ```sh
