@@ -72,13 +72,20 @@ export class MongoImportRepository implements ImportRepository {
         : { deliveryRef, disposition: "quarantined", normalizedRefs: [] };
 
       await deliveries.insertOne({ ...delivery, deliveryRef, transportHash: hash(delivery), sourceHash: sourceHash(delivery), result }, { session });
-      if (posting?.success && accepted) await this.db.collection(NORMALIZED_POSTINGS_COLLECTION).insertOne({ ...posting.data, deliveryRef }, { session });
+      if (posting?.success && accepted) {
+        await this.db.collection(NORMALIZED_POSTINGS_COLLECTION).updateMany(
+          { organizationId: delivery.organizationId, sourceInstanceId: delivery.sourceInstanceId, sourceObjectId: delivery.sourceObjectId, current: true },
+          { $set: { current: false } },
+          { session },
+        );
+        await this.db.collection(NORMALIZED_POSTINGS_COLLECTION).insertOne({ ...posting.data, deliveryRef, sourceInstanceId: delivery.sourceInstanceId, sourceObjectId: delivery.sourceObjectId, sourceRevision: delivery.sourceRevision, current: true }, { session });
+      }
       return result;
     });
   }
 
   async listPostings(organizationId: string): Promise<Posting[]> {
-    return (await this.db.collection(NORMALIZED_POSTINGS_COLLECTION).find({ organizationId }, { projection: { _id: 0, deliveryRef: 0 } }).toArray()).map((record) => PostingSchema.parse(record));
+    return (await this.db.collection(NORMALIZED_POSTINGS_COLLECTION).find({ organizationId, current: true }, { projection: { _id: 0, deliveryRef: 0, sourceInstanceId: 0, sourceObjectId: 0, sourceRevision: 0, current: 0 } }).toArray()).map((record) => PostingSchema.parse(record));
   }
 
   async seedEntities(entities: readonly CompanyEntity[]): Promise<void> {
