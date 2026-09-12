@@ -6,7 +6,14 @@ schemas, resolves per-job tool allowlists outside the model, checks explicit sco
 containment and lease expiry, and requires each domain handler to authorize resolved
 entity IDs before executing.
 
-Run from this directory after building `packages/contracts`:
+`createReadOperationToolHandlers` adapts the merged typed operation client for the two
+read paths that 2C can represent faithfully: current request lookup and scoped evidence
+search. Its integration suite runs those calls through 2C's real loopback HTTP server
+with the principal injected from backend execution context. It deliberately leaves
+`get_context` to 4A's verified relationship traversal and leaves forecasts/proposals to
+their owning backend services.
+
+Run from this directory after building `packages/contracts` and `packages/mock-api`:
 
 ```sh
 npm ci --ignore-scripts --no-audit --no-fund

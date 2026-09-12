@@ -14,7 +14,7 @@ The planning baseline contains documentation and the standalone POC. Task 1A now
 | 3A–3B. Financial core | Planned | POC validates selected financial contracts; no application acceptance gates passed |
 | 4A–4B. Context | Planned | POC verified indexed category lookup only; no application graph/summary implementation shipped |
 | 5. Durable runtime | Planned | No worker execution yet |
-| 6. Local agent | Contract tool gateway in progress | `packages/agent-tools` strictly separates model arguments from backend execution context, validates tool inputs/results, enforces job allowlists/scope/lease checks, and requires semantic handler authorization. OpenClaw, local Qwen, real backend handlers, and live integration gates remain unverified. |
+| 6. Local agent | Contract tool gateway in progress | `packages/agent-tools` strictly separates model arguments from backend execution context, validates tool inputs/results, enforces job allowlists/scope/lease checks, and requires semantic handler authorization. Its adapter and loopback integration test exercise 2C's current-request and scoped-evidence operations with injected principal identity; context traversal, forecasts, and proposals remain with their owning backends. OpenClaw, local Qwen, and live integration gates remain unverified. |
 | 7. Forecasts | Planned | No application forecasts yet |
 | 8. Dashboard | Planned | No UI yet |
 | 9. GB10 release | Pending target hardware | No GB10/model measurements yet |
