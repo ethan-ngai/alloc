@@ -13,7 +13,7 @@ The planning baseline contains documentation and the standalone POC. Task 1A now
 | 3A–3B. Financial core | Planned | POC validates selected financial contracts; no application acceptance gates passed |
 | 4A–4B. Context | Planned | POC verified indexed category lookup only; no application graph/summary implementation shipped |
 | 5. Durable runtime | Planned | No worker execution yet |
-| 6. Local agent | Bounded delegation contracts in progress | `packages/subagents` enforces parent/role/request authority intersection, one level/two-child limits, bounded priority/resources/expiry, current-lease and versioned-evidence result checks, deterministic conflict-visible merging, and a synthetic global inference slot. OpenClaw, Qwen3.8 27B, MongoDB artifacts, real scheduler/context integration, and exact checkpoint remain unverified. |
+| 6. Local agent | Bounded delegation contracts in progress | `packages/subagents` enforces parent/role/request authority intersection, a hard child read-only tool boundary, one level/two-child limits, bounded priority/resources/expiry, tool-call lifecycle accounting, explicit parent cancel/detach behavior, current-lease and versioned-evidence result checks, deterministic conflict-visible merging, and a synthetic global inference slot. OpenClaw, Qwen3.8 27B, MongoDB artifacts, real scheduler/context integration, and exact checkpoint remain unverified. |
 | 7. Forecasts | Planned | No application forecasts yet |
 | 8. Dashboard | Planned | No UI yet |
 | 9. GB10 release | Pending target hardware | No GB10/model measurements yet |

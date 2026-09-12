@@ -72,6 +72,37 @@ export const ChildTaskSchema = z.strictObject({
   contextTokenBudget: z.number().int().safe().min(256).max(128_000),
 });
 
+export const ChildLifecycleStateSchema = z.enum([
+  "admitted",
+  "running",
+  "completed",
+  "failed",
+  "canceled",
+  "detached",
+]);
+
+export const ChildRuntimeRecordSchema = z.strictObject({
+  task: ChildTaskSchema,
+  state: ChildLifecycleStateSchema,
+  toolCallsUsed: z.number().int().safe().nonnegative(),
+  detachedAt: TimestampSchema.nullable(),
+  terminatedAt: TimestampSchema.nullable(),
+}).superRefine(({ task, state, toolCallsUsed, detachedAt, terminatedAt }, context) => {
+  if (toolCallsUsed > task.toolCallBudget) {
+    context.addIssue({ code: "custom", message: "tool calls exceed the admitted budget", path: ["toolCallsUsed"] });
+  }
+  if (state === "detached" && detachedAt === null) {
+    context.addIssue({ code: "custom", message: "detached children require detachedAt", path: ["detachedAt"] });
+  }
+  if ((state === "admitted" || state === "running") && detachedAt !== null) {
+    context.addIssue({ code: "custom", message: "active attached children cannot have detachedAt", path: ["detachedAt"] });
+  }
+  const terminal = state === "completed" || state === "failed" || state === "canceled";
+  if (terminal !== (terminatedAt !== null)) {
+    context.addIssue({ code: "custom", message: "terminal children require terminatedAt", path: ["terminatedAt"] });
+  }
+});
+
 export const ChildClaimSchema = z.strictObject({
   claimKey: z.string().min(1).max(200),
   value: z.string().min(1).max(2_000),
@@ -112,5 +143,7 @@ export type ParentDelegationAuthority = z.infer<typeof ParentDelegationAuthority
 export type ChildRolePolicy = z.infer<typeof ChildRolePolicySchema>;
 export type ChildDelegationRequest = z.infer<typeof ChildDelegationRequestSchema>;
 export type ChildTask = z.infer<typeof ChildTaskSchema>;
+export type ChildLifecycleState = z.infer<typeof ChildLifecycleStateSchema>;
+export type ChildRuntimeRecord = z.infer<typeof ChildRuntimeRecordSchema>;
 export type ChildResult = z.infer<typeof ChildResultSchema>;
 export type ChildClaim = z.infer<typeof ChildClaimSchema>;

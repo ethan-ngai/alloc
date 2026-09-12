@@ -36,6 +36,13 @@ export interface AdmissionResult {
   deniedTools: ChildDelegationRequest["requestedTools"];
 }
 
+export const CHILD_READ_ONLY_TOOLS = [
+  "get_request",
+  "get_context",
+  "search_evidence",
+  "run_forecast",
+] as const satisfies readonly ChildTask["permittedTools"][number][];
+
 function scopeKey(scope: { type: string; id: string }): string {
   return `${scope.type}\u0000${scope.id}`;
 }
@@ -98,9 +105,10 @@ export function admitChildTask(input: {
 
   const parentTools = new Set(parent.permittedTools);
   const roleTools = new Set(rolePolicy.permittedTools);
+  const childReadOnlyTools = new Set<ChildTask["permittedTools"][number]>(CHILD_READ_ONLY_TOOLS);
   const requestedTools = [...new Set(request.requestedTools)];
   const permittedTools = requestedTools.filter(
-    (tool) => parentTools.has(tool) && roleTools.has(tool),
+    (tool) => parentTools.has(tool) && roleTools.has(tool) && childReadOnlyTools.has(tool),
   );
   const deniedTools = requestedTools.filter((tool) => !permittedTools.includes(tool));
   if (requestedTools.length > 0 && permittedTools.length === 0) {

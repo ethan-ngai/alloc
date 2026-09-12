@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
-  ChildResultError,
-  DelegationError,
   SingleInferenceSlot,
   admitChildTask,
+  applyParentTermination,
+  consumeChildToolCall,
+  createChildRuntimeRecord,
   mergeChildResults,
   selectNextInference,
+  startChild,
+  terminateChild,
   validateChildResult,
   type ChildDelegationRequest,
   type ChildResult,
@@ -158,6 +161,78 @@ describe("delegation admission", () => {
     });
     expect(task.allowedScopes).toEqual([{ type: "project", id: "project_atlas" }]);
     expect(task.permittedTools).toEqual(["get_context"]);
+  });
+
+  it("always removes proposal submission from child authority", () => {
+    expect(() => admit({
+      parent: parent({ permittedTools: ["propose_action"] }),
+      rolePolicy: policy({ permittedTools: ["propose_action"] }),
+      request: request({ requestedTools: ["propose_action"] }),
+    })).toThrowError(expect.objectContaining({ code: "NO_AUTHORIZED_TOOL" }));
+
+    const admitted = admit({
+      parent: parent({ permittedTools: ["get_context", "propose_action"] }),
+      rolePolicy: policy({ permittedTools: ["get_context", "propose_action"] }),
+      request: request({ requestedTools: ["get_context", "propose_action"] }),
+    });
+    expect(admitted.permittedTools).toEqual(["get_context"]);
+  });
+});
+
+describe("child lifecycle", () => {
+  it("counts authorized tool calls and enforces the admitted budget", () => {
+    const task = admit({
+      rolePolicy: policy({ maximumToolCalls: 1 }),
+      request: request({ requestedToolCalls: 1 }),
+    });
+    const running = startChild(createChildRuntimeRecord(task), NOW);
+    const used = consumeChildToolCall(running, "get_context", NOW);
+    expect(used.toolCallsUsed).toBe(1);
+    expect(() => consumeChildToolCall(used, "get_context", NOW)).toThrowError(
+      expect.objectContaining({ code: "TOOL_BUDGET_EXHAUSTED" }),
+    );
+    expect(() => consumeChildToolCall(running, "run_forecast", NOW)).toThrowError(
+      expect.objectContaining({ code: "TOOL_NOT_PERMITTED" }),
+    );
+  });
+
+  it("cancels active children when the parent chooses cancel", () => {
+    const running = startChild(createChildRuntimeRecord(admit()), NOW);
+    const canceled = applyParentTermination(running, "cancel", NOW);
+    expect(canceled).toMatchObject({
+      state: "canceled",
+      terminatedAt: NOW.toISOString(),
+      detachedAt: null,
+    });
+    expect(() => consumeChildToolCall(canceled, "get_context", NOW)).toThrowError(
+      expect.objectContaining({ code: "CHILD_NOT_ACTIVE" }),
+    );
+  });
+
+  it("detaches active children with their original read-only authority and deadline", () => {
+    const task = admit({
+      parent: parent({ permittedTools: ["get_context", "propose_action"] }),
+      rolePolicy: policy({ permittedTools: ["get_context", "propose_action"] }),
+      request: request({ requestedTools: ["get_context", "propose_action"] }),
+    });
+    const detached = applyParentTermination(createChildRuntimeRecord(task), "detach", NOW);
+    expect(detached.state).toBe("detached");
+    expect(detached.task.expiresAt).toBe(task.expiresAt);
+    expect(detached.task.permittedTools).toEqual(["get_context"]);
+    expect(consumeChildToolCall(detached, "get_context", NOW).toolCallsUsed).toBe(1);
+    expect(() => consumeChildToolCall(detached, "propose_action", NOW)).toThrowError(
+      expect.objectContaining({ code: "TOOL_NOT_PERMITTED" }),
+    );
+  });
+
+  it("rejects work at the deadline and does not rewrite terminal children", () => {
+    const task = admit();
+    const running = startChild(createChildRuntimeRecord(task), NOW);
+    expect(() => consumeChildToolCall(running, "get_context", new Date(task.expiresAt))).toThrowError(
+      expect.objectContaining({ code: "CHILD_EXPIRED" }),
+    );
+    const completed = terminateChild(running, "completed", new Date("2026-09-12T16:01:00.000Z"));
+    expect(applyParentTermination(completed, "cancel", NOW)).toEqual(completed);
   });
 });
 
