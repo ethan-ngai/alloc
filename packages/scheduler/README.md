@@ -13,6 +13,11 @@ failures to capped retry, and treats lease loss as fencing rather than allowing 
 stale result to overwrite recovered work. It does not claim token-level model
 preemption.
 
+Repository cancellation uses an expected job revision and clears any lease so a
+running worker is fenced. Deadline sweeping moves nonterminal work to an explicit
+failed state before admission and likewise clears active leases. Authorization to
+cancel remains an application-service concern rather than a model tool.
+
 Run from this directory:
 
 ```sh

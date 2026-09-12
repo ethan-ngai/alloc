@@ -83,9 +83,11 @@ export class SchedulerWorker {
   }
 
   async runOnce(): Promise<WorkerRunResult> {
+    const admissionNow = this.#clock();
+    const expired = await this.repository.expireDeadlines(admissionNow);
     const claim = await this.repository.claimNext({
       workerId: this.options.workerId,
-      now: this.#clock(),
+      now: admissionNow,
       leaseDurationMs: this.options.leaseDurationMs,
       fairness: this.#fairness,
       policy: this.#admissionPolicy,
@@ -94,7 +96,10 @@ export class SchedulerWorker {
     if (claim.job === null) {
       return {
         status: "idle",
-        expiredJobIds: claim.expiredJobIds,
+        expiredJobIds: [...new Set([
+          ...expired.map(({ jobId }) => jobId),
+          ...claim.expiredJobIds,
+        ])].sort(),
         principalLimitedJobIds: claim.principalLimitedJobIds,
       };
     }

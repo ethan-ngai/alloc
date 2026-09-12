@@ -163,4 +163,24 @@ describe("SchedulerWorker", () => {
       job: { state: "waiting_for_retry" },
     });
   });
+
+  it("sweeps deadline-expired work before claiming another step", async () => {
+    const repository = new InMemorySchedulerRepository();
+    await repository.enqueue(job({ deadlineAt: NOW.toISOString() }));
+    const worker = new SchedulerWorker(
+      repository,
+      {},
+      { workerId: "worker_primary", leaseDurationMs: 30_000, clock: () => NOW },
+    );
+    expect(await worker.runOnce()).toEqual({
+      status: "idle",
+      expiredJobIds: ["job_default"],
+      principalLimitedJobIds: [],
+    });
+    expect(await repository.get("job_default")).toMatchObject({
+      state: "failed",
+      currentStep: "deadline_expired",
+      lease: null,
+    });
+  });
 });

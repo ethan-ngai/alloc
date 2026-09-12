@@ -40,6 +40,8 @@ export interface SchedulerRepository {
   claimNext(options: ClaimOptions): Promise<ClaimResult>;
   renew(jobId: string, token: LeaseToken, now: Date, leaseDurationMs: number): Promise<DurableJobMessage>;
   release(jobId: string, token: LeaseToken, now: Date, release: StepRelease): Promise<DurableJobMessage>;
+  cancel(jobId: string, expectedRevision: number, currentStep: string): Promise<DurableJobMessage>;
+  expireDeadlines(now: Date): Promise<DurableJobMessage[]>;
   get(jobId: string): Promise<DurableJobMessage | null>;
   list(): Promise<DurableJobMessage[]>;
 }
@@ -166,6 +168,63 @@ export class InMemorySchedulerRepository implements SchedulerRepository {
     const stored = this.#require(jobId);
     stored.job = releaseStep(stored.job, token, now, release);
     return parseDurableJob(stored.job);
+  }
+
+  async cancel(
+    jobId: string,
+    expectedRevision: number,
+    currentStep: string,
+  ): Promise<DurableJobMessage> {
+    const stored = this.#require(jobId);
+    if (stored.job.revision !== expectedRevision) {
+      throw new SchedulerInvariantError(
+        "REVISION_MISMATCH",
+        `expected job revision ${expectedRevision}, found ${stored.job.revision}`,
+      );
+    }
+    if (stored.job.state === "canceled") return parseDurableJob(stored.job);
+    if (stored.job.state === "completed" || stored.job.state === "failed") {
+      throw new SchedulerInvariantError(
+        "JOB_NOT_CLAIMABLE",
+        `cannot cancel terminal ${stored.job.state} job`,
+      );
+    }
+    stored.job = parseDurableJob({
+      ...stored.job,
+      revision: stored.job.revision + 1,
+      state: "canceled",
+      currentStep,
+      lease: null,
+    });
+    return parseDurableJob(stored.job);
+  }
+
+  async expireDeadlines(now: Date): Promise<DurableJobMessage[]> {
+    const nowMs = now.getTime();
+    if (!Number.isFinite(nowMs)) throw new TypeError("now must be a valid date");
+    const expired: DurableJobMessage[] = [];
+    for (const stored of this.#records.values()) {
+      const deadlineMs = stored.job.deadlineAt === null
+        ? Number.POSITIVE_INFINITY
+        : Date.parse(stored.job.deadlineAt);
+      if (
+        deadlineMs > nowMs
+        || stored.job.state === "completed"
+        || stored.job.state === "failed"
+        || stored.job.state === "canceled"
+      ) {
+        continue;
+      }
+      stored.job = parseDurableJob({
+        ...stored.job,
+        revision: stored.job.revision + 1,
+        state: "failed",
+        currentStep: "deadline_expired",
+        lease: null,
+      });
+      expired.push(parseDurableJob(stored.job));
+    }
+    return expired.sort((left, right) => left.jobId.localeCompare(right.jobId));
   }
 
   async get(jobId: string): Promise<DurableJobMessage | null> {

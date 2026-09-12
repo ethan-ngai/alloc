@@ -54,6 +54,7 @@ export class SchedulerInvariantError extends Error {
       | "LEASE_EXPIRED"
       | "JOB_NOT_CLAIMABLE"
       | "JOB_DEADLINE_EXPIRED"
+      | "REVISION_MISMATCH"
       | "COALESCING_CONFLICT",
     message: string,
   ) {
