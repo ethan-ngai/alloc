@@ -11,7 +11,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "build": "npm run build --workspace @alloc/contracts && npm run build --workspace @alloc/mock-api && npm run build --workspace @alloc/test-support && npm run build --workspace @alloc/api",
+    "build": "npm run build --workspace @alloc/contracts && npm run build --workspace @alloc/mock-api && npm run build --workspace @alloc/test-support && npm run build --workspace @alloc/agent-tools && npm run build --workspace @alloc/api",
     "typecheck": "npm run build && npm run typecheck --workspaces --if-present",
     "test": "npm run build && npm run test --workspaces --if-present",
     "test:integration": "npm run build && npm run test:integration --workspace @alloc/api",
