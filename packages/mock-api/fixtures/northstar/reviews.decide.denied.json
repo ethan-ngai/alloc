@@ -1,0 +1,58 @@
+{
+  "ok": true,
+  "schemaVersion": "1.0.0",
+  "correlationId": "correlation_fixture_decide_denied",
+  "data": {
+    "decision": {
+      "schemaVersion": "1.0.0",
+      "organizationId": "org_northstar",
+      "decisionId": "decision_mock_0036",
+      "requestRef": {
+        "type": "request",
+        "id": "request_mock_0032",
+        "revision": 1
+      },
+      "outcome": "denied",
+      "reasonCodes": [
+        "HUMAN_REVIEW_DENIED"
+      ],
+      "policyRef": {
+        "type": "policy",
+        "id": "policy_travel",
+        "revision": 1
+      },
+      "authorizationEpoch": 1,
+      "evaluatedFullAmount": {
+        "amountMinor": 30000,
+        "currency": "USD"
+      },
+      "evaluatedCumulativeIncrease": {
+        "amountMinor": 0,
+        "currency": "USD"
+      },
+      "factualInputs": [
+        {
+          "type": "request",
+          "id": "request_mock_0032",
+          "revision": 1
+        },
+        {
+          "type": "policy",
+          "id": "policy_travel",
+          "revision": 1
+        }
+      ],
+      "evidenceRefs": [
+        {
+          "type": "evidence",
+          "id": "evidence_trip_active",
+          "revision": 1
+        }
+      ],
+      "requiredApproverRole": null,
+      "permittedAction": null,
+      "decidedAt": "2026-09-12T14:07:00Z"
+    },
+    "commitment": null
+  }
+}

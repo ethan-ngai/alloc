@@ -1,0 +1,114 @@
+{
+  "ok": true,
+  "schemaVersion": "1.0.0",
+  "correlationId": "correlation_fixture_get_forecast_baseline",
+  "data": {
+    "schemaVersion": "1.0.0",
+    "organizationId": "org_northstar",
+    "forecastId": "forecast_field_engineering",
+    "revision": 2,
+    "kind": "baseline",
+    "scope": {
+      "type": "department",
+      "id": "department_field_engineering"
+    },
+    "asOfCutoff": "2026-09-12T14:00:00Z",
+    "horizonEnd": "2026-09-30T23:59:59Z",
+    "calculationVersion": "mock-operational-spend-v1",
+    "inputVersions": [
+      {
+        "type": "posting",
+        "id": "posting_mock_seed_spend",
+        "revision": 1
+      },
+      {
+        "type": "posting",
+        "id": "posting_fixture_trip_lodging",
+        "revision": 1
+      },
+      {
+        "type": "commitment",
+        "id": "commitment_buffalo_trip",
+        "revision": 4
+      }
+    ],
+    "sourceWatermarks": {
+      "mock_scenario": "scenario_mock_northstar_v1",
+      "mock_clock": "2026-09-12T14:02:00Z",
+      "mock_request_count": "3"
+    },
+    "assumptions": [],
+    "components": [
+      {
+        "inputRefs": [
+          {
+            "type": "posting",
+            "id": "posting_mock_seed_spend",
+            "revision": 1
+          },
+          {
+            "type": "posting",
+            "id": "posting_fixture_trip_lodging",
+            "revision": 1
+          }
+        ],
+        "kind": "actual_spend",
+        "amount": {
+          "amountMinor": 36000,
+          "currency": "USD"
+        }
+      },
+      {
+        "inputRefs": [
+          {
+            "type": "commitment",
+            "id": "commitment_buffalo_trip",
+            "revision": 4
+          }
+        ],
+        "kind": "outstanding_commitment",
+        "amount": {
+          "amountMinor": 0,
+          "currency": "USD"
+        }
+      },
+      {
+        "inputRefs": [],
+        "kind": "uncommitted_baseline",
+        "amount": {
+          "amountMinor": 0,
+          "currency": "USD"
+        }
+      },
+      {
+        "inputRefs": [],
+        "kind": "scenario_adjustment",
+        "amount": {
+          "amountMinor": 0,
+          "currency": "USD"
+        }
+      }
+    ],
+    "total": {
+      "amountMinor": 36000,
+      "currency": "USD"
+    },
+    "sensitivity": {
+      "low": {
+        "amountMinor": 36000,
+        "currency": "USD"
+      },
+      "base": {
+        "amountMinor": 36000,
+        "currency": "USD"
+      },
+      "high": {
+        "amountMinor": 36000,
+        "currency": "USD"
+      },
+      "calibratedProbability": false
+    },
+    "coverageWarnings": [],
+    "completedAt": "2026-09-12T14:02:00Z"
+  }
+}

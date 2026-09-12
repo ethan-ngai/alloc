@@ -1,0 +1,53 @@
+{
+  "ok": true,
+  "schemaVersion": "1.0.0",
+  "correlationId": "correlation_fixture_forecast_baseline",
+  "data": {
+    "job": {
+      "schemaVersion": "1.0.0",
+      "organizationId": "org_northstar",
+      "jobId": "job_mock_0013",
+      "revision": 1,
+      "jobType": "forecast_refresh",
+      "originPrincipalId": "employee_maya_chen",
+      "serviceIdentityId": "service_mock_api",
+      "scope": {
+        "type": "department",
+        "id": "department_field_engineering"
+      },
+      "priority": "P1",
+      "state": "completed",
+      "inputVersions": [
+        {
+          "type": "posting",
+          "id": "posting_mock_seed_spend",
+          "revision": 1
+        },
+        {
+          "type": "posting",
+          "id": "posting_fixture_trip_lodging",
+          "revision": 1
+        },
+        {
+          "type": "commitment",
+          "id": "commitment_buffalo_trip",
+          "revision": 4
+        }
+      ],
+      "deduplicationKey": "forecast:department:department_field_engineering:2026-09-12T14:00:00Z",
+      "currentStep": "snapshot_persisted",
+      "checkpointRefs": [
+        {
+          "type": "forecast",
+          "id": "forecast_field_engineering",
+          "revision": 2
+        }
+      ],
+      "attempts": 1,
+      "eligibleAt": "2026-09-12T14:03:00Z",
+      "deadlineAt": null,
+      "lease": null
+    },
+    "acceptedAt": "2026-09-12T14:03:00Z"
+  }
+}

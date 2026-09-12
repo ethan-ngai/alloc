@@ -1,0 +1,145 @@
+{
+  "ok": true,
+  "schemaVersion": "1.0.0",
+  "correlationId": "correlation_fixture_activity_list",
+  "data": {
+    "items": [
+      {
+        "activityId": "activity_mock_0011",
+        "type": "posting",
+        "occurredAt": "2026-09-12T14:20:00Z",
+        "subjectRef": {
+          "type": "posting",
+          "id": "posting_fixture_trip_lodging",
+          "revision": 1
+        },
+        "summary": "Posting posting_fixture_trip_lodging posted 24000 USD"
+      },
+      {
+        "activityId": "activity_mock_0017",
+        "type": "job",
+        "occurredAt": "2026-09-12T14:04:00Z",
+        "subjectRef": {
+          "type": "job",
+          "id": "job_mock_0016",
+          "revision": 1
+        },
+        "summary": "Job job_mock_0016 scenario completed"
+      },
+      {
+        "activityId": "activity_mock_0018",
+        "type": "forecast",
+        "occurredAt": "2026-09-12T14:03:00Z",
+        "subjectRef": {
+          "type": "forecast",
+          "id": "forecast_field_engineering",
+          "revision": 3
+        },
+        "summary": "Forecast forecast_field_engineering revision 3 total 28800 USD"
+      },
+      {
+        "activityId": "activity_mock_0014",
+        "type": "job",
+        "occurredAt": "2026-09-12T14:03:00Z",
+        "subjectRef": {
+          "type": "job",
+          "id": "job_mock_0013",
+          "revision": 1
+        },
+        "summary": "Job job_mock_0013 forecast_refresh completed"
+      },
+      {
+        "activityId": "activity_mock_0015",
+        "type": "forecast",
+        "occurredAt": "2026-09-12T14:02:00Z",
+        "subjectRef": {
+          "type": "forecast",
+          "id": "forecast_field_engineering",
+          "revision": 2
+        },
+        "summary": "Forecast forecast_field_engineering revision 2 total 36000 USD"
+      },
+      {
+        "activityId": "activity_mock_0010",
+        "type": "decision",
+        "occurredAt": "2026-09-12T14:02:00Z",
+        "subjectRef": {
+          "type": "decision",
+          "id": "decision_mock_0009",
+          "revision": 1
+        },
+        "summary": "Decision decision_mock_0009 approved for request_buffalo_trip revision 3"
+      },
+      {
+        "activityId": "activity_mock_0008",
+        "type": "decision",
+        "occurredAt": "2026-09-12T14:02:00Z",
+        "subjectRef": {
+          "type": "decision",
+          "id": "decision_mock_0006",
+          "revision": 1
+        },
+        "summary": "Decision decision_mock_0006 review_required for request_buffalo_trip revision 3"
+      },
+      {
+        "activityId": "activity_mock_0007",
+        "type": "request",
+        "occurredAt": "2026-09-12T14:02:00Z",
+        "subjectRef": {
+          "type": "request",
+          "id": "request_buffalo_trip",
+          "revision": 3
+        },
+        "summary": "Request request_buffalo_trip revision 3 review_required"
+      },
+      {
+        "activityId": "activity_mock_0004",
+        "type": "decision",
+        "occurredAt": "2026-09-12T14:01:00Z",
+        "subjectRef": {
+          "type": "decision",
+          "id": "decision_mock_0002",
+          "revision": 1
+        },
+        "summary": "Decision decision_mock_0002 approved for request_buffalo_trip revision 2"
+      },
+      {
+        "activityId": "activity_mock_0003",
+        "type": "request",
+        "occurredAt": "2026-09-12T14:01:00Z",
+        "subjectRef": {
+          "type": "request",
+          "id": "request_buffalo_trip",
+          "revision": 2
+        },
+        "summary": "Request request_buffalo_trip revision 2 approved"
+      },
+      {
+        "activityId": "activity_seed_posting",
+        "type": "posting",
+        "occurredAt": "2026-09-12T14:00:00Z",
+        "subjectRef": {
+          "type": "posting",
+          "id": "posting_mock_seed_spend",
+          "revision": 1
+        },
+        "summary": "Posting posting_mock_seed_spend posted 12000 USD"
+      },
+      {
+        "activityId": "activity_seed_approval",
+        "type": "decision",
+        "occurredAt": "2026-09-12T14:00:00Z",
+        "subjectRef": {
+          "type": "decision",
+          "id": "decision_mock_seed_approval",
+          "revision": 1
+        },
+        "summary": "Decision decision_mock_seed_approval approved for request_buffalo_trip revision 1"
+      }
+    ],
+    "page": {
+      "nextCursor": null,
+      "truncated": false
+    }
+  }
+}

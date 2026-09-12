@@ -1,0 +1,15 @@
+{
+  "ok": false,
+  "schemaVersion": "1.0.0",
+  "correlationId": "correlation_fixture_conflict_second",
+  "error": {
+    "schemaVersion": "1.0.0",
+    "code": "IDEMPOTENCY_CONFLICT",
+    "message": "command command_fixture_conflict was already used with a different payload",
+    "retryable": false,
+    "correlationId": "correlation_fixture_conflict_second",
+    "details": {
+      "commandId": "command_fixture_conflict"
+    }
+  }
+}

@@ -1,0 +1,142 @@
+{
+  "ok": true,
+  "schemaVersion": "1.0.0",
+  "correlationId": "correlation_fixture_get_forecast_scenario",
+  "data": {
+    "schemaVersion": "1.0.0",
+    "organizationId": "org_northstar",
+    "forecastId": "forecast_field_engineering",
+    "revision": 3,
+    "kind": "scenario",
+    "scope": {
+      "type": "department",
+      "id": "department_field_engineering"
+    },
+    "asOfCutoff": "2026-09-12T14:00:00Z",
+    "horizonEnd": "2026-09-30T23:59:59Z",
+    "calculationVersion": "mock-operational-spend-v1",
+    "inputVersions": [
+      {
+        "type": "posting",
+        "id": "posting_mock_seed_spend",
+        "revision": 1
+      },
+      {
+        "type": "posting",
+        "id": "posting_fixture_trip_lodging",
+        "revision": 1
+      },
+      {
+        "type": "commitment",
+        "id": "commitment_buffalo_trip",
+        "revision": 4
+      }
+    ],
+    "sourceWatermarks": {
+      "mock_scenario": "scenario_mock_northstar_v1",
+      "mock_clock": "2026-09-12T14:03:00Z",
+      "mock_request_count": "3"
+    },
+    "assumptions": [
+      {
+        "assumptionId": "assumption_fixture_reduce_travel",
+        "name": "Reduce pilot travel by 20%",
+        "scope": {
+          "type": "project",
+          "id": "project_beacon"
+        },
+        "effectiveFrom": "2026-09-13T00:00:00Z",
+        "effectiveTo": "2026-09-30T23:59:59Z",
+        "evidenceRefs": [
+          {
+            "type": "evidence",
+            "id": "evidence_trip_active",
+            "revision": 1
+          }
+        ],
+        "kind": "percentage_change",
+        "valueBasisPoints": -2000
+      }
+    ],
+    "components": [
+      {
+        "inputRefs": [
+          {
+            "type": "posting",
+            "id": "posting_mock_seed_spend",
+            "revision": 1
+          },
+          {
+            "type": "posting",
+            "id": "posting_fixture_trip_lodging",
+            "revision": 1
+          }
+        ],
+        "kind": "actual_spend",
+        "amount": {
+          "amountMinor": 36000,
+          "currency": "USD"
+        }
+      },
+      {
+        "inputRefs": [
+          {
+            "type": "commitment",
+            "id": "commitment_buffalo_trip",
+            "revision": 4
+          }
+        ],
+        "kind": "outstanding_commitment",
+        "amount": {
+          "amountMinor": 0,
+          "currency": "USD"
+        }
+      },
+      {
+        "inputRefs": [],
+        "kind": "uncommitted_baseline",
+        "amount": {
+          "amountMinor": 0,
+          "currency": "USD"
+        }
+      },
+      {
+        "inputRefs": [
+          {
+            "type": "evidence",
+            "id": "evidence_trip_active",
+            "revision": 1
+          }
+        ],
+        "kind": "scenario_adjustment",
+        "amount": {
+          "amountMinor": -7200,
+          "currency": "USD"
+        }
+      }
+    ],
+    "total": {
+      "amountMinor": 28800,
+      "currency": "USD"
+    },
+    "sensitivity": {
+      "low": {
+        "amountMinor": 25920,
+        "currency": "USD"
+      },
+      "base": {
+        "amountMinor": 28800,
+        "currency": "USD"
+      },
+      "high": {
+        "amountMinor": 31680,
+        "currency": "USD"
+      },
+      "calibratedProbability": false
+    },
+    "coverageWarnings": [
+      "SENSITIVITY_BAND_IS_PLACEHOLDER"
+    ],
+    "completedAt": "2026-09-12T14:03:00Z"
+  }
+}
