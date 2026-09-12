@@ -11,10 +11,10 @@
     "node": ">=20"
   },
   "scripts": {
-    "build": "npm run build --workspace @alloc/contracts && npm run build --workspace @alloc/mock-api && npm run build --workspace @alloc/test-support && npm run build --workspace @alloc/api",
+    "build": "npm run build --workspace @alloc/contracts && npm run build --workspace @alloc/mock-api && npm run build --workspace @alloc/test-support && npm run build --workspace @alloc/scheduler && npm run build --workspace @alloc/api",
     "typecheck": "npm run build && npm run typecheck --workspaces --if-present",
     "test": "npm run build && npm run test --workspaces --if-present",
-    "test:integration": "npm run build && npm run test:integration --workspace @alloc/api",
+    "test:integration": "npm run build && npm run test:integration --workspace @alloc/api && npm run test:integration --workspace @alloc/scheduler",
     "test:e2e": "npm run build && npm run test:e2e --workspace @alloc/api",
     "verify": "npm run schema:check && npm run typecheck && npm run test && npm run test:integration && npm run test:e2e",
     "schema:check": "npm run schema:check --workspace @alloc/contracts",

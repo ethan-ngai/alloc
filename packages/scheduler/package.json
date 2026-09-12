@@ -18,12 +18,15 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "dependencies": {
-    "@alloc/contracts": "file:../contracts"
+    "@alloc/contracts": "file:../contracts",
+    "mongodb": "6.21.0"
   },
   "devDependencies": {
+    "@alloc/test-support": "file:../test-support",
     "@types/node": "24.3.0",
     "typescript": "5.9.2",
     "vitest": "3.2.4"
