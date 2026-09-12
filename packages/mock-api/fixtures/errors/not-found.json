@@ -1,0 +1,12 @@
+{
+  "ok": false,
+  "schemaVersion": "1.0.0",
+  "correlationId": "correlation_fixture_not_found",
+  "error": {
+    "schemaVersion": "1.0.0",
+    "code": "NOT_FOUND",
+    "message": "request request_fixture_missing is not known to org_northstar",
+    "retryable": false,
+    "correlationId": "correlation_fixture_not_found"
+  }
+}

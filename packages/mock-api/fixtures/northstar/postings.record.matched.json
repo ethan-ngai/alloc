@@ -1,0 +1,50 @@
+{
+  "ok": true,
+  "schemaVersion": "1.0.0",
+  "correlationId": "correlation_fixture_record_posting",
+  "data": {
+    "schemaVersion": "1.0.0",
+    "organizationId": "org_northstar",
+    "postingId": "posting_fixture_trip_lodging",
+    "revision": 1,
+    "amount": {
+      "amountMinor": 24000,
+      "currency": "USD"
+    },
+    "occurredAt": "2026-09-12T14:20:00Z",
+    "status": "posted",
+    "commitmentRef": {
+      "type": "commitment",
+      "id": "commitment_buffalo_trip",
+      "revision": 3
+    },
+    "sourceRef": {
+      "type": "source_delivery",
+      "id": "delivery_fixture_lodging",
+      "revision": 1
+    },
+    "scopes": [
+      {
+        "type": "organization",
+        "id": "org_northstar"
+      },
+      {
+        "type": "department",
+        "id": "department_field_engineering"
+      },
+      {
+        "type": "project",
+        "id": "project_beacon"
+      }
+    ],
+    "provenance": {
+      "kind": "synthetic",
+      "trust": "authoritative",
+      "sourceInstanceId": "source_fixture_driver",
+      "sourceObjectId": "fixture-trip-lodging",
+      "sourceRevision": "1",
+      "occurredAt": "2026-09-12T14:20:00Z",
+      "observedAt": "2026-09-12T14:20:00Z"
+    }
+  }
+}

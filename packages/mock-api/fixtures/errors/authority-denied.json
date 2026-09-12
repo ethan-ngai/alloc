@@ -1,0 +1,15 @@
+{
+  "ok": false,
+  "schemaVersion": "1.0.0",
+  "correlationId": "correlation_fixture_authority",
+  "error": {
+    "schemaVersion": "1.0.0",
+    "code": "AUTHORITY_DENIED",
+    "message": "principal employee_maya_chen does not hold finance_manager authority",
+    "retryable": false,
+    "correlationId": "correlation_fixture_authority",
+    "details": {
+      "authorityRole": null
+    }
+  }
+}

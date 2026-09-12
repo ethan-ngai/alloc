@@ -1,0 +1,30 @@
+{
+  "ok": true,
+  "schemaVersion": "1.0.0",
+  "correlationId": "correlation_fixture_correct_posting",
+  "data": {
+    "schemaVersion": "1.0.0",
+    "organizationId": "org_northstar",
+    "correctionId": "correction_fixture_trip_lodging",
+    "originalPostingRef": {
+      "type": "posting",
+      "id": "posting_fixture_trip_lodging",
+      "revision": 1
+    },
+    "amount": {
+      "amountMinor": -2000,
+      "currency": "USD"
+    },
+    "reason": "One pilot day was refunded",
+    "occurredAt": "2026-09-12T14:20:00Z",
+    "provenance": {
+      "kind": "synthetic",
+      "trust": "authoritative",
+      "sourceInstanceId": "source_fixture_driver",
+      "sourceObjectId": "fixture-trip-lodging-correction",
+      "sourceRevision": "1",
+      "occurredAt": "2026-09-12T14:20:00Z",
+      "observedAt": "2026-09-12T14:20:00Z"
+    }
+  }
+}
