@@ -34,7 +34,7 @@ The eight-document retrieval plus separate full-category aggregate took 71/48/39
 - Cluster views overlap, so authoritative totals aggregate canonical financial entries once.
 - Hard caps are current transactional records, updated with commitments and postings; narrative memory is never the execution authority.
 - The same backend contract works with Northstar Fieldworks, Juniper Table, and Forge & Loom fixtures. Industry-specific connectors remain planned.
-- The selected model is Qwen3.8 Flash-Next, replacing the earlier smaller-model envelope. Its embedding/MTP components and mixed-precision checkpoints require a new memory-fit gate; no fit or throughput has been demonstrated here.
+- The selected model is Qwen3.8 27B, replacing the earlier Qwen3.8 Flash/125B-class candidate. Its exact checkpoint, quantization, and serving overhead require a GB10 memory-fit gate; no fit or throughput has been demonstrated here.
 
 ## Limits
 
