@@ -1,4 +1,5 @@
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from "fastify";
+import cors from "@fastify/cors";
 import { registerAuth } from "./auth/plugin.js";
 import { createTokenVerifier, type TokenVerifier } from "./auth/verifier.js";
 import { configSecrets, type AppConfig } from "./config.js";
@@ -51,6 +52,14 @@ export function buildApp(deps: AppDependencies): FastifyInstance {
     trustProxy: false,
   });
   app.addContentTypeParser("text/csv", { parseAs: "string" }, (_request, body, done) => done(null, body));
+  app.register(cors, {
+    origin(origin, callback) {
+      const allowed = origin === undefined || /^http:\/\/(?:127\.0\.0\.1|localhost):\d+$/.test(origin);
+      callback(null, allowed);
+    },
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["authorization", "content-type", CORRELATION_ID_HEADER],
+  });
   const redact = (text: string): string => redactText(text, configSecrets(deps.config));
 
   app.addHook("onRequest", async (request, reply) => {

@@ -25,6 +25,8 @@ const START_TIMEOUT_MS = 90_000;
 const workspace = (process.env.CONDUCTOR_WORKSPACE_NAME ?? "local").replace(/[^a-zA-Z0-9_.-]/g, "") || "local";
 const apiPort = Number(process.env.CONDUCTOR_PORT ?? process.env.PORT ?? 3000);
 const mongoPort = apiPort + 1;
+const webPort = apiPort + 2;
+const mockApiPort = apiPort + 3;
 const containerName = `alloc-dev-${workspace}-mongo`;
 const database = `alloc_dev_${workspace.replace(/[^a-zA-Z0-9_]/g, "_")}`;
 const mongoUri = `mongodb://127.0.0.1:${mongoPort}/?replicaSet=${REPLICA_SET}`;
@@ -38,12 +40,23 @@ process.on("SIGTERM", () => shutdown(0));
 try {
   await ensureMongo();
   run("npm", ["run", "build"]);
+  const { seedDevelopmentData } = await import("./seed-dev.mjs");
+  await seedDevelopmentData({ mongoUri, database });
+  const devTokens = await createDevTokens();
+  console.log(`[dev] seeded synthetic Northstar, Juniper, and Forge profiles in ${database}`);
   watch("tsc --watch", ["run", "build", "--workspace", "@alloc/contracts", "--", "--watch"]);
   watch("tsc --watch", ["run", "build", "--workspace", "@alloc/api", "--", "--watch"]);
   watch("api", ["exec", "--", "node", "--watch", "apps/api/dist/server.js"], apiEnvironment());
   watch("executor", ["exec", "--", "node", "--watch", "apps/api/dist/execution/worker.js"], apiEnvironment());
+  watch("mock api", ["run", "serve", "--workspace", "@alloc/mock-api", "--", "--port", String(mockApiPort)]);
+  watch("web", ["run", "dev", "--workspace", "@alloc/web", "--", "--host", "127.0.0.1", "--port", String(webPort), "--strictPort"], {
+    ...process.env,
+    VITE_MOCK_API_URL: `http://127.0.0.1:${mockApiPort}`,
+    VITE_ALLOC_API_URL: `http://127.0.0.1:${apiPort}`,
+    VITE_ALLOC_DEV_TOKENS: JSON.stringify(devTokens),
+  });
   await waitForApiReady();
-  await printEndpoints();
+  await printEndpoints(devTokens);
   console.log("[dev] watching for changes; press Ctrl+C to stop and remove the container");
 } catch (error) {
   console.error(`[dev] ${error instanceof Error ? error.message : String(error)}`);
@@ -155,25 +168,32 @@ function watch(label, args, env = process.env) {
   children.push(child);
 }
 
-async function printEndpoints() {
-  const token = await new SignJWT({ sub: "principal_dev", org: DEV_ORGANIZATION_ID, roles: ["approver"] })
+async function createDevToken(organizationId) {
+  return new SignJWT({ sub: "principal_dev", org: organizationId, roles: ["approver", "finance_manager"] })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuer(DEV_JWT_ISSUER)
     .setAudience(DEV_JWT_AUDIENCE)
     .setIssuedAt()
     .setExpirationTime("12h")
     .sign(new TextEncoder().encode(DEV_JWT_SECRET));
+}
 
+async function createDevTokens() {
+  return Object.fromEntries(await Promise.all(["org_northstar", "org_juniper", "org_forge"].map(async (organizationId) => [organizationId, await createDevToken(organizationId)])));
+}
+
+async function printEndpoints(devTokens) {
+  const token = devTokens[DEV_ORGANIZATION_ID];
   console.log(`[dev] api        http://127.0.0.1:${apiPort}`);
+  console.log(`[dev] web        http://127.0.0.1:${webPort}`);
+  console.log(`[dev] mock api   http://127.0.0.1:${mockApiPort}`);
   console.log(`[dev] liveness   curl -s http://127.0.0.1:${apiPort}/health/live`);
   console.log(`[dev] readiness  curl -s http://127.0.0.1:${apiPort}/health/ready`);
   console.log(`[dev] dev token  ${token}`);
   console.log(
     `[dev] try        curl -s -H "Authorization: Bearer ${token}" http://127.0.0.1:${apiPort}/v1/organizations/${DEV_ORGANIZATION_ID}`,
   );
-  console.log(
-    `[dev] note       no organization record is seeded yet, so that call returns 404 until a company entity is stored in ${database}`,
-  );
+  console.log(`[dev] fixtures   synthetic Northstar, Juniper, and Forge data in ${database}`);
   console.log("[dev] the development token is signed with a public secret and is not valid outside local development");
 }
 
