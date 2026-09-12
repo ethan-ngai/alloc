@@ -3,8 +3,13 @@ import { createServer } from "node:net";
 import { MongoClient } from "mongodb";
 import { assertDockerAvailable, docker, tryDocker } from "./docker.js";
 
-/** Pinned MongoDB image; the runtime refuses deployments that are not replica sets. */
-export const MONGO_TEST_IMAGE = "mongo:8.0.30";
+/**
+ * Pinned MongoDB image; the runtime refuses deployments that are not replica sets.
+ * 8.0.30 aborts on Linux kernel 6.19+ (SERVER-121912), which covers current Docker
+ * Desktop VMs, so the default is a release that starts there. Override with
+ * ALLOC_MONGO_IMAGE to test against another server build.
+ */
+export const MONGO_TEST_IMAGE = process.env["ALLOC_MONGO_IMAGE"] ?? "mongo:8.2.4";
 /** Replica-set name used by the owned single-member test cluster. */
 export const MONGO_TEST_REPLICA_SET = "alloctest";
 

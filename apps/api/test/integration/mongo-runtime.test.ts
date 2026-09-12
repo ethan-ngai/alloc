@@ -1,4 +1,4 @@
-import { MONGO_TEST_REPLICA_SET, startMongoReplicaSet, startMongoStandalone, type MongoTestCluster } from "@alloc/test-support";
+import { MONGO_TEST_IMAGE, MONGO_TEST_REPLICA_SET, startMongoReplicaSet, startMongoStandalone, type MongoTestCluster } from "@alloc/test-support";
 import { probeCollection } from "../support/mongo.js";
 import { describe, expect, it } from "vitest";
 import {
@@ -27,7 +27,7 @@ describe("mongo runtime against a real replica set", () => {
     await withCluster(async (cluster, runtime) => {
       expect(runtime.topology).toBe(MONGO_TEST_REPLICA_SET);
       expect(runtime.readiness.snapshot()).toEqual({ ready: true });
-      expect(cluster.serverVersion).toBe("8.0.30");
+      expect(cluster.serverVersion).toBe(MONGO_TEST_IMAGE.split(":")[1]);
 
       const [collectionInfo] = await cluster.client
         .db(cluster.database)
