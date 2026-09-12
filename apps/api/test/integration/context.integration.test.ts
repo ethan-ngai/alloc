@@ -30,6 +30,17 @@ describe("financial context against a real replica set", () => {
     }
     expect(await runtime.db.collection("normalized_postings").indexes()).toContainEqual(expect.objectContaining({ name: "financial_context_scope" }));
   });
+
+  it("keeps a governing restricted entity's access policy on cited evidence", async () => {
+    ({ cluster, runtime } = await open());
+    await runtime.imports.seedEntities(fixture.entities);
+    await runtime.db.collection("import_entities").updateOne({ organizationId: "org_northstar", entityId: "category_food" }, { $set: { "access.classification": "restricted", "access.allowedPrincipalIds": ["user_jd"] } });
+    const delivery = fixture.deliveries.find((value) => (value.payload as { posting?: { scopes: Array<{ id: string }> } }).posting?.scopes.some((scope) => scope.id === "category_food"))!;
+    await runtime.imports.ingest(delivery as never);
+
+    const response = await runtime.context.query("org_northstar", principal, { query: "food", scopes: [{ type: "category", id: "category_food" }], asOf: "2026-09-12T23:59:59.000Z", limit: 1 });
+    expect(response.evidence[0]?.access).toMatchObject({ classification: "restricted", allowedPrincipalIds: ["user_jd"] });
+  });
 });
 
 async function open(): Promise<{ cluster: MongoTestCluster; runtime: MongoRuntime }> {

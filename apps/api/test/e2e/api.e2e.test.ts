@@ -141,6 +141,10 @@ describe("HTTP end to end", () => {
     const denied = await post("/v1/organizations/org_juniper/memory/query", memoryQuery("food", [{ type: "category", id: "category_food" }]), token);
     expect(denied.status).toBe(403);
     expect(denied.body).toMatchObject({ ok: false, error: { code: "ACCESS_DENIED" } });
+
+    const malformedCursor = await post("/v1/organizations/org_northstar/memory/query", memoryQuery("food", [{ type: "category", id: "category_food" }], "not-a-cursor"), token);
+    expect(malformedCursor.status).toBe(400);
+    expect(malformedCursor.body).toMatchObject({ ok: false, error: { code: "VALIDATION_FAILED" } });
   });
 });
 
@@ -253,8 +257,8 @@ function command(delivery: SourceDelivery) {
   return { meta: { schemaVersion: "1.0.0", organizationId: "org_northstar", commandId: "command_import_e2e", correlationId: "correlation_import_e2e", expectedVersions: [] }, payload };
 }
 
-function memoryQuery(query: string, scopes: Array<{ type: string; id: string }>) {
-  return { meta: { schemaVersion: "1.0.0", organizationId: "org_northstar", correlationId: "correlation_memory_e2e" }, payload: { query, scopes, page: { limit: 25 } } };
+function memoryQuery(query: string, scopes: Array<{ type: string; id: string }>, cursor?: string) {
+  return { meta: { schemaVersion: "1.0.0", organizationId: "org_northstar", correlationId: "correlation_memory_e2e" }, payload: { query, scopes, page: { limit: 25, ...(cursor === undefined ? {} : { cursor }) } } };
 }
 
 async function waitForHttp(url: string, timeoutMs: number, running: RunningApi): Promise<void> {
