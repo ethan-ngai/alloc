@@ -109,3 +109,6 @@ export const CommandMetaSchema = z.strictObject({
 export type Money = z.infer<typeof NonNegativeMoneySchema>;
 export type SignedMoney = z.infer<typeof SignedMoneySchema>;
 export type ContractError = z.infer<typeof ContractErrorSchema>;
+export type RecordRef = z.infer<typeof RecordRefSchema>;
+export type ScopeRef = z.infer<typeof ScopeRefSchema>;
+export type Provenance = z.infer<typeof ProvenanceSchema>;
