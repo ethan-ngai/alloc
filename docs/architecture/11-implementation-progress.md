@@ -11,7 +11,7 @@ The planning baseline contains documentation and the standalone POC. Task 1A now
 | 2A–2C. Fixtures/imports/mocks | Planned | POC has three synthetic profiles; application fixtures/importer/mocks remain to build |
 | 3A–3B. Financial core | Planned | POC validates selected financial contracts; no application acceptance gates passed |
 | 4A–4B. Context | Planned | POC verified indexed category lookup only; no application graph/summary implementation shipped |
-| 5. Durable runtime | Planned | No worker execution yet |
+| 5. Durable runtime | Scheduler core in progress | `packages/scheduler` implements contract-validated priority admission, bounded P1/P2 fairness, per-principal limits, retry/state/lease checks, and final-generation coalescing with synthetic jobs. MongoDB claims, durable checkpoints, multi-worker fencing/recovery, and restart E2E remain gated on 1B. |
 | 6. Local agent | Planned | Qwen Flash-Next and OpenClaw not configured locally |
 | 7. Forecasts | Planned | No application forecasts yet |
 | 8. Dashboard | Planned | No UI yet |
