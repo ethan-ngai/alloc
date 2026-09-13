@@ -3,12 +3,27 @@
 > Local financial intelligence for companies that need every spending decision to be explainable, governed, and grounded in current facts.
 
 <p align="center">
-  <img src="assets/alloc-decision-pipeline.png" alt="Abstract diagram: company context flows through a verified decision gate into forecasts and receipts." width="100%" />
+  <a href="#quick-start">Quick start</a> ·
+  <a href="#the-dashboard">Dashboard</a> ·
+  <a href="#the-decision-pipeline">Decision pipeline</a> ·
+  <a href="#security-and-financial-invariants">Safety model</a> ·
+  <a href="#contributing">Contributing</a>
 </p>
 
-Alloc connects company-wide financial context to deterministic spending controls, auditable action intents, and forecasts. It is built for a local-first demo: a sandboxed agent may investigate and propose, but it never receives the authority to alter policy, bypass a cap, or execute a financial action on its own.
+<p align="center">
+  <img src="assets/alloc-dashboard-demo.png" alt="Alloc's Northstar dashboard showing synthetic company context, strategic proposals, a request awaiting human review, activity, and forecast summary." width="100%" />
+</p>
 
-> **Current state:** the contracts, local MongoDB/API foundation, synthetic company data, mock dashboard, transactional financial core, scheduler/executor, relationships, and forecast work are implemented to the extent recorded in [implementation progress](docs/architecture/11-implementation-progress.md). Local-model/GB10 validation, live connectors, and complete live dashboard wiring remain gated work—not completed features.
+<p align="center">
+  <code>LOCAL-FIRST</code> · <code>EXACT MONEY</code> · <code>HUMAN AUTHORITY</code> · <code>AUDITABLE ACTIONS</code>
+</p>
+
+Alloc connects company-wide financial context to deterministic spending controls, auditable action intents, and forecasts. A sandboxed agent may investigate and propose, but it never receives authority to alter policy, bypass a cap, or execute a financial action on its own.
+
+> [!NOTE]
+> The dashboard above is the browser-verified Northstar **synthetic/mock** scenario. It demonstrates the current mock-client experience, not a live provider or complete live-backend dashboard.
+
+> **Current state:** contracts, the local MongoDB/API foundation, synthetic company data, mock dashboard, transactional financial core, scheduler/executor, relationships, and forecast work are implemented to the extent recorded in [implementation progress](docs/architecture/11-implementation-progress.md). Local-model/GB10 validation, live connectors, and complete live dashboard wiring remain gated work—not completed features.
 
 ## Why Alloc
 
@@ -22,7 +37,15 @@ Financial systems are often rich in context but poor at answering a simple opera
 | Keep AI bounded | Gives a local OpenClaw agent narrow, typed tools and backend-issued execution context; model-supplied text cannot become permission or policy. |
 | Make the future inspectable | Produces versioned forecast snapshots tied to source cutoffs and explains their inputs and revisions. |
 
+## The dashboard
+
+The browser dashboard makes a controlled financial decision readable in one frame: company context, scenario guidance, a request that has crossed a cumulative amendment rule, activity, and a forecast. It ships against contract-validated mock responses and covers all three synthetic companies; each live UI feature remains gated on its backend boundary.
+
 ## The decision pipeline
+
+<p align="center">
+  <img src="assets/alloc-decision-pipeline.png" alt="Abstract diagram: company context flows through a verified decision gate into forecasts and receipts." width="100%" />
+</p>
 
 ```mermaid
 flowchart LR
