@@ -1,31 +1,33 @@
-# Alloc
+<h1 align="center">Alloc</h1>
 
-> Local financial intelligence for companies that need every spending decision to be explainable, governed, and grounded in current facts.
+<h3 align="center">Local financial intelligence with deterministic spending controls.</h3>
 
 <p align="center">
-  <a href="#quick-start">Quick start</a> ·
-  <a href="#the-dashboard">Dashboard</a> ·
-  <a href="#the-decision-pipeline">Decision pipeline</a> ·
-  <a href="#security-and-financial-invariants">Safety model</a> ·
-  <a href="#contributing">Contributing</a>
+  | <a href="#quick-start"><b>Quick start</b></a>
+  | <a href="#what-is-in-the-repository"><b>Components</b></a>
+  | <a href="docs/architecture/README.md"><b>Architecture</b></a>
+  | <a href="docs/architecture/11-implementation-progress.md"><b>Project status</b></a>
+  | <a href="#contributing"><b>Contributing</b></a> |
 </p>
+
+---
 
 <p align="center">
   <img src="assets/alloc-dashboard-demo.png" alt="Alloc's Northstar dashboard showing synthetic company context, strategic proposals, a request awaiting human review, activity, and forecast summary." width="100%" />
 </p>
 
-<p align="center">
-  <code>LOCAL-FIRST</code> · <code>EXACT MONEY</code> · <code>HUMAN AUTHORITY</code> · <code>AUDITABLE ACTIONS</code>
-</p>
-
-Alloc connects company-wide financial context to deterministic spending controls, auditable action intents, and forecasts. A sandboxed agent may investigate and propose, but it never receives authority to alter policy, bypass a cap, or execute a financial action on its own.
+<p align="center"><i>Northstar Fieldworks dashboard · synthetic data · contract-validated mock API</i></p>
 
 > [!NOTE]
 > The dashboard above is the browser-verified Northstar **synthetic/mock** scenario. It demonstrates the current mock-client experience, not a live provider or complete live-backend dashboard.
 
-> **Current state:** contracts, the local MongoDB/API foundation, synthetic company data, mock dashboard, transactional financial core, scheduler/executor, relationships, and forecast work are implemented to the extent recorded in [implementation progress](docs/architecture/11-implementation-progress.md). Local-model/GB10 validation, live connectors, and complete live dashboard wiring remain gated work—not completed features.
+## About
 
-## Why Alloc
+Alloc connects company-wide financial context to deterministic spending controls, auditable action intents, and forecasts. It is designed for a local-first demo: a sandboxed agent may investigate and propose, but it never receives authority to alter policy, bypass a cap, or execute a financial action on its own.
+
+**Project status:** contracts, the local MongoDB/API foundation, synthetic company data, mock dashboard, transactional financial core, scheduler/executor, relationships, and forecast work are implemented to the extent recorded in [implementation progress](docs/architecture/11-implementation-progress.md). Local-model/GB10 validation, live connectors, and complete live dashboard wiring remain gated work—not completed features.
+
+## Capabilities
 
 Financial systems are often rich in context but poor at answering a simple operational question: *can we safely do this now, and why?* Alloc makes that decision legible without treating model output, retrieved documents, or a UI state as authority.
 
@@ -36,10 +38,6 @@ Financial systems are often rich in context but poor at answering a simple opera
 | Survive uncertainty | Persists idempotent commands, durable action intents, receipts, retries, and explicit reconciliation for ambiguous external outcomes. |
 | Keep AI bounded | Gives a local OpenClaw agent narrow, typed tools and backend-issued execution context; model-supplied text cannot become permission or policy. |
 | Make the future inspectable | Produces versioned forecast snapshots tied to source cutoffs and explains their inputs and revisions. |
-
-## The dashboard
-
-The browser dashboard makes a controlled financial decision readable in one frame: company context, scenario guidance, a request that has crossed a cumulative amendment rule, activity, and a forecast. It ships against contract-validated mock responses and covers all three synthetic companies; each live UI feature remains gated on its backend boundary.
 
 ## The decision pipeline
 
